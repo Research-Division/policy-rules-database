@@ -1,9 +1,11 @@
-# policy-rules-database
+# Policy Rules Database (PRD)
 The Policy Rules Database (PRD) is an open-source repository that contains up-to-date program rules and provisions for all major federal and state public assistance programs, tax provisions, and tax credits in a single easy-to-use database.
 
-The terms of the PRD use are defined by the GNU General Public Licene v3.0. If you are interested in alternative licensing arrangements, please contact elias.ilin@atl.frb.org
+Go to the PRD [website](https://www.atlantafed.org/economic-mobility-and-resilience/advancing-careers-for-low-income-families/policy-rules-database.aspx)
 
-To simplify the task of visualizing and understanding the U.S. social safety net, we have created the [Policy Rules Database (PRD) Dashboard](https://emar-data-tools.shinyapps.io/prd_dashboard/), a simple-to-use visualization tool that shows how all existing public assistance programs and tax credits come together to support any type of family in any location in the United States.
+Analyze the structure of the U.S. social safety net using the [Policy Rules Database (PRD) Dashboard](https://emar-data-tools.shinyapps.io/prd_dashboard/)
+
+The terms of the PRD use are defined by the GNU General Public Licene v3.0. If you are interested in alternative licensing arrangements, please contact elias.ilin@atl.frb.org
 
 Suggested citation:
 
