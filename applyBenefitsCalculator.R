@@ -8,7 +8,6 @@
 rm(list=ls())
 
 ## Setting your working directory----
-current_directory <- setwd("C:/Users/f1acs02/Dropbox (ATL FRB)/WorkForceDevProj/Documentation/Benefits & Expenses Database/programs")
 current_directory<-getwd()
 
 ## Load expense parameters ----
@@ -33,7 +32,7 @@ source(paste0(current_directory,"/functions/expense_functions.R"), local=TRUE) #
 source(paste0(current_directory,"/functions/BenefitsCalculator_functions.R"), local=TRUE) # Benefits Calculator functions
 
 # SPECIFY PROJECT----
-PROJECT<-"ALLHOME"
+PROJECT<-"TEST"
 
 ## 1. Settings----
 
@@ -119,6 +118,6 @@ data2<-data %>%
          , AfterTaxIncome, NetResources)
 
 
-#write.csv(data2, file = paste0(current_directory,"/output/results_",PROJECT, ".csv"), row.names = FALSE)
+write.csv(data2, file = paste0(current_directory,"/output/results_",PROJECT, ".csv"), row.names = FALSE)
 
 
