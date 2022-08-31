@@ -22,13 +22,10 @@ Contains main Policy Rules Database parameters files in RData format. These file
 
 The following files are located in this folder:
 
-a) benefit.parameters.RData - eligibility & benefits parameters for each public assistance programs and tax credit included into the PRD
-
-b) expenses.RData - parameters from the supplementary cost-of-living database that can be used to retrieve information required to implement PRD calculations
-
-c) parameters.defaults.RData - default parameters used elsewhere in the PRD calculations (such as number of school days, number of summer days etc)
-
-d) tables.RData - supplemental tables and crosswalks (e.g. SMIs, FPLs, state FIPS to state name mapping etc)
+1. benefit.parameters.RData - eligibility & benefits parameters for each public assistance programs and tax credit included into the PRD
+2. expenses.RData - parameters from the supplementary cost-of-living database that can be used to retrieve information required to implement PRD calculations
+3. parameters.defaults.RData - default parameters used elsewhere in the PRD calculations (such as number of school days, number of summer days etc)
+4. tables.RData - supplemental tables and crosswalks (e.g. SMIs, FPLs, state FIPS to state name mapping etc)
 
 
 **2. "prd_parameters_excel" folder**
@@ -42,9 +39,9 @@ Contains main Policy Rules Database functions written in R programming language.
 
 The following files are located in this folder:
 
-a) benefits_functions.R - functions that read-in PRD parameters and determine eligibility/calculate value of benefits for each public assistance program and tax credit contained in the PRD
-b) expense_functions.R - functions that assign default expenses using Cost of Living Database
-c) BenefitsCalculator_functions.R - higher-level program that aggregates smaller functions into blocks (Expenses, Childcare, Healthcare, Food and Housing, Taxes and Tax Credits, Other Benefits) 
+1. benefits_functions.R - functions that read-in PRD parameters and determine eligibility/calculate value of benefits for each public assistance program and tax credit contained in the PRD
+2. expense_functions.R - functions that assign default expenses using Cost of Living Database
+3. BenefitsCalculator_functions.R - higher-level program that aggregates smaller functions into blocks (Expenses, Childcare, Healthcare, Food and Housing, Taxes and Tax Credits, Other Benefits) 
 
 
 **4. applyBenefitsCalculator.R**
