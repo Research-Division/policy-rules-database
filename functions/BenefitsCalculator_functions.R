@@ -33,20 +33,7 @@ function.createData<-function(inputs){
   } 
 
   # Income sequence -ER: I think this is only for testing ? 8/30/22
-  # inputs$income<-seq(inputs$income_start,inputs$income_end,by=inputs$income_increase_by)
-  inputs$income1<-seq(inputs$income_start,inputs$income_end,by=inputs$income_increase_by)
-  # inputs$income2<-seq(inputs$income_start,inputs$income_end,by=inputs$income_increase_by)
-  #inputs$income3<-seq(inputs$income_start,inputs$income_end,by=inputs$income_increase_by)
-  #inputs$income4<-seq(inputs$income_start,inputs$income_end,by=inputs$income_increase_by)
-  #inputs$income5<-seq(inputs$income_start,inputs$income_end,by=inputs$income_increase_by)
-  #inputs$income6<-seq(inputs$income_start,inputs$income_end,by=inputs$income_increase_by)
-  #inputs$income7<-seq(inputs$income_start,inputs$income_end,by=inputs$income_increase_by)
-  #inputs$income8<-seq(inputs$income_start,inputs$income_end,by=inputs$income_increase_by)
-  #inputs$income9<-seq(inputs$income_start,inputs$income_end,by=inputs$income_increase_by)
-  #inputs$income10<-seq(inputs$income_start,inputs$income_end,by=inputs$income_increase_by)
-  #inputs$income11<-seq(inputs$income_start,inputs$income_end,by=inputs$income_increase_by)
-  #inputs$income12<-seq(inputs$income_start,inputs$income_end,by=inputs$income_increase_by)
-
+  inputs$income<-seq(inputs$income_start,inputs$income_end,by=inputs$income_increase_by)
   
   # variables for which you want to create different combinations
   data<-expand.grid(income = as.numeric(inputs$income)
