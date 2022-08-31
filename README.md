@@ -21,9 +21,13 @@ This folder contains the following files:
 Contains main Policy Rules Database parameters files in RData format. These files are then used by the PRD functions to produce the calculations
 
 The following files are located in this folder:
+
 a) benefit.parameters.RData - eligibility & benefits parameters for each public assistance programs and tax credit included into the PRD
+
 b) expenses.RData - parameters from the supplementary cost-of-living database that can be used to retrieve information required to implement PRD calculations
+
 c) parameters.defaults.RData - default parameters used elsewhere in the PRD calculations (such as number of school days, number of summer days etc)
+
 d) tables.RData - supplemental tables and crosswalks (e.g. SMIs, FPLs, state FIPS to state name mapping etc)
 
 
