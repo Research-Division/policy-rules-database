@@ -1,0 +1,261 @@
+
+##########################################################################
+# Inputs for Data Generation (leave blank if the data was pre-generated)
+##########################################################################
+
+# Specify rule year(s)
+
+ruleYear: [2022]
+
+
+# Specify year of the data (for inflation/deflation purposes)
+
+Year: [2022]
+
+
+# Age of each member of the household
+
+agePerson1: [25]
+
+agePerson2: [NA]
+
+agePerson3: [NA,2]
+
+agePerson4: [NA]
+
+agePerson5: [NA]
+
+agePerson6: [NA]
+
+agePerson7: [NA]
+
+agePerson8: [NA]
+
+agePerson9: [NA]
+
+agePerson10: [NA]
+
+agePerson11: [NA]
+
+agePerson12: [NA]
+
+
+# Disability status of each family member
+
+disability1: [1]
+
+disability2: [0]
+
+disability3: [0]
+
+disability4: [0]
+
+disability5: [0]
+
+disability6: [0]
+
+disability7: [0]
+
+disability8: [0]
+
+disability9: [0]
+
+disability10: [0]
+
+disability11: [0]
+
+disability12: [0]
+
+
+# Specify if a family member is blind
+
+blind1: [0]
+
+blind2: [0]
+
+blind3: [0]
+
+blind4: [0]
+
+blind5: [0]
+
+blind6: [0]
+
+blind7: [0]
+
+blind8: [0]
+
+blind9: [0]
+
+blind10: [0]
+
+blind11: [0]
+
+blind12: [0]
+
+
+# How much each adult in the home initially receives in SSDI payments
+
+ssdiPIA1: [1000]
+
+ssdiPIA2: [0]
+
+ssdiPIA3: [0]
+
+ssdiPIA4: [0]
+
+ssdiPIA5: [0]
+
+ssdiPIA6: [0]
+
+ssdiPIA7: [0]
+
+ssdiPIA8: [0]
+
+ssdiPIA9: [0]
+
+ssdiPIA10: [0]
+
+ssdiPIA11: [0]
+
+ssdiPIA12: [0]
+
+
+# Geographical location in the `Fulton County, GA' format (put 'all' of you want to add each county in the US)
+
+locations: ['all']
+
+
+# Income vector from income_start to income_end with income_increase_by intervals
+
+income_start: 1000
+
+income_end: 100000
+
+income_increase_by: 30000
+
+
+# Income from different sources
+
+income1: [0]
+
+income2: [0]
+
+income3: [0]
+
+income4: [0]
+
+income5: [0]
+
+income6: [0]
+
+income7: [0]
+
+income8: [0]
+
+income9: [0]
+
+income10: [0]
+
+income11: [0]
+
+income12: [0]
+
+income.investment: [0]
+
+income.gift: [0]
+
+income.child_support: [0]
+
+
+# Does job provide health insurance (1-yes/0-no)
+
+empl_healthcare: [0,1]
+
+
+# Do you own ('own') or rent ('rent') a house
+
+ownorrent: ['rent']
+
+
+# Assets  
+
+assets.cash: [0]
+
+assets.car1: [0]
+  
+
+# Other expenses
+  
+disab.work.exp: [0]
+  
+
+#####################################
+# Benefits Calculator Settings
+#####################################
+
+# Global settings
+
+k_ftorpt: FT #not used anywher in benefits calc right now
+
+schoolagesummercare: PT #don't change - ben calc not yet set up to handle FT
+
+headstart_ftorpt: PT #use the same for both headstart & earlyheadstart 
+
+preK_ftorpt: PT
+
+contelig.headstart: false
+
+contelig.earlyheadstart: false
+
+contelig.ccdf: true
+
+
+# Trasnfer programs switches
+
+APPLY_CHILDCARE: true
+
+APPLY_HEADSTART: true
+
+APPLY_CCDF: true
+
+APPLY_PREK: true
+
+APPLY_LIHEAP: true
+
+APPLY_HEALTHCARE: true
+
+APPLY_MEDICAID_ADULT: true
+
+APPLY_MEDICAID_CHILD: true
+
+APPLY_ACA: true
+
+APPLY_SECTION8: true
+
+APPLY_RAP: false
+
+APPLY_FRSP: false
+
+APPLY_SNAP: true
+
+APPLY_SLP: true
+
+APPLY_WIC: true
+
+APPLY_EITC: true
+
+APPLY_TAXES: true
+
+APPLY_CTC: true
+
+APPLY_CDCTC: true
+
+APPLY_FATES: false
+
+APPLY_TANF: true
+
+APPLY_SSI: true
+
+APPLY_SSDI: true
+
