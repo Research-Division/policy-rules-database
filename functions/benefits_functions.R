@@ -1004,10 +1004,11 @@ function.ssdiBenefit<-function(data){
                              ifelse(data$blind6==1 & data$income6>=data$ssdi_blind_sga, 0,
                                     ifelse(data$blind6==0 & data$income6>=data$ssdi_sga, 0 ,
                                            data$ssdiPIA6)))
+  
   # Largest ssdi amount between parents in the home
-  data$rank1<-case_when(data$married==1~rowMaxs(cbind(data$ssdiRecdMnth1,data$ssdiRecdMnth2),na.rm=TRUE)
-                        ,data$married==0~data$ssdiRecdMnth1
-                        ,TRUE~data$ssdiRecdMnth1) # when both values are the same amount
+  data$rank1<-case_when(data$married==1~as.numeric(rowMaxs(cbind(data$ssdiRecdMnth1,data$ssdiRecdMnth2),na.rm=TRUE))
+                        ,data$married==0~as.numeric(data$ssdiRecdMnth1)
+                        ,TRUE~as.numeric(data$ssdiRecdMnth1)) # when both values are the same amount
   
   # Count number of parents on SSDI
   data$countSSDI<-rowSums(cbind(data$ssdiRecdMnth1, data$ssdiRecdMnth2)>0, na.rm=TRUE) 
@@ -1037,12 +1038,12 @@ function.ssdiBenefit<-function(data){
                                ,data$married==1 & data$countSSDI==1 ~ rowSums(cbind(data$numkids,1),na.rm=TRUE)) # Spouse and kids receive aux benefit
   
   # PIA + potential Auxiliary benefits for Person1 (does not check if child was disabled before age of 22)
-  data$actualAuxandPIASpouse1<-case_when((data$married==1 & data$ssdiRecdMnth1==0 & data$ssdiRecdMnth2!=0) & (data$agePerson1>=62 | data$checkUnder16==1 | data$disabledkids!=0)~rowMaxs(cbind(data$receivesAux^-1*((0.5*data$ssdiRecdMnth2)+data$ssdiRecdMnth1),0),na.rm=TRUE) # No PIA for person1 only for person2
-                                         ,(data$married==1 & data$ssdiRecdMnth1!=0 & data$ssdiRecdMnth2==0) & (data$agePerson1>=62 | data$checkUnder16==1 | data$disabledkids!=0)~ data$ssdiRecdMnth1 # PIA for person1 no PIA for person2
-                                         ,(data$married==1 & data$numkids==0 & (data$ssdiRecdMnth1!=0 & data$ssdiRecdMnth2==0 | data$ssdiRecdMnth1!=0 & data$ssdiRecdMnth2!=0) ~ data$ssdiRecdMnth1) # No children No Auxiliary; only PIA for person1
-                                         ,(data$married==0 & data$ssdiRecdMnth1!=0 ~ data$ssdiRecdMnth1) # Not married No Auxiliary; only PIA
-                                         ,(data$married==1 & data$ssdiRecdMnth1!=0 & data$ssdiRecdMnth2!=0 & data$withheldAmount1!=0) & (data$agePerson2>=62 | data$checkUnder16==1 | data$disabledkids!=0)~rowMaxs(cbind((data$receivesAux^-1*(data$famMaxAmount-data$ssdiRecdMnth2))-data$ssdiRecdMnth1+data$ssdiRecdMnth1,0),na.rm=TRUE) # Person1 has lower PIA than Person2
-                                         ,(data$married==1 & data$ssdiRecdMnth1!=0 & data$ssdiRecdMnth2!=0 & data$withheldAmount1==0) & (data$agePerson2>=62 | data$checkUnder16==1 | data$disabledkids!=0)~rowSums(cbind(data$potentialBenSpouse1,data$ssdiRecdMnth1),na.rm=TRUE)# Person1 has higher PIA than Person2
+  data$actualAuxandPIASpouse1<-case_when((data$married==1 & data$ssdiRecdMnth1==0 & data$ssdiRecdMnth2!=0) & (data$agePerson1>=62 | data$checkUnder16==1 | data$disabledkids!=0)~as.numeric(rowMaxs(cbind(data$receivesAux^-1*((0.5*data$ssdiRecdMnth2)+data$ssdiRecdMnth1),0),na.rm=TRUE)) # No PIA for person1 only for person2
+                                         ,(data$married==1 & data$ssdiRecdMnth1!=0 & data$ssdiRecdMnth2==0) & (data$agePerson1>=62 | data$checkUnder16==1 | data$disabledkids!=0)~ as.numeric(data$ssdiRecdMnth1) # PIA for person1 no PIA for person2
+                                         ,(data$married==1 & data$numkids==0 & (data$ssdiRecdMnth1!=0 & data$ssdiRecdMnth2==0 | data$ssdiRecdMnth1!=0 & data$ssdiRecdMnth2!=0) ~ as.numeric(data$ssdiRecdMnth1)) # No children No Auxiliary; only PIA for person1
+                                         ,(data$married==0 & data$ssdiRecdMnth1!=0 ~ as.numeric(data$ssdiRecdMnth1)) # Not married No Auxiliary; only PIA
+                                         ,(data$married==1 & data$ssdiRecdMnth1!=0 & data$ssdiRecdMnth2!=0 & data$withheldAmount1!=0) & (data$agePerson2>=62 | data$checkUnder16==1 | data$disabledkids!=0)~as.numeric(rowMaxs(cbind((data$receivesAux^-1*(data$famMaxAmount-data$ssdiRecdMnth2))-data$ssdiRecdMnth1+data$ssdiRecdMnth1,0),na.rm=TRUE)) # Person1 has lower PIA than Person2
+                                         ,(data$married==1 & data$ssdiRecdMnth1!=0 & data$ssdiRecdMnth2!=0 & data$withheldAmount1==0) & (data$agePerson2>=62 | data$checkUnder16==1 | data$disabledkids!=0)~as.numeric(rowSums(cbind(data$potentialBenSpouse1,data$ssdiRecdMnth1),na.rm=TRUE))# Person1 has higher PIA than Person2
                                          ,TRUE~0
   )
   # PIA + potential Auxiliary benefits for Person2 (does not check if child was disabled before age of 22)
@@ -1595,6 +1596,10 @@ function.ssiBenefit<-function(data){
   data$value.ssiChild5<-case_when(data$disabledkids>=5 & subset0==FALSE ~ (data$child.ssi.recd/data$disabledkids)*12, TRUE~0)
   data$value.ssiChild6<-case_when(data$disabledkids>=6 & subset0==FALSE ~ (data$child.ssi.recd/data$disabledkids)*12, TRUE~0)
   
+  # State-Specific SSP rules
+  # CT
+  
+  
   data.ssi<-data%>%
     select(value.ssi,value.ssiAdlt1,value.ssiAdlt2,value.ssiAdlt3,value.ssiAdlt4,value.ssiAdlt5,value.ssiAdlt6
            ,value.ssiChild1,value.ssiChild2,value.ssiChild3,value.ssiChild4,value.ssiChild5,value.ssiChild6
@@ -1615,9 +1620,7 @@ function.ssiBenefit<-function(data){
   #   
   #   write.csv(returnData,paste0(getwd(),"/WorkForceDevProj/Documentation/Benefits & Expenses Database/programs/Output/SSI_Output_ManyChildrenOneParents.csv"),row.names=FALSE)
   # }
-  # 
   # outputTest(data)
-  
   
   return(data.ssi)
   
