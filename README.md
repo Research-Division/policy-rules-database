@@ -10,7 +10,7 @@ The terms of the PRD use are defined by the GNU General Public Licene v3.0. If y
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-Suggested citation:
+**Suggested citation:**
 
 Ilin, Elias and Ellyn Terry. 2021. 'The Policy Rules Database.' Federal Reserve Bank of Atlanta.
 Available at www.frbatlanta.org/economic-mobility-and-resilience/advancing-careers-forlow-income-families/policy-rules-database.aspx. 
