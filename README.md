@@ -5,7 +5,7 @@ To learn more, go to the [PRD website](https://www.atlantafed.org/economic-mobil
 
 Analyze the structure of the U.S. social safety net using [PRD Dashboard](https://emar-data-tools.shinyapps.io/prd_dashboard/)
 
-The terms of the PRD use are defined by the GNU General Public Licene v3.0. If you are interested in alternative licensing arrangements, please contact elias.ilin@atl.frb.org
+The terms of the PRD use are defined by the GNU General Public Licence v3.0. If you are interested in alternative licensing arrangements, please contact elias.ilin@atl.frb.org
 
 **Suggested citation:**
 
