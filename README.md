@@ -16,7 +16,7 @@ Available at www.frbatlanta.org/economic-mobility-and-resilience/advancing-caree
 
 This folder contains the following files:
 
-**1. "PRD Technical Manual.PDF"**
+**1. "PRD Technical Manual.pdf"**
 
 This document provides detailed information on each public assistance program and tax credit included to the PRD. The document also describes the programming steps necessary to implement the calculations for each program in any programming language.
 
