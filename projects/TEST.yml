@@ -67,7 +67,7 @@ disability11: [0]
 disability12: [0]
 
 
-# Specify if a family member is blind
+# Specify if any of adult family members (persons 1 to 6) are blind
 
 blind1: [0]
 
@@ -81,20 +81,9 @@ blind5: [0]
 
 blind6: [0]
 
-blind7: [0]
-
-blind8: [0]
-
-blind9: [0]
-
-blind10: [0]
-
-blind11: [0]
-
-blind12: [0]
 
 
-# How much each adult in the home initially receives in SSDI payments
+# How much each adult family members (persons 1 to 6) initially receives in SSDI payments
 
 ssdiPIA1: [1000]
 
@@ -108,22 +97,11 @@ ssdiPIA5: [0]
 
 ssdiPIA6: [0]
 
-ssdiPIA7: [0]
-
-ssdiPIA8: [0]
-
-ssdiPIA9: [0]
-
-ssdiPIA10: [0]
-
-ssdiPIA11: [0]
-
-ssdiPIA12: [0]
 
 
 # Geographical location in the `Fulton County, GA' format (put 'all' of you want to add each county in the US)
 
-locations: ['all']
+locations: ['Fulton County, GA']
 
 
 # Income vector from income_start to income_end with income_increase_by intervals
@@ -136,30 +114,6 @@ income_increase_by: 30000
 
 
 # Income from different sources
-
-income1: [0]
-
-income2: [0]
-
-income3: [0]
-
-income4: [0]
-
-income5: [0]
-
-income6: [0]
-
-income7: [0]
-
-income8: [0]
-
-income9: [0]
-
-income10: [0]
-
-income11: [0]
-
-income12: [0]
 
 income.investment: [0]
 
