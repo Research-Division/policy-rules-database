@@ -46,23 +46,27 @@ function.tanfBenefit<-function(data){
           temp_1 <- temp[temp$careerpathID == 2,]
           temp_2 <- temp[temp$careerpathID == 1,]
           
-          temp_1$count_tanf <- 0
-          temp_1$row_tanf <- 0
-          temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
-          for(i in 1:length(temp_1$tanfValue)){
-            temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
+          if(nrow(temp_1)>0){
+            temp_1$count_tanf <- 0
+            temp_1$row_tanf <- 0
+            temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
+            for(i in 1:length(temp_1$tanfValue)){
+              temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
+            }
+            temp_1$tanfValue[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
+            temp_1$tanfValue[2] <- 0.75*temp_1$tanfValue[2]
           }
-          temp_1$tanfValue[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
-          temp_1$tanfValue[2] <- 0.75*temp_1$tanfValue[2]
           
-          temp_2$count_tanf <- 0
-          temp_2$row_tanf <- 0
-          temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
-          for(i in 1:length(temp_2$tanfValue)){
-            temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
+          if(nrow(temp_2)>0){
+            temp_2$count_tanf <- 0
+            temp_2$row_tanf <- 0
+            temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
+            for(i in 1:length(temp_2$tanfValue)){
+              temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
+            }
+            temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
+            temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
           }
-          temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
-          temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
           
           temp <- rbind(temp_1, temp_2)
           
@@ -123,23 +127,27 @@ function.tanfBenefit<-function(data){
           temp_1 <- temp[temp$careerpathID == 2,]
           temp_2 <- temp[temp$careerpathID == 1,]
           
-          temp_1$count_tanf <- 0
-          temp_1$row_tanf <- 0
-          temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
-          for(i in 1:length(temp_1$tanfValue)){
-            temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
+          if(nrow(temp_1)>0){
+            temp_1$count_tanf <- 0
+            temp_1$row_tanf <- 0
+            temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
+            for(i in 1:length(temp_1$tanfValue)){
+              temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
+            }
+            temp_1$tanfValue[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
+            temp_1$tanfValue[2] <- 0.75*temp_1$tanfValue[2]
           }
-          temp_1$tanfValue[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
-          temp_1$tanfValue[2] <- 0.75*temp_1$tanfValue[2]
           
-          temp_2$count_tanf <- 0
-          temp_2$row_tanf <- 0
-          temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
-          for(i in 1:length(temp_2$tanfValue)){
-            temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
+          if(nrow(temp_2)>0){
+            temp_2$count_tanf <- 0
+            temp_2$row_tanf <- 0
+            temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
+            for(i in 1:length(temp_2$tanfValue)){
+              temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
+            }
+            temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
+            temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
           }
-          temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
-          temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
           
           temp <- rbind(temp_1, temp_2)
           
@@ -192,23 +200,27 @@ function.tanfBenefit<-function(data){
           temp_1 <- temp[temp$careerpathID == 2,]
           temp_2 <- temp[temp$careerpathID == 1,]
           
-          temp_1$count_tanf <- 0
-          temp_1$row_tanf <- 0
-          temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
-          for(i in 1:length(temp_1$tanfValue)){
-            temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
+          if(nrow(temp_1)>0){
+            temp_1$count_tanf <- 0
+            temp_1$row_tanf <- 0
+            temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
+            for(i in 1:length(temp_1$tanfValue)){
+              temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
+            }
+            temp_1$tanfValue[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
+            temp_1$tanfValue[2] <- 0.75*temp_1$tanfValue[2]
           }
-          temp_1$tanfValue[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
-          temp_1$tanfValue[2] <- 0.75*temp_1$tanfValue[2]
           
-          temp_2$count_tanf <- 0
-          temp_2$row_tanf <- 0
-          temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
-          for(i in 1:length(temp_2$tanfValue)){
-            temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
+          if(nrow(temp_2)>0){
+            temp_2$count_tanf <- 0
+            temp_2$row_tanf <- 0
+            temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
+            for(i in 1:length(temp_2$tanfValue)){
+              temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
+            }
+            temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
+            temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
           }
-          temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
-          temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
           
           temp <- rbind(temp_1, temp_2)
           
@@ -256,23 +268,27 @@ function.tanfBenefit<-function(data){
           temp_1 <- temp[temp$careerpathID == 2,]
           temp_2 <- temp[temp$careerpathID == 1,]
           
-          temp_1$count_tanf <- 0
-          temp_1$row_tanf <- 0
-          temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
-          for(i in 1:length(temp_1$tanfValue)){
-            temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
+          if(nrow(temp_1)>0){
+            temp_1$count_tanf <- 0
+            temp_1$row_tanf <- 0
+            temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
+            for(i in 1:length(temp_1$tanfValue)){
+              temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
+            }
+            temp_1$tanfValue[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
+            temp_1$tanfValue[2] <- 0.75*temp_1$tanfValue[2]
           }
-          temp_1$tanfValue[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
-          temp_1$tanfValue[2] <- 0.75*temp_1$tanfValue[2]
           
-          temp_2$count_tanf <- 0
-          temp_2$row_tanf <- 0
-          temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
-          for(i in 1:length(temp_2$tanfValue)){
-            temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
+          if(nrow(temp_2)>0){
+            temp_2$count_tanf <- 0
+            temp_2$row_tanf <- 0
+            temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
+            for(i in 1:length(temp_2$tanfValue)){
+              temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
+            }
+            temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
+            temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
           }
-          temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
-          temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
           
           temp <- rbind(temp_1, temp_2)
           
@@ -364,23 +380,27 @@ function.tanfBenefit<-function(data){
           temp_1 <- temp[temp$careerpathID == 2,]
           temp_2 <- temp[temp$careerpathID == 1,]
           
-          temp_1$count_tanf <- 0
-          temp_1$row_tanf <- 0
-          temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
-          for(i in 1:length(temp_1$tanfValue)){
-            temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
+          if(nrow(temp_1)>0){
+            temp_1$count_tanf <- 0
+            temp_1$row_tanf <- 0
+            temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
+            for(i in 1:length(temp_1$tanfValue)){
+              temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
+            }
+            temp_1$tanfValue[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
+            temp_1$tanfValue[2] <- 0.75*temp_1$tanfValue[2]
           }
-          temp_1$tanfValue[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
-          temp_1$tanfValue[2] <- 0.75*temp_1$tanfValue[2]
           
-          temp_2$count_tanf <- 0
-          temp_2$row_tanf <- 0
-          temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
-          for(i in 1:length(temp_2$tanfValue)){
-            temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
+          if(nrow(temp_2)>0){
+            temp_2$count_tanf <- 0
+            temp_2$row_tanf <- 0
+            temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
+            for(i in 1:length(temp_2$tanfValue)){
+              temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
+            }
+            temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
+            temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
           }
-          temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
-          temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
           
           temp <- rbind(temp_1, temp_2)
           
@@ -434,23 +454,27 @@ function.tanfBenefit<-function(data){
           temp_1 <- temp[temp$careerpathID == 2,]
           temp_2 <- temp[temp$careerpathID == 1,]
           
-          temp_1$count_tanf <- 0
-          temp_1$row_tanf <- 0
-          temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
-          for(i in 1:length(temp_1$tanfValue)){
-            temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
+          if(nrow(temp_1)>0){
+            temp_1$count_tanf <- 0
+            temp_1$row_tanf <- 0
+            temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
+            for(i in 1:length(temp_1$tanfValue)){
+              temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
+            }
+            temp_1$tanfValue[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
+            temp_1$tanfValue[2] <- 0.75*temp_1$tanfValue[2]
           }
-          temp_1$tanfValue[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
-          temp_1$tanfValue[2] <- 0.75*temp_1$tanfValue[2]
           
-          temp_2$count_tanf <- 0
-          temp_2$row_tanf <- 0
-          temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
-          for(i in 1:length(temp_2$tanfValue)){
-            temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
+          if(nrow(temp_2)>0){
+            temp_2$count_tanf <- 0
+            temp_2$row_tanf <- 0
+            temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
+            for(i in 1:length(temp_2$tanfValue)){
+              temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
+            }
+            temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
+            temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
           }
-          temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
-          temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
           
           temp <- rbind(temp_1, temp_2)
           
@@ -498,23 +522,27 @@ function.tanfBenefit<-function(data){
           temp_1 <- temp[temp$careerpathID == 2,]
           temp_2 <- temp[temp$careerpathID == 1,]
           
-          temp_1$count_tanf <- 0
-          temp_1$row_tanf <- 0
-          temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
-          for(i in 1:length(temp_1$tanfValue)){
-            temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
+          if(nrow(temp_1)>0){
+            temp_1$count_tanf <- 0
+            temp_1$row_tanf <- 0
+            temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
+            for(i in 1:length(temp_1$tanfValue)){
+              temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
+            }
+            temp_1$tanfValue[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
+            temp_1$tanfValue[2] <- 0.75*temp_1$tanfValue[2]
           }
-          temp_1$tanfValue[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
-          temp_1$tanfValue[2] <- 0.75*temp_1$tanfValue[2]
           
-          temp_2$count_tanf <- 0
-          temp_2$row_tanf <- 0
-          temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
-          for(i in 1:length(temp_2$tanfValue)){
-            temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
+          if(nrow(temp_2)>0){
+            temp_2$count_tanf <- 0
+            temp_2$row_tanf <- 0
+            temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
+            for(i in 1:length(temp_2$tanfValue)){
+              temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
+            }
+            temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
+            temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
           }
-          temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
-          temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
           
           temp <- rbind(temp_1, temp_2)
           
@@ -562,23 +590,27 @@ function.tanfBenefit<-function(data){
           temp_1 <- temp[temp$careerpathID == 2,]
           temp_2 <- temp[temp$careerpathID == 1,]
           
-          temp_1$count_tanf <- 0
-          temp_1$row_tanf <- 0
-          temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
-          for(i in 1:length(temp_1$tanfValue)){
-            temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
+          if(nrow(temp_1)>0){
+            temp_1$count_tanf <- 0
+            temp_1$row_tanf <- 0
+            temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
+            for(i in 1:length(temp_1$tanfValue)){
+              temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
+            }
+            temp_1$tanfValue[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
+            temp_1$tanfValue[2] <- 0.75*temp_1$tanfValue[2]
           }
-          temp_1$tanfValue[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
-          temp_1$tanfValue[2] <- 0.75*temp_1$tanfValue[2]
           
-          temp_2$count_tanf <- 0
-          temp_2$row_tanf <- 0
-          temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
-          for(i in 1:length(temp_2$tanfValue)){
-            temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
+          if(nrow(temp_2)>0){
+            temp_2$count_tanf <- 0
+            temp_2$row_tanf <- 0
+            temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
+            for(i in 1:length(temp_2$tanfValue)){
+              temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
+            }
+            temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
+            temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
           }
-          temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
-          temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
           
           temp <- rbind(temp_1, temp_2)
           
@@ -679,23 +711,27 @@ function.tanfBenefit<-function(data){
           temp_1 <- temp[temp$careerpathID == 2,]
           temp_2 <- temp[temp$careerpathID == 1,]
           
-          temp_1$count_tanf <- 0
-          temp_1$row_tanf <- 0
-          temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
-          for(i in 1:length(temp_1$tanfValue)){
-            temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
+          if(nrow(temp_1)>0){
+            temp_1$count_tanf <- 0
+            temp_1$row_tanf <- 0
+            temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
+            for(i in 1:length(temp_1$tanfValue)){
+              temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
+            }
+            temp_1$tanfValue[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
+            temp_1$tanfValue[2] <- 0.75*temp_1$tanfValue[2]
           }
-          temp_1$tanfValue[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
-          temp_1$tanfValue[2] <- 0.75*temp_1$tanfValue[2]
           
-          temp_2$count_tanf <- 0
-          temp_2$row_tanf <- 0
-          temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
-          for(i in 1:length(temp_2$tanfValue)){
-            temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
+          if(nrow(temp_2)>0){
+            temp_2$count_tanf <- 0
+            temp_2$row_tanf <- 0
+            temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
+            for(i in 1:length(temp_2$tanfValue)){
+              temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
+            }
+            temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
+            temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
           }
-          temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
-          temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
           
           temp <- rbind(temp_1, temp_2)
           
@@ -744,23 +780,27 @@ function.tanfBenefit<-function(data){
           temp_1 <- temp[temp$careerpathID == 2,]
           temp_2 <- temp[temp$careerpathID == 1,]
           
-          temp_1$count_tanf <- 0
-          temp_1$row_tanf <- 0
-          temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
-          for(i in 1:length(temp_1$tanfValue)){
-            temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
+          if(nrow(temp_1)>0){
+            temp_1$count_tanf <- 0
+            temp_1$row_tanf <- 0
+            temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
+            for(i in 1:length(temp_1$tanfValue)){
+              temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
+            }
+            temp_1$tanfValue[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
+            temp_1$tanfValue[2] <- 0.75*temp_1$tanfValue[2]
           }
-          temp_1$tanfValue[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
-          temp_1$tanfValue[2] <- 0.75*temp_1$tanfValue[2]
           
-          temp_2$count_tanf <- 0
-          temp_2$row_tanf <- 0
-          temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
-          for(i in 1:length(temp_2$tanfValue)){
-            temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
+          if(nrow(temp_2)>0){
+            temp_2$count_tanf <- 0
+            temp_2$row_tanf <- 0
+            temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
+            for(i in 1:length(temp_2$tanfValue)){
+              temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
+            }
+            temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
+            temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
           }
-          temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
-          temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
           
           temp <- rbind(temp_1, temp_2)
           
@@ -780,6 +820,11 @@ function.tanfBenefit<-function(data){
     if(47 %in% unique(data$stateFIPS)){ # make sure that state is in the list
       
       temp<-data[data$stateFIPS==47,]
+      
+      tanfData$grossIncomeTest[tanfData$stateFIPS == 47] <- c(21672, 30420, 34392, 38892, 41844, 44604, 47088, 49572, 52056, 54540, 57024, 59058)
+      tanfData$Value[tanfData$stateFIPS == 47] <- c(244, 343,387, 438, 471, 502, 530, 558, 586, 614, 642, 670)
+      
+      
       
       temp<-left_join(temp, tanfData, by=c("stateFIPS", "famsize"))
       
@@ -809,23 +854,27 @@ function.tanfBenefit<-function(data){
           temp_1 <- temp[temp$careerpathID == 2,]
           temp_2 <- temp[temp$careerpathID == 1,]
           
-          temp_1$count_tanf <- 0
-          temp_1$row_tanf <- 0
-          temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
-          for(i in 1:length(temp_1$tanfValue)){
-            temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
+          if(nrow(temp_1)>0){
+            temp_1$count_tanf <- 0
+            temp_1$row_tanf <- 0
+            temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
+            for(i in 1:length(temp_1$tanfValue)){
+              temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
+            }
+            temp_1$tanfValue[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
+            temp_1$tanfValue[2] <- 0.75*temp_1$tanfValue[2]
           }
-          temp_1$tanfValue[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
-          temp_1$tanfValue[2] <- 0.75*temp_1$tanfValue[2]
           
-          temp_2$count_tanf <- 0
-          temp_2$row_tanf <- 0
-          temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
-          for(i in 1:length(temp_2$tanfValue)){
-            temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
+          if(nrow(temp_2)>0){
+            temp_2$count_tanf <- 0
+            temp_2$row_tanf <- 0
+            temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
+            for(i in 1:length(temp_2$tanfValue)){
+              temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
+            }
+            temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
+            temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
           }
-          temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
-          temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
           
           temp <- rbind(temp_1, temp_2)
           
@@ -871,14 +920,36 @@ function.tanfBenefit<-function(data){
       
       if(nrow(data)>1){
         if(data$Year[1] != data$Year[2]){
+          
           abc <- 1
-          temp$count_tanf <- 0
-          temp$row_tanf <- 0
-          temp$count_tanf[temp$tanfValue > 0] <- 1
-          for(i in 1:length(temp$tanfValue)){
-            temp$row_tanf[i] <- sum(temp$count_tanf[1:i])
+          
+          temp_1 <- temp[temp$careerpathID == 2,]
+          temp_2 <- temp[temp$careerpathID == 1,]
+          
+          if(nrow(temp_1)>0){
+            temp_1$count_tanf <- 0
+            temp_1$row_tanf <- 0
+            temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
+            for(i in 1:length(temp_1$tanfValue)){
+              temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
+            }
+            temp_1$tanfValue[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
+            temp_1$tanfValue[2] <- 0.75*temp_1$tanfValue[2]
           }
-          temp$tanfValue[temp$row_tanf > (temp$timeLimit/12)] <- 0
+          
+          if(nrow(temp_2)>0){
+            temp_2$count_tanf <- 0
+            temp_2$row_tanf <- 0
+            temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
+            for(i in 1:length(temp_2$tanfValue)){
+              temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
+            }
+            temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
+            temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
+          }
+          
+          temp <- rbind(temp_1, temp_2)
+          
         }else{
           abc <- 0
         }
@@ -924,23 +995,27 @@ function.tanfBenefit<-function(data){
           temp_1 <- temp[temp$careerpathID == 2,]
           temp_2 <- temp[temp$careerpathID == 1,]
           
-          temp_1$count_tanf <- 0
-          temp_1$row_tanf <- 0
-          temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
-          for(i in 1:length(temp_1$tanfValue)){
-            temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
+          if(nrow(temp_1)>0){
+            temp_1$count_tanf <- 0
+            temp_1$row_tanf <- 0
+            temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
+            for(i in 1:length(temp_1$tanfValue)){
+              temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
+            }
+            temp_1$tanfValue[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
+            temp_1$tanfValue[2] <- 0.75*temp_1$tanfValue[2]
           }
-          temp_1$tanfValue[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
-          temp_1$tanfValue[2] <- 0.75*temp_1$tanfValue[2]
           
-          temp_2$count_tanf <- 0
-          temp_2$row_tanf <- 0
-          temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
-          for(i in 1:length(temp_2$tanfValue)){
-            temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
+          if(nrow(temp_2)>0){
+            temp_2$count_tanf <- 0
+            temp_2$row_tanf <- 0
+            temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
+            for(i in 1:length(temp_2$tanfValue)){
+              temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
+            }
+            temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
+            temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
           }
-          temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
-          temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
           
           temp <- rbind(temp_1, temp_2)
           
@@ -1130,12 +1205,6 @@ function.ssiBenefit<-function(data){
   data$ann.earned.income4<-ifelse(data$agePerson4>=18, data$income4, 0)
   data$ann.earned.income5<-ifelse(data$agePerson5>=18, data$income5, 0)
   data$ann.earned.income6<-ifelse(data$agePerson6>=18, data$income6, 0)
-  data$ann.earned.income7<-ifelse(data$agePerson7>=18, data$income7, 0)
-  data$ann.earned.income8<-ifelse(data$agePerson8>=18, data$income8, 0)
-  data$ann.earned.income9<-ifelse(data$agePerson9>=18, data$income9, 0)
-  data$ann.earned.income10<-ifelse(data$agePerson10>=18, data$income10, 0)
-  data$ann.earned.income11<-ifelse(data$agePerson11>=18, data$income11, 0)
-  data$ann.earned.income12<-ifelse(data$agePerson12>=18, data$income12, 0)
   
     # 2b. Monthly Countable Earned Income
   data$month.earned.income1<-data$ann.earned.income1 / 12
@@ -1144,12 +1213,6 @@ function.ssiBenefit<-function(data){
   data$month.earned.income4<-data$ann.earned.income4 / 12
   data$month.earned.income5<-data$ann.earned.income5 / 12
   data$month.earned.income6<-data$ann.earned.income6 / 12
-  data$month.earned.income7<-data$ann.earned.income7 / 12
-  data$month.earned.income8<-data$ann.earned.income8 / 12
-  data$month.earned.income9<-data$ann.earned.income9 / 12
-  data$month.earned.income10<-data$ann.earned.income10 / 12
-  data$month.earned.income11<-data$ann.earned.income11 / 12
-  data$month.earned.income12<-data$ann.earned.income12 / 12
   
   # Step 3a: Calculate annual and monthly total countable unearned income for each person in the home
     # annual countable unearned income - SSI counts child support as income for the child so it is not included here, instead in Step 11
@@ -1159,12 +1222,6 @@ function.ssiBenefit<-function(data){
   data$ann.unearned.income4<-rowSums(cbind(data$gift.distr, data$investment.distr),na.rm=TRUE)
   data$ann.unearned.income5<-rowSums(cbind(data$gift.distr, data$investment.distr),na.rm=TRUE)
   data$ann.unearned.income6<-rowSums(cbind(data$gift.distr, data$investment.distr),na.rm=TRUE)
-  data$ann.unearned.income7<-rowSums(cbind(data$gift.distr, data$investment.distr),na.rm=TRUE)
-  data$ann.unearned.income8<-rowSums(cbind(data$gift.distr, data$investment.distr),na.rm=TRUE)
-  data$ann.unearned.income9<-rowSums(cbind(data$gift.distr, data$investment.distr),na.rm=TRUE)
-  data$ann.unearned.income10<-rowSums(cbind(data$gift.distr, data$investment.distr),na.rm=TRUE)
-  data$ann.unearned.income11<-rowSums(cbind(data$gift.distr, data$investment.distr),na.rm=TRUE)
-  data$ann.unearned.income12<-rowSums(cbind(data$gift.distr, data$investment.distr),na.rm=TRUE)
   
   # children don't earn any income
   if(is.na(data$agePerson2)||data$agePerson2<18){
@@ -1182,24 +1239,6 @@ function.ssiBenefit<-function(data){
   if(is.na(data$agePerson6)||data$agePerson6<18){
     data$ann.unearned.income6<-0
   }
-  if(is.na(data$agePerson7)||data$agePerson7<18){
-    data$ann.unearned.income7<-0
-  }
-  if(is.na(data$agePerson8)||data$agePerson8<18){
-    data$ann.unearned.income8<-0
-  }
-  if(is.na(data$agePerson9)||data$agePerson9<18){
-    data$ann.unearned.income9<-0
-  }
-  if(is.na(data$agePerson10)||data$agePerson10<18){
-    data$ann.unearned.income10<-0
-  }
-  if(is.na(data$agePerson11)||data$agePerson11<18){
-    data$ann.unearned.income11<-0
-  }
-  if(is.na(data$agePerson12)||data$agePerson12<18){
-    data$ann.unearned.income12<-0
-  }
   
     # 3b. Monthly countable assets unearned income
   data$month.unearned.income1<- data$ann.unearned.income1 / 12
@@ -1208,12 +1247,6 @@ function.ssiBenefit<-function(data){
   data$month.unearned.income4<- data$ann.unearned.income4 / 12
   data$month.unearned.income5<- data$ann.unearned.income5 / 12
   data$month.unearned.income6<- data$ann.unearned.income6 / 12
-  data$month.unearned.income7<- data$ann.unearned.income7 / 12
-  data$month.unearned.income8<- data$ann.unearned.income8 / 12
-  data$month.unearned.income9<- data$ann.unearned.income9 / 12
-  data$month.unearned.income10<- data$ann.unearned.income10 / 12
-  data$month.unearned.income11<- data$ann.unearned.income11 / 12
-  data$month.unearned.income12<- data$ann.unearned.income12 / 12
   
   # Step 4: Calculate annual total countable assets -- THIS ASSUMES THESE ASSETS ARE ANNUAL 
   data$countable.assets<-rowSums(cbind(data$assets.cash, data$assets.car1), na.rm = TRUE) 
@@ -1399,7 +1432,7 @@ function.ssiBenefit<-function(data){
   data$ssi.income[subset2.4B]<-rowSums(cbind(data$ssi.income_1[subset2.4B], data$ssi.income[subset2.4B]),na.rm=TRUE)
   data$value.ssi.mnth[subset2.4B]<-rowSums(cbind(data$value.ssi.mnth_1[subset2.4B], data$value.ssi.mnth[subset2.4B]),na.rm=TRUE)
   
-    # Calculations for adults 3-5 with disability if there is a married couple where one spouse has a disability and the other doesn't 
+    # Calculations for adults 3-6 with disability if there is a married couple where one spouse has a disability and the other doesn't 
     # (different rules per Step 7 compared to where both spouses have a disability)
   subset2.1C<-(data$disability3==1 & !is.na(data$disability3)) & (data$agePerson3>18 & !is.na(data$agePerson3)) & (subset3==TRUE | subset3.1==TRUE)
   data$included.unearned.income[subset2.1C]<-rowMaxs(cbind((data$month.unearned.income3[subset2.1C]-data$income_disregard[subset2.1C]),0),na.rm=TRUE) 
@@ -1441,7 +1474,7 @@ function.ssiBenefit<-function(data){
   data$ssi.income[subset2.4C]<-rowSums(cbind(data$ssi.income_1[subset2.4C], data$ssi.income[subset2.4C]),na.rm=TRUE)
   data$value.ssi.mnth[subset2.4C]<-rowSums(cbind(data$value.ssi.mnth_1[subset2.4C], data$value.ssi.mnth[subset2.4C]),na.rm=TRUE)
   
-  # Calculations for adults 3-5 when Persons 1-2 are married but neither have a disability
+  # Calculations for adults 3-6 when Persons 1-2 are married but neither have a disability
   subset2.4<-data$married==1 & (data$disability1==0 & !is.na(data$disability1)) & (data$disability2==0 & !is.na(data$disability2)) & (data$disability3==1 & !is.na(data$disability3)) & (data$agePerson3>18 & !is.na(data$agePerson3))
   data$included.unearned.income[subset2.4]<-rowMaxs(cbind((data$month.unearned.income3[subset2.4]-data$income_disregard[subset2.4]),0),na.rm=TRUE) 
   data$remain.disregard[subset2.4]<-rowMaxs(cbind((data$income_disregard[subset2.4]-data$month.unearned.income3[subset2.4]),0),na.rm=TRUE)
@@ -1488,7 +1521,7 @@ function.ssiBenefit<-function(data){
   
   # Step 10: Count number of SSI-eligible parents of eligible child and factor in allocations
   data$num.parents<-ifelse(data$married==1,2,1)
-  data$parent1.tanf<-ifelse(data$value.tanf>0, 1, 0) 
+  data$parent1.tanf<-ifelse(data$value.tanf & data$value.tanf>0, 1, 0) 
   data$parent2.tanf<-ifelse(data$value.tanf>0 & data$married==1, 1, 0) # If family receives tanf and married, then assume both parents receive tanf
   
   data$deemable.parents.ssi<-rowMaxs(cbind(data$num.parents-rowMaxs(cbind(data$parent1.ssi,data$parent1.tanf,0))-rowMaxs(cbind(data$parent2.ssi,data$parent2.tanf,0)),0))
@@ -1595,11 +1628,7 @@ function.ssiBenefit<-function(data){
   data$value.ssiChild4<-case_when(data$disabledkids>=4 & subset0==FALSE ~ (data$child.ssi.recd/data$disabledkids)*12, TRUE~0)
   data$value.ssiChild5<-case_when(data$disabledkids>=5 & subset0==FALSE ~ (data$child.ssi.recd/data$disabledkids)*12, TRUE~0)
   data$value.ssiChild6<-case_when(data$disabledkids>=6 & subset0==FALSE ~ (data$child.ssi.recd/data$disabledkids)*12, TRUE~0)
-  
-  # State-Specific SSP rules
-  # CT
-  
-  
+
   data.ssi<-data%>%
     select(value.ssi,value.ssiAdlt1,value.ssiAdlt2,value.ssiAdlt3,value.ssiAdlt4,value.ssiAdlt5,value.ssiAdlt6
            ,value.ssiChild1,value.ssiChild2,value.ssiChild3,value.ssiChild4,value.ssiChild5,value.ssiChild6
@@ -1625,8 +1654,6 @@ function.ssiBenefit<-function(data){
   return(data.ssi)
   
 }
-
-
 
 # Supplemental Nutrition Assistance Program (SNAP)----
 
@@ -1793,43 +1820,54 @@ function.section8Benefit<-function(data){
     
     data$income.countable= data$income + data$income.gift + data$value.tanf + data$value.ssi + data$value.ssdi + data$income.child_support
     
-    # $400 Flat Deduction for a disabled family  ER: SHOULD WE INCLUDE CHILDREN?
+    # $400 Annual Flat Deduction for a disabled family  
     data$disabilityDeduction<-ifelse(data$disability1==1 | data$disability2==1| data$disability3==1 | data$disability4==1 | data$disability5==1 | data$disability6==1 |
                                        data$ssdiPIA1>0 | data$ssdiPIA2>0 | data$ssdiPIA3>0 | data$ssdiPIA4>0 | data$ssdiPIA5>0 | data$ssdiPIA6>0
                                      ,400, 0)
+    
     # Calculate Medical Expense Deduction (those on SSI,SSDI, and elderly can deduct their medical expenses)
-    data$MedicalDeduction.person1<-case_when( (data$value.ssiAdlt1>0 | data$ssdiPIA1>0 | data$agePerson1 >60) ~ data$exp.special.disability.person1
+    # unreimbursed expenses that allow a disabled adult family member to be employed
+    data$exp.disability_work.person1<-case_when( (data$value.ssiAdlt1>0 | data$ssdiPIA1>0 | data$agePerson1 >60) ~ data$exp.special.disability.person1
                                               , TRUE ~ 0)
-    data$MedicalDeduction.person2<-case_when( (data$value.ssiAdlt2>0 | data$ssdiPIA2>0 | data$agePerson2 >60) ~ data$exp.special.disability.person2
+    data$exp.disability_work.person2<-case_when( (data$value.ssiAdlt2>0 | data$ssdiPIA2>0 | data$agePerson2 >60) ~ data$exp.special.disability.person2
                                               , TRUE ~ 0)
-    data$MedicalDeduction.person3<-case_when( (data$value.ssiAdlt3>0 | data$ssdiPIA3>0 | data$agePerson3 >60) ~ data$exp.special.disability.person3
+    data$exp.disability_work.person3<-case_when( (data$value.ssiAdlt3>0 | data$ssdiPIA3>0 | data$agePerson3 >60) ~ data$exp.special.disability.person3
                                               , TRUE ~ 0)
-    data$MedicalDeduction.person4<-case_when( (data$value.ssiAdlt4>0 | data$ssdiPIA4>0 | data$agePerson4 >60) ~ data$exp.special.disability.person4
+    data$exp.disability_work.person4<-case_when( (data$value.ssiAdlt4>0 | data$ssdiPIA4>0 | data$agePerson4 >60) ~ data$exp.special.disability.person4
                                               , TRUE ~ 0)
-    data$MedicalDeduction.person5<-case_when( (data$value.ssiAdlt5>0 | data$ssdiPIA5>0 | data$agePerson5 >60) ~ data$exp.special.disability.person5
+    data$exp.disability_work.person5<-case_when( (data$value.ssiAdlt5>0 | data$ssdiPIA5>0 | data$agePerson5 >60) ~ data$exp.special.disability.person5
                                               , TRUE ~ 0)
-    data$MedicalDeduction.person6<-case_when( (data$value.ssiAdlt6>0 | data$ssdiPIA6>0 | data$agePerson6 >60) ~ data$exp.special.disability.person6
+    data$exp.disability_work.person6<-case_when( (data$value.ssiAdlt6>0 | data$ssdiPIA6>0 | data$agePerson6 >60) ~ data$exp.special.disability.person6
                                               , TRUE ~ 0)
-    data$MedicalDeduction.person7<-case_when( (data$value.ssiChild1>0 | data$agePerson7 >60) ~ data$exp.special.disability.person7 # child age > 60 is impossible but it doesn't crash
+    data$exp.disability_work.person7<-case_when( (data$value.ssiChild1>0 | data$agePerson7 >60) ~ data$exp.special.disability.person7 # child age > 60 is impossible but it doesn't crash
                                               , TRUE ~ 0)
-    data$MedicalDeduction.person8<-case_when( (data$value.ssiChild2>0 | data$agePerson8 >60) ~ data$exp.special.disability.person8
+    data$exp.disability_work.person8<-case_when( (data$value.ssiChild2>0 | data$agePerson8 >60) ~ data$exp.special.disability.person8
                                               , TRUE ~ 0)
-    data$MedicalDeduction.person9<-case_when( (data$value.ssiChild3>0 | data$agePerson9 >60) ~ data$exp.special.disability.person9
+    data$exp.disability_work.person9<-case_when( (data$value.ssiChild3>0 | data$agePerson9 >60) ~ data$exp.special.disability.person9
                                               , TRUE ~ 0)
-    data$MedicalDeduction.person10<-case_when( (data$value.ssiChild4>0 | data$agePerson10 >60) ~ data$exp.special.disability.person10
+    data$exp.disability_work.person10<-case_when( (data$value.ssiChild4>0 | data$agePerson10 >60) ~ data$exp.special.disability.person10
                                                , TRUE ~ 0)
-    data$MedicalDeduction.person11<-case_when( (data$value.ssiChild5>0 | data$agePerson11 >60) ~ data$exp.special.disability.person11
+    data$exp.disability_work.person11<-case_when( (data$value.ssiChild5>0 | data$agePerson11 >60) ~ data$exp.special.disability.person11
                                                , TRUE ~ 0)
-    data$MedicalDeduction.person12<-case_when( (data$value.ssiChild6>0 | data$agePerson12 >60) ~ data$exp.special.disability.person12
+    data$exp.disability_work.person12<-case_when( (data$value.ssiChild6>0 | data$agePerson12 >60) ~ data$exp.special.disability.person12
                                                , TRUE ~ 0)
     data<-data %>%
-      mutate(MedicalDeduction = MedicalDeduction.person1+MedicalDeduction.person2+MedicalDeduction.person3+MedicalDeduction.person4+MedicalDeduction.person5+MedicalDeduction.person6+MedicalDeduction.person7+MedicalDeduction.person8+MedicalDeduction.person9+MedicalDeduction.person10+MedicalDeduction.person11+MedicalDeduction.person12)
+      mutate(exp.disability_work = exp.disability_work.person1+exp.disability_work.person2+exp.disability_work.person3+exp.disability_work.person4+exp.disability_work.person5+exp.disability_work.person6+exp.disability_work.person7+exp.disability_work.person8+exp.disability_work.person9+exp.disability_work.person10+exp.disability_work.person11+exp.disability_work.person12)
     
-    # Medical deductions above 3% of gross income
-    data$MedicalExp<-rowMaxs(cbind((data$income.countable * .03) - (12*(data$disab.work.exp + data$MedicalDeduction)),0))
+    # Calculate earnings of all disabled family members 
+    data$earnings_disabled_members<-rowSums(cbind(data$income1*data$disability1,data$income2*data$disability2,data$income3*data$disability3,data$income4*data$disability4,data$income5*data$disability5,data$income6*data$disability6), na.rm = TRUE)
+    
+    # Calculate Disability Work Expense Deduction - cannot exceed the total earnings of all disabled family members 
+    data$DisabilityWorkExpDeduction<-rowMins(cbind(data$earnings_disabled_members, data$exp.disability_work))
+    
+    # Calculate other unreimbursed medical expenses
+    data$exp.medical.unreimbursed<-0 # assume zero for now
+    
+    # Medical deductions is calculated as DisabilityWorkExpDeduction + unreimbursed medical expenses above 3% of gross income
+    data$MedicalExpDeduction<-rowMaxs(cbind(data$DisabilityWorkExpDeduction + data$exp.medical.unreimbursed-data$income.countable*.03,0))
     
     # Step I: Calculate Adjusted Income
-    data$adjustedincome<-rowMaxs(cbind(data$income.countable - data$numkids*data$DependentDeduction - data$netexp.childcare - data$disabilityDeduction - data$MedicalExp,0)) # HERE - subtract $400/m and subtract medical expense like SNAP (everything above 3% of gross income)
+    data$adjustedincome<-rowMaxs(cbind(data$income.countable - data$numkids*data$DependentDeduction - data$netexp.childcare - data$disabilityDeduction - data$MedicalExpDeduction,0)) # HERE - subtract $400/m and subtract medical expense like SNAP (everything above 3% of gross income)
     
     # Step II: Determine Total Tenant Payment
     data$ttp<-rowMaxs(cbind(0.1*data$income.countable,0.3*data$adjustedincome))
@@ -7187,25 +7225,25 @@ function.aca<-function(data
     data_postACA<-data[data$ruleYear>=2014,]
     
     subset<-data_postACA$income>=data_postACA$IncomeLowerBound & data_postACA$income<=data_postACA$IncomeBin1Max
-    data_postACA$premium.aca[subset]<-data_postACA$income[subset]*(data_postACA$ShareOfIncomesBin1.Initial[subset]+(data_postACA$income[subset]-data_postACA$IncomeLowerBound[subset])*(data_postACA$ShareOfIncomesBin1.Final[subset]-data_postACA$ShareOfIncomesBin1.Initial[subset])/(data_postACA$IncomeBin1Max[subset]-data_postACA$IncomeLowerBound[subset]))
+    data_postACA$premium.aca[subset]<-data_postACA$income[subset]*(data_postACA$ShareOfIncomesBin1Initial[subset]+(data_postACA$income[subset]-data_postACA$IncomeLowerBound[subset])*(data_postACA$ShareOfIncomesBin1Final[subset]-data_postACA$ShareOfIncomesBin1Initial[subset])/(data_postACA$IncomeBin1Max[subset]-data_postACA$IncomeLowerBound[subset]))
     
     subset<-data_postACA$income>data_postACA$IncomeBin1Max & data_postACA$income<=data_postACA$IncomeBin2Max
-    data_postACA$premium.aca[subset]<-data_postACA$income[subset]*(data_postACA$ShareOfIncomesBin2.Initial[subset]+(data_postACA$income[subset]-data_postACA$IncomeBin1Max[subset])*(data_postACA$ShareOfIncomesBin2.Final[subset]-data_postACA$ShareOfIncomesBin2.Initial[subset])/(data_postACA$IncomeBin2Max[subset]-data_postACA$IncomeBin1Max[subset]))
+    data_postACA$premium.aca[subset]<-data_postACA$income[subset]*(data_postACA$ShareOfIncomesBin2Initial[subset]+(data_postACA$income[subset]-data_postACA$IncomeBin1Max[subset])*(data_postACA$ShareOfIncomesBin2Final[subset]-data_postACA$ShareOfIncomesBin2Initial[subset])/(data_postACA$IncomeBin2Max[subset]-data_postACA$IncomeBin1Max[subset]))
     
     subset<-data_postACA$income>data_postACA$IncomeBin2Max & data_postACA$income<=data_postACA$IncomeBin3Max
-    data_postACA$premium.aca[subset]<-data_postACA$income[subset]*(data_postACA$ShareOfIncomesBin3.Initial[subset]+(data_postACA$income[subset]-data_postACA$IncomeBin2Max[subset])*(data_postACA$ShareOfIncomesBin3.Final[subset]-data_postACA$ShareOfIncomesBin3.Initial[subset])/(data_postACA$IncomeBin3Max[subset]-data_postACA$IncomeBin2Max[subset]))
+    data_postACA$premium.aca[subset]<-data_postACA$income[subset]*(data_postACA$ShareOfIncomesBin3Initial[subset]+(data_postACA$income[subset]-data_postACA$IncomeBin2Max[subset])*(data_postACA$ShareOfIncomesBin3Final[subset]-data_postACA$ShareOfIncomesBin3Initial[subset])/(data_postACA$IncomeBin3Max[subset]-data_postACA$IncomeBin2Max[subset]))
     
     subset<-data_postACA$income>data_postACA$IncomeBin3Max & data_postACA$income<=data_postACA$IncomeBin4Max
-    data_postACA$premium.aca[subset]<-data_postACA$income[subset]*(data_postACA$ShareOfIncomesBin4.Initial[subset]+(data_postACA$income[subset]-data_postACA$IncomeBin3Max[subset])*(data_postACA$ShareOfIncomesBin4.Final[subset]-data_postACA$ShareOfIncomesBin4.Initial[subset])/(data_postACA$IncomeBin4Max[subset]-data_postACA$IncomeBin3Max[subset]))
+    data_postACA$premium.aca[subset]<-data_postACA$income[subset]*(data_postACA$ShareOfIncomesBin4Initial[subset]+(data_postACA$income[subset]-data_postACA$IncomeBin3Max[subset])*(data_postACA$ShareOfIncomesBin4Final[subset]-data_postACA$ShareOfIncomesBin4Initial[subset])/(data_postACA$IncomeBin4Max[subset]-data_postACA$IncomeBin3Max[subset]))
     
     subset<-data_postACA$income>data_postACA$IncomeBin4Max & data_postACA$income<=data_postACA$IncomeBin5Max
-    data_postACA$premium.aca[subset]<-data_postACA$income[subset]*(data_postACA$ShareOfIncomesBin5.Initial[subset]+(data_postACA$income[subset]-data_postACA$IncomeBin4Max[subset])*(data_postACA$ShareOfIncomesBin5.Final[subset]-data_postACA$ShareOfIncomesBin5.Initial[subset])/(data_postACA$IncomeBin5Max[subset]-data_postACA$IncomeBin4Max[subset]))
+    data_postACA$premium.aca[subset]<-data_postACA$income[subset]*(data_postACA$ShareOfIncomesBin5Initial[subset]+(data_postACA$income[subset]-data_postACA$IncomeBin4Max[subset])*(data_postACA$ShareOfIncomesBin5Final[subset]-data_postACA$ShareOfIncomesBin5Initial[subset])/(data_postACA$IncomeBin5Max[subset]-data_postACA$IncomeBin4Max[subset]))
     
     subset<-data_postACA$income>data_postACA$IncomeBin5Max & data_postACA$income<=data_postACA$IncomeBin6Max
-    data_postACA$premium.aca[subset]<-data_postACA$income[subset]*(data_postACA$ShareOfIncomesBin6.Initial[subset]+(data_postACA$income[subset]-data_postACA$IncomeBin5Max[subset])*(data_postACA$ShareOfIncomesBin6.Final[subset]-data_postACA$ShareOfIncomesBin6.Initial[subset])/(data_postACA$IncomeBin6Max[subset]-data_postACA$IncomeBin5Max[subset]))
+    data_postACA$premium.aca[subset]<-data_postACA$income[subset]*(data_postACA$ShareOfIncomesBin6Initial[subset]+(data_postACA$income[subset]-data_postACA$IncomeBin5Max[subset])*(data_postACA$ShareOfIncomesBin6Final[subset]-data_postACA$ShareOfIncomesBin6Initial[subset])/(data_postACA$IncomeBin6Max[subset]-data_postACA$IncomeBin5Max[subset]))
     
     subset<-data_postACA$income>data_postACA$IncomeBin6Max & data_postACA$income<=data_postACA$IncomeBin7Max
-    data_postACA$premium.aca[subset]<-data_postACA$income[subset]*(data_postACA$ShareOfIncomesBin7.Initial[subset]+(data_postACA$income[subset]-data_postACA$IncomeBin6Max[subset])*(data_postACA$ShareOfIncomesBin7.Final[subset]-data_postACA$ShareOfIncomesBin7.Initial[subset])/(data_postACA$IncomeBin7Max[subset]-data_postACA$IncomeBin6Max[subset]))
+    data_postACA$premium.aca[subset]<-data_postACA$income[subset]*(data_postACA$ShareOfIncomesBin7Initial[subset]+(data_postACA$income[subset]-data_postACA$IncomeBin6Max[subset])*(data_postACA$ShareOfIncomesBin7Final[subset]-data_postACA$ShareOfIncomesBin7Initial[subset])/(data_postACA$IncomeBin7Max[subset]-data_postACA$IncomeBin6Max[subset]))
     
     
     # Implement affordability logic

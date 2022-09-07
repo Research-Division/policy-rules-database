@@ -32,7 +32,7 @@ function.createData<-function(inputs){
     inputs$locations<-inputs$locations
   } 
 
-  # Income sequence -ER: I think this is only for testing ? 8/30/22
+  # Income sequence
   inputs$income<-seq(inputs$income_start,inputs$income_end,by=inputs$income_increase_by)
   
   # variables for which you want to create different combinations
@@ -78,18 +78,6 @@ function.createData<-function(inputs){
                     , ownorrent = inputs$ownorrent
                     , assets.cash = inputs$assets.cash
                     , assets.car1 = inputs$assets.car1
-                    , income1 = inputs$income1
-                    , income2 = inputs$income2
-                    , income3 = inputs$income3
-                    , income4 = inputs$income4
-                    , income5 = inputs$income5
-                    , income6 = inputs$income6
-                    , income7 = inputs$income7
-                    , income8 = inputs$income8
-                    , income9 = inputs$income9
-                    , income10 = inputs$income10
-                    , income11 = inputs$income11
-                    , income12 = inputs$income12
                     , income.investment = inputs$income.investment
                     , income.gift = inputs$income.gift
                     , income.child_support = inputs$income.child_support
@@ -134,6 +122,16 @@ function.InitialTransformations<-function(data){
   data$numkids=rowSums(cbind(data$agePerson1, data$agePerson2, data$agePerson3, data$agePerson4, data$agePerson5, data$agePerson6, data$agePerson7, data$agePerson8, data$agePerson9, data$agePerson10, data$agePerson11, data$agePerson12)<=18,na.rm=TRUE) # Need to think about hte assumption on who is "kid". For example EITC defines it under age 19 & USDA adult category starts at 19
   data$numkidsunder13=rowSums(cbind(data$agePerson1, data$agePerson2, data$agePerson3, data$agePerson4, data$agePerson5, data$agePerson6, data$agePerson7, data$agePerson8, data$agePerson9, data$agePerson10, data$agePerson11, data$agePerson12)<=12,na.rm=TRUE)
   data$ageofYoungestChild=rowMins(cbind(data$agePerson1, data$agePerson2, data$agePerson3, data$agePerson4, data$agePerson5, data$agePerson6, data$agePerson7, data$agePerson8, data$agePerson9, data$agePerson10, data$agePerson11, data$agePerson12),na.rm=TRUE)
+  
+  # By default - allocate total family income EQUALLY to each adult family member (income1-income12)
+  # Default Assumption 1: Equal allocation of income
+  # Default Assumption 2: All adults are working 
+  data$income1[!is.na(data$agePerson1) & data$agePerson1>=19]<-data$income[!is.na(data$agePerson1) & data$agePerson1>=19]/data$numadults[!is.na(data$agePerson1) & data$agePerson1>=19]
+  data$income2[!is.na(data$agePerson2) & data$agePerson2>=19]<-data$income[!is.na(data$agePerson2) & data$agePerson2>=19]/data$numadults[!is.na(data$agePerson2) & data$agePerson2>=19]
+  data$income3[!is.na(data$agePerson3) & data$agePerson3>=19]<-data$income[!is.na(data$agePerson3) & data$agePerson3>=19]/data$numadults[!is.na(data$agePerson3) & data$agePerson3>=19]
+  data$income4[!is.na(data$agePerson4) & data$agePerson4>=19]<-data$income[!is.na(data$agePerson4) & data$agePerson4>=19]/data$numadults[!is.na(data$agePerson4) & data$agePerson4>=19]
+  data$income5[!is.na(data$agePerson5) & data$agePerson5>=19]<-data$income[!is.na(data$agePerson5) & data$agePerson5>=19]/data$numadults[!is.na(data$agePerson5) & data$agePerson5>=19]
+  data$income6[!is.na(data$agePerson6) & data$agePerson6>=19]<-data$income[!is.na(data$agePerson6) & data$agePerson6>=19]/data$numadults[!is.na(data$agePerson6) & data$agePerson6>=19]
   
   data<-data %>% 
     mutate(famsize = numadults + numkids # Family size
@@ -2333,7 +2331,7 @@ data<-data %>%
             ,value.eitc=value.eitc.fed+value.eitc.state
             
             ,NetResources = income+income.gift+income.investment+income.child_support+value.employerhealthcare+total.transfers-total.taxes-total.expenses
-            ,NetResources.FATES = income+income.gift+value.employerhealthcare+total.transfers-total.taxes-total.expenses +value.FATES
+            ,NetResources.FATES = income+income.gift+income.investment+income.child_support+value.employerhealthcare+total.transfers-total.taxes-total.expenses +value.FATES
             
             ,netexp.housing=netexp.rentormortgage+netexp.utilities
             ,AfterTaxIncome=(income+income.gift+income.investment+income.child_support)-(tax.income.fed+tax.income.state+tax.FICA+tax.sales)
