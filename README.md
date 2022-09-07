@@ -16,6 +16,34 @@ Available at www.frbatlanta.org/economic-mobility-and-resilience/advancing-caree
 
 # How to Use This Repository?
 
+**Step 1: Download the repository**
+
+Download and unzip this repository to your local machine. Make sure you have R and RStudio installed.
+
+**Step 2: Specify settings of the simulation - family characteristics and public benefits**
+
+Open TEST.yml file located in the *projects* folder. Adjust each input accordingly.
+
+**Step 3: Run the simulation**
+
+Open applyBenefitsCalculator.R and run the program.
+
+**Step 4: Explore the results**
+
+Results of the simulation are saved as a csv file in the *output* folder.
+
+**Step 5 (Optional): Modify and Explore**
+
+The PRD GitHub repository gives users flexibility in how to use the database. That includes:
+
+* Using PRD Excel files with the policy parameters located in *prd_parameters_excel* folder
+
+* Modifying benefits_functions.R located in *functions* folder to produce policy simulations
+
+* Applying PRD calculations to external datasets (CPS, ACS, SIPP etc) for microsimulation purposes 
+
+# Description of Each File Included in This Repository
+
 This folder contains the following files:
 
 **1. "PRD Technical Manual.pdf"**
