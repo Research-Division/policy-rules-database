@@ -1045,7 +1045,7 @@ function.ssdiBenefit<-function(data){
   data$married<-case_when(data$FilingStatus==2 ~ 1
                           ,TRUE ~ 0)
   
-  data<-left_join(data, ssdiData, by=c("married","ruleYear"))
+  data<-left_join(data, ssdiData, by=c("ruleYear"))
   data$value.ssdi<-0
   data$value.ssdi.mnth<-0
   data$ssdiTotalRecdMnth<-0
@@ -1195,7 +1195,7 @@ function.ssiBenefit<-function(data){
   # Distribute household assets & monthly disability work expense across all adults
   data$gift.distr<-data$income.gift/data$numadults
   data$child_support.distr<-data$income.child_support/data$numadults
-  data$investment.distr<-data$income.investment/data$numadults
+  data$investment.distr<-data$income.investment/data$numadults #ER 9/8/22: should divide by numadlts-disabledAdlts bc all interest bearing accounts go to nondisabled adlts
   data$disab.work.exp.distr<-data$disab.work.exp/data$disabledAdlts
    
   # Step 2a: Calculate annual and monthly total countable earned income for each person in the home.
@@ -7513,11 +7513,11 @@ function.fedctc<-function(data
       # Calculate number of eligible dependents
       temp$numkidsunder17=rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)<=temp$AgeofDependentMax & cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)>=temp$AgeofDependentMin, na.rm=TRUE)
       
-      subset1<-temp$income.base<=temp$IncomeBin1Max
-      temp$value.fedctc[subset1]<-0
+      subset1<-temp$income.base<=temp$IncomeBin1Max # Fully non-refundable
+      temp$value.fedctc[subset1]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset1],temp$value.fedctc.refundable[subset1])),temp$CreditBin1[subset1]))
       
       subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max
-      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(0.15*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),temp$RefundableCredit[subset2]))
+      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),temp$RefundableCredit[subset2]))
       temp$value.fedctc[subset2]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset2],temp$value.fedctc.refundable[subset2])),temp$CreditBin1[subset2]))
       
       subset3<-temp$income.base>temp$IncomeBin2Max
@@ -7532,7 +7532,6 @@ function.fedctc<-function(data
       # Merge back
       data[data$ruleYear==2022,]<-temp
     }
-    
     
     if(2021 %in% unique(data$ruleYear)){ # make sure that year is in the list
       
@@ -7549,7 +7548,7 @@ function.fedctc<-function(data
       
       
       subset1<-temp$income.base<=temp$IncomeBin1Max
-      temp$value.fedctc[subset1]<-0
+      temp$value.fedctc[subset1]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset1],temp$value.fedctc.refundable[subset1])),temp$CreditBin1[subset1]))
       
       subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max
       temp$value.fedctc[subset2]<-temp$numkidsunder17[subset2]*temp$CreditBin1[subset2]+600*temp$numkidsunder7[subset2]
@@ -7580,11 +7579,11 @@ function.fedctc<-function(data
       # Calculate number of eligible dependents
       temp$numkidsunder17=rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)<=temp$AgeofDependentMax & cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)>=temp$AgeofDependentMin, na.rm=TRUE)
       
-      subset1<-temp$income.base<=temp$IncomeBin1Max
-      temp$value.fedctc[subset1]<-0
+      subset1<-temp$income.base<=temp$IncomeBin1Max # Fully non-refundable
+      temp$value.fedctc[subset1]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset1],temp$value.fedctc.refundable[subset1])),temp$CreditBin1[subset1]))
       
       subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max
-      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(0.15*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),temp$RefundableCredit[subset2]))
+      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),temp$RefundableCredit[subset2]))
       temp$value.fedctc[subset2]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset2],temp$value.fedctc.refundable[subset2])),temp$CreditBin1[subset2]))
       
       subset3<-temp$income.base>temp$IncomeBin2Max
@@ -7612,11 +7611,11 @@ function.fedctc<-function(data
       # Calculate number of eligible dependents
       temp$numkidsunder17=rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)<=temp$AgeofDependentMax & cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)>=temp$AgeofDependentMin, na.rm=TRUE)
       
-      subset1<-temp$income.base<=temp$IncomeBin1Max
-      temp$value.fedctc[subset1]<-0
+      subset1<-temp$income.base<=temp$IncomeBin1Max # Fully non-refundable
+      temp$value.fedctc[subset1]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset1],temp$value.fedctc.refundable[subset1])),temp$CreditBin1[subset1]))
       
       subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max
-      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(0.15*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),temp$RefundableCredit[subset2]))
+      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),temp$RefundableCredit[subset2]))
       temp$value.fedctc[subset2]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset2],temp$value.fedctc.refundable[subset2])),temp$CreditBin1[subset2]))
       
       subset3<-temp$income.base>temp$IncomeBin2Max
@@ -7644,11 +7643,11 @@ function.fedctc<-function(data
       # Calculate number of eligible dependents
       temp$numkidsunder17=rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)<=temp$AgeofDependentMax & cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)>=temp$AgeofDependentMin, na.rm=TRUE)
       
-      subset1<-temp$income.base<=temp$IncomeBin1Max
-      temp$value.fedctc[subset1]<-0
+      subset1<-temp$income.base<=temp$IncomeBin1Max # Fully non-refundable
+      temp$value.fedctc[subset1]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset1],temp$value.fedctc.refundable[subset1])),temp$CreditBin1[subset1]))
       
       subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max
-      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(0.15*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),temp$RefundableCredit[subset2]))
+      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),temp$RefundableCredit[subset2]))
       temp$value.fedctc[subset2]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset2],temp$value.fedctc.refundable[subset2])),temp$CreditBin1[subset2]))
       
       subset3<-temp$income.base>temp$IncomeBin2Max
@@ -7676,11 +7675,11 @@ function.fedctc<-function(data
       # Calculate number of eligible dependents
       temp$numkidsunder17=rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)<=temp$AgeofDependentMax & cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)>=temp$AgeofDependentMin, na.rm=TRUE)
       
-      subset1<-temp$income.base<=temp$IncomeBin1Max
-      temp$value.fedctc[subset1]<-0
+      subset1<-temp$income.base<=temp$IncomeBin1Max # Fully non-refundable
+      temp$value.fedctc[subset1]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset1],temp$value.fedctc.refundable[subset1])),temp$CreditBin1[subset1]))
       
       subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max
-      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(0.15*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),temp$RefundableCredit[subset2]))
+      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),temp$RefundableCredit[subset2]))
       temp$value.fedctc[subset2]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset2],temp$value.fedctc.refundable[subset2])),temp$CreditBin1[subset2]))
       
       subset3<-temp$income.base>temp$IncomeBin2Max
@@ -7708,11 +7707,11 @@ function.fedctc<-function(data
       # Calculate number of eligible dependents
       temp$numkidsunder17=rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)<=temp$AgeofDependentMax & cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)>=temp$AgeofDependentMin, na.rm=TRUE)
       
-      subset1<-temp$income.base<=temp$IncomeBin1Max
-      temp$value.fedctc[subset1]<-0
+      subset1<-temp$income.base<=temp$IncomeBin1Max # Fully non-refundable
+      temp$value.fedctc[subset1]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset1],temp$value.fedctc.refundable[subset1])),temp$CreditBin1[subset1]))
       
       subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max
-      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(0.15*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),temp$RefundableCredit[subset2]))
+      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),temp$RefundableCredit[subset2]))
       temp$value.fedctc[subset2]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset2],temp$value.fedctc.refundable[subset2])),temp$CreditBin1[subset2]))
       
       subset3<-temp$income.base>temp$IncomeBin2Max
@@ -7740,11 +7739,11 @@ function.fedctc<-function(data
       # Calculate number of eligible dependents
       temp$numkidsunder17=rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)<=temp$AgeofDependentMax & cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)>=temp$AgeofDependentMin, na.rm=TRUE)
       
-      subset1<-temp$income.base<=temp$IncomeBin1Max
-      temp$value.fedctc[subset1]<-0
+      subset1<-temp$income.base<=temp$IncomeBin1Max # Fully non-refundable
+      temp$value.fedctc[subset1]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset1],temp$value.fedctc.refundable[subset1])),temp$CreditBin1[subset1]))
       
       subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max
-      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(0.15*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),temp$RefundableCredit[subset2]))
+      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),temp$RefundableCredit[subset2]))
       temp$value.fedctc[subset2]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset2],temp$value.fedctc.refundable[subset2])),temp$CreditBin1[subset2]))
       
       subset3<-temp$income.base>temp$IncomeBin2Max
@@ -7772,11 +7771,11 @@ function.fedctc<-function(data
       # Calculate number of eligible dependents
       temp$numkidsunder17=rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)<=temp$AgeofDependentMax & cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)>=temp$AgeofDependentMin, na.rm=TRUE)
       
-      subset1<-temp$income.base<=temp$IncomeBin1Max
-      temp$value.fedctc[subset1]<-0
+      subset1<-temp$income.base<=temp$IncomeBin1Max # Fully non-refundable
+      temp$value.fedctc[subset1]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset1],temp$value.fedctc.refundable[subset1])),temp$CreditBin1[subset1]))
       
       subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max
-      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(0.15*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),temp$RefundableCredit[subset2]))
+      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),temp$RefundableCredit[subset2]))
       temp$value.fedctc[subset2]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset2],temp$value.fedctc.refundable[subset2])),temp$CreditBin1[subset2]))
       
       subset3<-temp$income.base>temp$IncomeBin2Max
@@ -7804,11 +7803,11 @@ function.fedctc<-function(data
       # Calculate number of eligible dependents
       temp$numkidsunder17=rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)<=temp$AgeofDependentMax & cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)>=temp$AgeofDependentMin, na.rm=TRUE)
       
-      subset1<-temp$income.base<=temp$IncomeBin1Max
-      temp$value.fedctc[subset1]<-0
+      subset1<-temp$income.base<=temp$IncomeBin1Max # Fully non-refundable
+      temp$value.fedctc[subset1]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset1],temp$value.fedctc.refundable[subset1])),temp$CreditBin1[subset1]))
       
       subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max
-      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(0.15*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),temp$RefundableCredit[subset2]))
+      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),temp$RefundableCredit[subset2]))
       temp$value.fedctc[subset2]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset2],temp$value.fedctc.refundable[subset2])),temp$CreditBin1[subset2]))
       
       subset3<-temp$income.base>temp$IncomeBin2Max
@@ -7836,11 +7835,11 @@ function.fedctc<-function(data
       # Calculate number of eligible dependents
       temp$numkidsunder17=rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)<=temp$AgeofDependentMax & cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)>=temp$AgeofDependentMin, na.rm=TRUE)
       
-      subset1<-temp$income.base<=temp$IncomeBin1Max
-      temp$value.fedctc[subset1]<-0
+      subset1<-temp$income.base<=temp$IncomeBin1Max # Fully non-refundable
+      temp$value.fedctc[subset1]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset1],temp$value.fedctc.refundable[subset1])),temp$CreditBin1[subset1]))
       
       subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max
-      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(0.15*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),temp$RefundableCredit[subset2]))
+      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),temp$RefundableCredit[subset2]))
       temp$value.fedctc[subset2]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset2],temp$value.fedctc.refundable[subset2])),temp$CreditBin1[subset2]))
       
       subset3<-temp$income.base>temp$IncomeBin2Max
@@ -7868,11 +7867,11 @@ function.fedctc<-function(data
       # Calculate number of eligible dependents
       temp$numkidsunder17=rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)<=temp$AgeofDependentMax & cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)>=temp$AgeofDependentMin, na.rm=TRUE)
       
-      subset1<-temp$income.base<=temp$IncomeBin1Max
-      temp$value.fedctc[subset1]<-0
+      subset1<-temp$income.base<=temp$IncomeBin1Max # Fully non-refundable
+      temp$value.fedctc[subset1]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset1],temp$value.fedctc.refundable[subset1])),temp$CreditBin1[subset1]))
       
       subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max
-      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(0.15*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),temp$RefundableCredit[subset2]))
+      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),temp$RefundableCredit[subset2]))
       temp$value.fedctc[subset2]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset2],temp$value.fedctc.refundable[subset2])),temp$CreditBin1[subset2]))
       
       subset3<-temp$income.base>temp$IncomeBin2Max
@@ -7886,6 +7885,410 @@ function.fedctc<-function(data
       
       # Merge back
       data[data$ruleYear==2011,]<-temp
+    }
+    
+    if(2010 %in% unique(data$ruleYear)){ # make sure that year is in the list
+      
+      temp<-data[data$ruleYear==2010,]
+      
+      #----------------------------------
+      # Step 1: Assign copays
+      #----------------------------------
+      temp<-left_join(temp, fedctcData, by=c("ruleYear", "FilingStatus"))
+      
+      # Calculate number of eligible dependents
+      temp$numkidsunder17=rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)<=temp$AgeofDependentMax & cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)>=temp$AgeofDependentMin, na.rm=TRUE)
+      
+      subset1<-temp$income.base<=temp$IncomeBin1Max # Fully non-refundable
+      temp$value.fedctc[subset1]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset1],temp$value.fedctc.refundable[subset1])),temp$CreditBin1[subset1]))
+      
+      subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max
+      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),temp$RefundableCredit[subset2]))
+      temp$value.fedctc[subset2]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset2],temp$value.fedctc.refundable[subset2])),temp$CreditBin1[subset2]))
+      
+      subset3<-temp$income.base>temp$IncomeBin2Max
+      temp$value.fedctc[subset3]<-rowMaxs(cbind(temp$CreditBin1[subset3]-(temp$income.base[subset3]-temp$IncomeBin2Max[subset3])*temp$PhaseOutSlope1[subset3],0))
+      
+      temp$value.fedctc<-temp$value.fedctc*temp$numkidsunder17
+      
+      # Make sure the variables names are the same
+      temp<-temp %>% 
+        select(colnames(data),"value.fedctc")
+      
+      # Merge back
+      data[data$ruleYear==2010,]<-temp
+    }
+    
+    if(2009 %in% unique(data$ruleYear)){ # make sure that year is in the list
+      
+      temp<-data[data$ruleYear==2009,]
+      
+      #----------------------------------
+      # Step 1: Assign copays
+      #----------------------------------
+      temp<-left_join(temp, fedctcData, by=c("ruleYear", "FilingStatus"))
+      
+      # Calculate number of eligible dependents
+      temp$numkidsunder17=rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)<=temp$AgeofDependentMax & cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)>=temp$AgeofDependentMin, na.rm=TRUE)
+      
+      subset1<-temp$income.base<=temp$IncomeBin1Max # Fully non-refundable
+      temp$value.fedctc[subset1]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset1],temp$value.fedctc.refundable[subset1])),temp$CreditBin1[subset1]))
+      
+      subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max
+      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),temp$RefundableCredit[subset2]))
+      temp$value.fedctc[subset2]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset2],temp$value.fedctc.refundable[subset2])),temp$CreditBin1[subset2]))
+      
+      subset3<-temp$income.base>temp$IncomeBin2Max
+      temp$value.fedctc[subset3]<-rowMaxs(cbind(temp$CreditBin1[subset3]-(temp$income.base[subset3]-temp$IncomeBin2Max[subset3])*temp$PhaseOutSlope1[subset3],0))
+      
+      temp$value.fedctc<-temp$value.fedctc*temp$numkidsunder17
+      
+      # Make sure the variables names are the same
+      temp<-temp %>% 
+        select(colnames(data),"value.fedctc")
+      
+      # Merge back
+      data[data$ruleYear==2009,]<-temp
+    }
+    
+    if(2008 %in% unique(data$ruleYear)){ # make sure that year is in the list
+      
+      temp<-data[data$ruleYear==2008,]
+      
+      #----------------------------------
+      # Step 1: Assign copays
+      #----------------------------------
+      temp<-left_join(temp, fedctcData, by=c("ruleYear", "FilingStatus"))
+      
+      # Calculate number of eligible dependents
+      temp$numkidsunder17=rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)<=temp$AgeofDependentMax & cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)>=temp$AgeofDependentMin, na.rm=TRUE)
+      
+      subset1<-temp$income.base<=temp$IncomeBin1Max # Fully non-refundable
+      temp$value.fedctc[subset1]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset1],temp$value.fedctc.refundable[subset1])),temp$CreditBin1[subset1]))
+      
+      subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max
+      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),temp$RefundableCredit[subset2]))
+      temp$value.fedctc[subset2]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset2],temp$value.fedctc.refundable[subset2])),temp$CreditBin1[subset2]))
+      
+      subset3<-temp$income.base>temp$IncomeBin2Max
+      temp$value.fedctc[subset3]<-rowMaxs(cbind(temp$CreditBin1[subset3]-(temp$income.base[subset3]-temp$IncomeBin2Max[subset3])*temp$PhaseOutSlope1[subset3],0))
+      
+      temp$value.fedctc<-temp$value.fedctc*temp$numkidsunder17
+      
+      # Make sure the variables names are the same
+      temp<-temp %>% 
+        select(colnames(data),"value.fedctc")
+      
+      # Merge back
+      data[data$ruleYear==2008,]<-temp
+    }
+    
+    if(2007 %in% unique(data$ruleYear)){ # make sure that year is in the list
+      
+      temp<-data[data$ruleYear==2007,]
+      
+      #----------------------------------
+      # Step 1: Assign copays
+      #----------------------------------
+      temp<-left_join(temp, fedctcData, by=c("ruleYear", "FilingStatus"))
+      
+      # Calculate number of eligible dependents
+      temp$numkidsunder17=rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)<=temp$AgeofDependentMax & cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)>=temp$AgeofDependentMin, na.rm=TRUE)
+      
+      subset1<-temp$income.base<=temp$IncomeBin1Max # Fully non-refundable
+      temp$value.fedctc[subset1]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset1],temp$value.fedctc.refundable[subset1])),temp$CreditBin1[subset1]))
+      
+      subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max
+      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),temp$RefundableCredit[subset2]))
+      temp$value.fedctc[subset2]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset2],temp$value.fedctc.refundable[subset2])),temp$CreditBin1[subset2]))
+      
+      subset3<-temp$income.base>temp$IncomeBin2Max
+      temp$value.fedctc[subset3]<-rowMaxs(cbind(temp$CreditBin1[subset3]-(temp$income.base[subset3]-temp$IncomeBin2Max[subset3])*temp$PhaseOutSlope1[subset3],0))
+      
+      temp$value.fedctc<-temp$value.fedctc*temp$numkidsunder17
+      
+      # Make sure the variables names are the same
+      temp<-temp %>% 
+        select(colnames(data),"value.fedctc")
+      
+      # Merge back
+      data[data$ruleYear==2007,]<-temp
+    }
+    
+    if(2006 %in% unique(data$ruleYear)){ # make sure that year is in the list
+      
+      temp<-data[data$ruleYear==2006,]
+      
+      #----------------------------------
+      # Step 1: Assign copays
+      #----------------------------------
+      temp<-left_join(temp, fedctcData, by=c("ruleYear", "FilingStatus"))
+      
+      # Calculate number of eligible dependents
+      temp$numkidsunder17=rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)<=temp$AgeofDependentMax & cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)>=temp$AgeofDependentMin, na.rm=TRUE)
+      
+      subset1<-temp$income.base<=temp$IncomeBin1Max # Fully non-refundable
+      temp$value.fedctc[subset1]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset1],temp$value.fedctc.refundable[subset1])),temp$CreditBin1[subset1]))
+      
+      subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max
+      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),temp$RefundableCredit[subset2]))
+      temp$value.fedctc[subset2]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset2],temp$value.fedctc.refundable[subset2])),temp$CreditBin1[subset2]))
+      
+      subset3<-temp$income.base>temp$IncomeBin2Max
+      temp$value.fedctc[subset3]<-rowMaxs(cbind(temp$CreditBin1[subset3]-(temp$income.base[subset3]-temp$IncomeBin2Max[subset3])*temp$PhaseOutSlope1[subset3],0))
+      
+      temp$value.fedctc<-temp$value.fedctc*temp$numkidsunder17
+      
+      # Make sure the variables names are the same
+      temp<-temp %>% 
+        select(colnames(data),"value.fedctc")
+      
+      # Merge back
+      data[data$ruleYear==2006,]<-temp
+    }
+    
+    if(2005 %in% unique(data$ruleYear)){ # make sure that year is in the list
+      
+      temp<-data[data$ruleYear==2005,]
+      
+      #----------------------------------
+      # Step 1: Assign copays
+      #----------------------------------
+      temp<-left_join(temp, fedctcData, by=c("ruleYear", "FilingStatus"))
+      
+      # Calculate number of eligible dependents
+      temp$numkidsunder17=rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)<=temp$AgeofDependentMax & cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)>=temp$AgeofDependentMin, na.rm=TRUE)
+      
+      subset1<-temp$income.base<=temp$IncomeBin1Max # Fully non-refundable
+      temp$value.fedctc[subset1]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset1],temp$value.fedctc.refundable[subset1])),temp$CreditBin1[subset1]))
+      
+      subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max
+      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),temp$RefundableCredit[subset2]))
+      temp$value.fedctc[subset2]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset2],temp$value.fedctc.refundable[subset2])),temp$CreditBin1[subset2]))
+      
+      subset3<-temp$income.base>temp$IncomeBin2Max
+      temp$value.fedctc[subset3]<-rowMaxs(cbind(temp$CreditBin1[subset3]-(temp$income.base[subset3]-temp$IncomeBin2Max[subset3])*temp$PhaseOutSlope1[subset3],0))
+      
+      temp$value.fedctc<-temp$value.fedctc*temp$numkidsunder17
+      
+      # Make sure the variables names are the same
+      temp<-temp %>% 
+        select(colnames(data),"value.fedctc")
+      
+      # Merge back
+      data[data$ruleYear==2005,]<-temp
+    }
+    
+    if(2004 %in% unique(data$ruleYear)){ # make sure that year is in the list
+      
+      temp<-data[data$ruleYear==2004,]
+      
+      #----------------------------------
+      # Step 1: Assign copays
+      #----------------------------------
+      temp<-left_join(temp, fedctcData, by=c("ruleYear", "FilingStatus"))
+      
+      # Calculate number of eligible dependents
+      temp$numkidsunder17=rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)<=temp$AgeofDependentMax & cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)>=temp$AgeofDependentMin, na.rm=TRUE)
+      
+      subset1<-temp$income.base<=temp$IncomeBin1Max # Fully non-refundable
+      temp$value.fedctc[subset1]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset1],temp$value.fedctc.refundable[subset1])),temp$CreditBin1[subset1]))
+      
+      subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max
+      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),temp$RefundableCredit[subset2]))
+      temp$value.fedctc[subset2]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset2],temp$value.fedctc.refundable[subset2])),temp$CreditBin1[subset2]))
+      
+      subset3<-temp$income.base>temp$IncomeBin2Max
+      temp$value.fedctc[subset3]<-rowMaxs(cbind(temp$CreditBin1[subset3]-(temp$income.base[subset3]-temp$IncomeBin2Max[subset3])*temp$PhaseOutSlope1[subset3],0))
+      
+      temp$value.fedctc<-temp$value.fedctc*temp$numkidsunder17
+      
+      # Make sure the variables names are the same
+      temp<-temp %>% 
+        select(colnames(data),"value.fedctc")
+      
+      # Merge back
+      data[data$ruleYear==2004,]<-temp
+    }
+    
+    if(2003 %in% unique(data$ruleYear)){ # make sure that year is in the list
+      
+      temp<-data[data$ruleYear==2003,]
+      
+      #----------------------------------
+      # Step 1: Assign copays
+      #----------------------------------
+      temp<-left_join(temp, fedctcData, by=c("ruleYear", "FilingStatus"))
+      
+      # Calculate number of eligible dependents
+      temp$numkidsunder17=rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)<=temp$AgeofDependentMax & cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)>=temp$AgeofDependentMin, na.rm=TRUE)
+      
+      subset1<-temp$income.base<=temp$IncomeBin1Max # Fully non-refundable
+      temp$value.fedctc[subset1]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset1],temp$value.fedctc.refundable[subset1])),temp$CreditBin1[subset1]))
+      
+      subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max
+      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),temp$RefundableCredit[subset2]))
+      temp$value.fedctc[subset2]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset2],temp$value.fedctc.refundable[subset2])),temp$CreditBin1[subset2]))
+      
+      subset3<-temp$income.base>temp$IncomeBin2Max
+      temp$value.fedctc[subset3]<-rowMaxs(cbind(temp$CreditBin1[subset3]-(temp$income.base[subset3]-temp$IncomeBin2Max[subset3])*temp$PhaseOutSlope1[subset3],0))
+      
+      temp$value.fedctc<-temp$value.fedctc*temp$numkidsunder17
+      
+      # Make sure the variables names are the same
+      temp<-temp %>% 
+        select(colnames(data),"value.fedctc")
+      
+      # Merge back
+      data[data$ruleYear==2003,]<-temp
+    }
+    
+    if(2002 %in% unique(data$ruleYear)){ # make sure that year is in the list
+      
+      temp<-data[data$ruleYear==2002,]
+      
+      #----------------------------------
+      # Step 1: Assign copays
+      #----------------------------------
+      temp<-left_join(temp, fedctcData, by=c("ruleYear", "FilingStatus"))
+      
+      # Calculate number of eligible dependents
+      temp$numkidsunder17=rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)<=temp$AgeofDependentMax & cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)>=temp$AgeofDependentMin, na.rm=TRUE)
+      
+      subset1<-temp$income.base<=temp$IncomeBin1Max # Fully non-refundable
+      temp$value.fedctc[subset1]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset1],temp$value.fedctc.refundable[subset1])),temp$CreditBin1[subset1]))
+      
+      subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max
+      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),temp$RefundableCredit[subset2]))
+      temp$value.fedctc[subset2]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset2],temp$value.fedctc.refundable[subset2])),temp$CreditBin1[subset2]))
+      
+      subset3<-temp$income.base>temp$IncomeBin2Max
+      temp$value.fedctc[subset3]<-rowMaxs(cbind(temp$CreditBin1[subset3]-(temp$income.base[subset3]-temp$IncomeBin2Max[subset3])*temp$PhaseOutSlope1[subset3],0))
+      
+      temp$value.fedctc<-temp$value.fedctc*temp$numkidsunder17
+      
+      # Make sure the variables names are the same
+      temp<-temp %>% 
+        select(colnames(data),"value.fedctc")
+      
+      # Merge back
+      data[data$ruleYear==2002,]<-temp
+    }
+    
+    if(2001 %in% unique(data$ruleYear)){ # make sure that year is in the list
+      
+      temp<-data[data$ruleYear==2001,]
+      
+      #----------------------------------
+      # Step 1: Assign copays
+      #----------------------------------
+      temp<-left_join(temp, fedctcData, by=c("ruleYear", "FilingStatus"))
+      
+      # Calculate number of eligible dependents
+      temp$numkidsunder17=rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)<=temp$AgeofDependentMax & cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)>=temp$AgeofDependentMin, na.rm=TRUE)
+      
+      subset1<-temp$income.base<=temp$IncomeBin1Max # Fully non-refundable
+      temp$value.fedctc[subset1]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset1],temp$value.fedctc.refundable[subset1])),temp$CreditBin1[subset1]))
+      
+      subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max
+      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),temp$RefundableCredit[subset2]))
+      temp$value.fedctc[subset2]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset2],temp$value.fedctc.refundable[subset2])),temp$CreditBin1[subset2]))
+      
+      subset3<-temp$income.base>temp$IncomeBin2Max
+      temp$value.fedctc[subset3]<-rowMaxs(cbind(temp$CreditBin1[subset3]-(temp$income.base[subset3]-temp$IncomeBin2Max[subset3])*temp$PhaseOutSlope1[subset3],0))
+      
+      temp$value.fedctc<-temp$value.fedctc*temp$numkidsunder17
+      
+      # Make sure the variables names are the same
+      temp<-temp %>% 
+        select(colnames(data),"value.fedctc")
+      
+      # Merge back
+      data[data$ruleYear==2001,]<-temp
+    }
+    
+    if(2000 %in% unique(data$ruleYear)){ # make sure that year is in the list
+      
+      temp<-data[data$ruleYear==2000,]
+      
+      #----------------------------------
+      # Step 1: Assign copays
+      #----------------------------------
+      temp<-left_join(temp, fedctcData, by=c("ruleYear", "FilingStatus"))
+      
+      # Calculate number of eligible dependents
+      temp$numkidsunder17=rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)<=temp$AgeofDependentMax & cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)>=temp$AgeofDependentMin, na.rm=TRUE)
+      
+      subset1<-temp$income.base<=temp$IncomeBin2Max # Below this value CTC is non-refundable
+      temp$value.fedctc[subset1]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset1],temp$value.fedctc.refundable[subset1])),temp$CreditBin1[subset1]))
+      
+      subset2<-temp$income.base>temp$IncomeBin2Max
+      temp$value.fedctc[subset2]<-rowMaxs(cbind(temp$CreditBin1[subset2]-(temp$income.base[subset2]-temp$IncomeBin2Max[subset2])*temp$PhaseOutSlope1[subset2],0))
+      
+      temp$value.fedctc<-temp$value.fedctc*temp$numkidsunder17
+      
+      # Make sure the variables names are the same
+      temp<-temp %>% 
+        select(colnames(data),"value.fedctc")
+      
+      # Merge back
+      data[data$ruleYear==2000,]<-temp
+    }
+    
+    if(1999 %in% unique(data$ruleYear)){ # make sure that year is in the list
+      
+      temp<-data[data$ruleYear==1999,]
+      
+      #----------------------------------
+      # Step 1: Assign copays
+      #----------------------------------
+      temp<-left_join(temp, fedctcData, by=c("ruleYear", "FilingStatus"))
+      
+      # Calculate number of eligible dependents
+      temp$numkidsunder17=rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)<=temp$AgeofDependentMax & cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)>=temp$AgeofDependentMin, na.rm=TRUE)
+      
+      subset1<-temp$income.base<=temp$IncomeBin2Max # Below this value CTC is non-refundable
+      temp$value.fedctc[subset1]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset1],temp$value.fedctc.refundable[subset1])),temp$CreditBin1[subset1]))
+      
+      subset2<-temp$income.base>temp$IncomeBin2Max
+      temp$value.fedctc[subset2]<-rowMaxs(cbind(temp$CreditBin1[subset2]-(temp$income.base[subset2]-temp$IncomeBin2Max[subset2])*temp$PhaseOutSlope1[subset2],0))
+      
+      temp$value.fedctc<-temp$value.fedctc*temp$numkidsunder17
+      
+      # Make sure the variables names are the same
+      temp<-temp %>% 
+        select(colnames(data),"value.fedctc")
+      
+      # Merge back
+      data[data$ruleYear==1999,]<-temp
+    }
+    
+    if(1998 %in% unique(data$ruleYear)){ # make sure that year is in the list
+      
+      temp<-data[data$ruleYear==1998,]
+      
+      #----------------------------------
+      # Step 1: Assign copays
+      #----------------------------------
+      temp<-left_join(temp, fedctcData, by=c("ruleYear", "FilingStatus"))
+      
+      # Calculate number of eligible dependents
+      temp$numkidsunder17=rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)<=temp$AgeofDependentMax & cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)>=temp$AgeofDependentMin, na.rm=TRUE)
+      
+      subset1<-temp$income.base<=temp$IncomeBin2Max # Below this value CTC is non-refundable
+      temp$value.fedctc[subset1]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset1],temp$value.fedctc.refundable[subset1])),temp$CreditBin1[subset1]))
+      
+      subset2<-temp$income.base>temp$IncomeBin2Max
+      temp$value.fedctc[subset2]<-rowMaxs(cbind(temp$CreditBin1[subset2]-(temp$income.base[subset2]-temp$IncomeBin2Max[subset2])*temp$PhaseOutSlope1[subset2],0))
+      
+      temp$value.fedctc<-temp$value.fedctc*temp$numkidsunder17
+      
+      # Make sure the variables names are the same
+      temp<-temp %>% 
+        select(colnames(data),"value.fedctc")
+      
+      # Merge back
+      data[data$ruleYear==1998,]<-temp
     }
     
     data$value.fedctc<-round(data$value.fedctc,0)
@@ -7906,7 +8309,7 @@ function.statectc<-function(data
       rename( "income.base" = incomevar
              ,"stateincometax" = stateincometaxvar
              ,"federalctc" = federalctcvar)
-    
+
     data_main<-left_join(data, statectcData, by=c("stateFIPS", "FilingStatus"))
     
     # Initialize
@@ -7923,10 +8326,10 @@ function.statectc<-function(data
     subset1<- data$income.base<=data$IncomeBin1Max
     data$value.statectc[subset1]<-rowMaxs(cbind(data$ValueBin1[subset1], data$federalctc[subset1]*data$PercentOfFederalBin1[subset1]))
     
-    subset2<- data$income.base>data$IncomeBin1Max & data$income.base<data$IncomeBin2Max
+    subset2<- data$income.base>data$IncomeBin1Max & data$income.base<=data$IncomeBin2Max
     data$value.statectc[subset2]<-rowMaxs(cbind(data$ValueBin2[subset2], data$federalctc[subset2]*data$PercentOfFederalBin2[subset2]))
     
-    subset3<- data$income.base>data$IncomeBin2Max & data$income.base<data$IncomeBin3Max
+    subset3<- data$income.base>data$IncomeBin2Max & data$income.base<=data$IncomeBin3Max
     data$value.statectc[subset3]<-rowMaxs(cbind(data$ValueBin3[subset3], data$federalctc[subset3]*data$PercentOfFederalBin3[subset3]))
     
     

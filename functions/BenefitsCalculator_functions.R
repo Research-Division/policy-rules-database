@@ -74,6 +74,7 @@ function.createData<-function(inputs){
                     , ssdiPIA4 = inputs$ssdiPIA4
                     , ssdiPIA5 = inputs$ssdiPIA5
                     , ssdiPIA6 = inputs$ssdiPIA6
+                    , prev_ssi = 0 # Whether anyone in the house ever received SSI before
                     , empl_healthcare = inputs$empl_healthcare
                     , ownorrent = inputs$ownorrent
                     , assets.cash = inputs$assets.cash
@@ -140,14 +141,8 @@ function.InitialTransformations<-function(data){
            , AKorHI = case_when(  stateAbbrev=="AK" ~ "AK"
                                   , stateAbbrev=="HI" ~ "HI"
                                   , TRUE ~ "0")
-           , totalassets = assets.car1 + assets.cash
-           
-            #set some vars to 0 that are part of functions but that we don't currently calculate values for          
-            #note some ofthis is done inside createdata functions, so this will override whatever is there...
-            ,value.ssi=0
-            ,value.ssdi=0
-            ,value.socsec=0 
-            )
+           , totalassets = assets.car1 + assets.cash)
+  
   data$income.child_support[data$numkids==0]<-0
 
   return(data)
@@ -545,6 +540,68 @@ BenefitsCalculator.ALICEExpenses<-function(data){
   
   ## COSTS OF SCHOOL MEAL
   data$exp.schoolMeals<-function.schoolmealsExp(data, currentyr=2021)
+  
+  
+  ## SPECIAL EXPENSES FOR PEOPLE WITH DISABILITIES
+  data$exp.special.disability.person1<-function.specialExp(data
+                                                           , ageofPersonvar="agePerson1"
+                                                           , disabilityStatus="disability1"
+                                                           , currentyr=2021)
+  
+  data$exp.special.disability.person2<-function.specialExp(data
+                                                           , ageofPersonvar="agePerson2"
+                                                           , disabilityStatus="disability2"
+                                                           , currentyr=2021)
+  
+  data$exp.special.disability.person3<-function.specialExp(data
+                                                           , ageofPersonvar="agePerson3"
+                                                           , disabilityStatus="disability3"
+                                                           , currentyr=2021)
+  
+  data$exp.special.disability.person4<-function.specialExp(data
+                                                           , ageofPersonvar="agePerson4"
+                                                           , disabilityStatus="disability4"
+                                                           , currentyr=2021)
+  
+  data$exp.special.disability.person5<-function.specialExp(data
+                                                           , ageofPersonvar="agePerson5"
+                                                           , disabilityStatus="disability5"
+                                                           , currentyr=2021)
+  
+  data$exp.special.disability.person6<-function.specialExp(data
+                                                           , ageofPersonvar="agePerson6"
+                                                           , disabilityStatus="disability6"
+                                                           , currentyr=2021)
+  
+  data$exp.special.disability.person7<-function.specialExp(data
+                                                           , ageofPersonvar="agePerson7"
+                                                           , disabilityStatus="disability7"
+                                                           , currentyr=2021)
+  data$exp.special.disability.person8<-function.specialExp(data
+                                                           , ageofPersonvar="agePerson8"
+                                                           , disabilityStatus="disability8"
+                                                           , currentyr=2021)
+  data$exp.special.disability.person9<-function.specialExp(data
+                                                           , ageofPersonvar="agePerson9"
+                                                           , disabilityStatus="disability9"
+                                                           , currentyr=2021)
+  data$exp.special.disability.person10<-function.specialExp(data
+                                                            , ageofPersonvar="agePerson10"
+                                                            , disabilityStatus="disability10"
+                                                            , currentyr=2021)
+  data$exp.special.disability.person11<-function.specialExp(data
+                                                            , ageofPersonvar="agePerson11"
+                                                            , disabilityStatus="disability11"
+                                                            , currentyr=2021)
+  data$exp.special.disability.person12<-function.specialExp(data
+                                                            , ageofPersonvar="agePerson12"
+                                                            , disabilityStatus="disability12"
+                                                            , currentyr=2021)
+  data<-data %>% 
+    mutate(exp.special.disability = exp.special.disability.person1+exp.special.disability.person2+exp.special.disability.person3+exp.special.disability.person4+exp.special.disability.person5+exp.special.disability.person6+exp.special.disability.person7+exp.special.disability.person8+exp.special.disability.person9+exp.special.disability.person10+exp.special.disability.person11+exp.special.disability.person12)
+  
+  
+  
   
   return(data)
   
@@ -1973,7 +2030,8 @@ BenefitsCalculator.FoodandHousing<-function(data, APPLY_SECTION8=FALSE, APPLY_LI
   if(APPLY_SECTION8==FALSE & APPLY_RAP==FALSE & APPLY_FRSP==FALSE){
     data$value.section8<-0
     data$netexp.rentormortgage<-data$exp.rentormortgage
-    data$netexp.housing<-data$exp.housing}
+    data$netexp.housing<-data$exp.housing
+    }
   else if(APPLY_SECTION8==TRUE & APPLY_RAP==FALSE & APPLY_FRSP==FALSE){
     
     data$value.section8<-function.section8Benefit(data=data)
@@ -1988,8 +2046,18 @@ BenefitsCalculator.FoodandHousing<-function(data, APPLY_SECTION8=FALSE, APPLY_LI
     }   
     data$value.section8[data$section8_takeup==0]<-0
     
-    data$netexp.rentormortgage<-rowMaxs(cbind(data$exp.rentormortgage-data$value.section8,0))
-    data$netexp.housing<-data$exp.housing-data$value.section8
+    data$share.rent<-(data$exp.rentormortgage)/(data$exp.rentormortgage+data$exp.utilities) # share of rent in total housing expense
+    data$share.rent[is.na(data$share.rent)]<-0 # in case the denominator is zero, just set the whole share to 0
+    
+    data$share.utilities<-(data$exp.utilities)/(data$exp.rentormortgage+data$exp.utilities)  # share of utilities in total housing expense
+    data$share.utilities[is.na(data$share.utilities)]<-0 # in case the denominator is zero, just set the whole share to 0
+    
+    # Allocate Section 8 voucher to net rent & net utilities reduction in accordance with the share of utilities and rent from above 
+    data$netexp.rentormortgage<-rowMaxs(cbind(data$exp.rentormortgage-data$share.rent*data$value.section8,0))
+    data$netexp.utilities<-rowMaxs(cbind(data$exp.utilities-data$share.utilities*data$value.section8,0))
+
+    data$netexp.housing<-data$netexp.rentormortgage+data$netexp.utilities
+    
   }else if(APPLY_SECTION8==FALSE & APPLY_RAP==TRUE & APPLY_FRSP==FALSE){
     
     data$value.section8<-function.RAPBenefit(data=data
@@ -2012,8 +2080,18 @@ BenefitsCalculator.FoodandHousing<-function(data, APPLY_SECTION8=FALSE, APPLY_LI
     }   
     data$value.section8[data$section8_takeup==0]<-0
     
-    data$netexp.rentormortgage<-rowMaxs(cbind(data$exp.rentormortgage-data$value.section8,0))
-    data$netexp.housing<-data$exp.housing-data$value.section8
+    data$share.rent<-(data$exp.rentormortgage)/(data$exp.rentormortgage+data$exp.utilities) # share of rent in total housing expense
+    data$share.rent[is.na(data$share.rent)]<-0 # in case the denominator is zero, just set the whole share to 0
+    
+    data$share.utilities<-(data$exp.utilities)/(data$exp.rentormortgage+data$exp.utilities)  # share of utilities in total housing expense
+    data$share.utilities[is.na(data$share.utilities)]<-0 # in case the denominator is zero, just set the whole share to 0
+    
+    # Allocate Section 8 voucher to net rent & net utilities reduction in accordance with the share of utilities and rent from above 
+    data$netexp.rentormortgage<-rowMaxs(cbind(data$exp.rentormortgage-data$share.rent*data$value.section8,0))
+    data$netexp.utilities<-rowMaxs(cbind(data$exp.utilities-data$share.utilities*data$value.section8,0))
+    
+    data$netexp.housing<-data$netexp.rentormortgage+data$netexp.utilities
+    
   }else if(APPLY_SECTION8==FALSE & APPLY_RAP==FALSE & APPLY_FRSP==TRUE){
     
     data$value.section8<-function.FRSPBenefit(data
@@ -2028,8 +2106,18 @@ BenefitsCalculator.FoodandHousing<-function(data, APPLY_SECTION8=FALSE, APPLY_LI
     }   
     data$value.section8[data$section8_takeup==0]<-0
     
-    data$netexp.rentormortgage<-rowMaxs(cbind(data$exp.rentormortgage-data$value.section8,0))
-    data$netexp.housing<-data$exp.housing-data$value.section8
+    data$share.rent<-(data$exp.rentormortgage)/(data$exp.rentormortgage+data$exp.utilities) # share of rent in total housing expense
+    data$share.rent[is.na(data$share.rent)]<-0 # in case the denominator is zero, just set the whole share to 0
+    
+    data$share.utilities<-(data$exp.utilities)/(data$exp.rentormortgage+data$exp.utilities)  # share of utilities in total housing expense
+    data$share.utilities[is.na(data$share.utilities)]<-0 # in case the denominator is zero, just set the whole share to 0
+    
+    # Allocate Section 8 voucher to net rent & net utilities reduction in accordance with the share of utilities and rent from above 
+    data$netexp.rentormortgage<-rowMaxs(cbind(data$exp.rentormortgage-data$share.rent*data$value.section8,0))
+    data$netexp.utilities<-rowMaxs(cbind(data$exp.utilities-data$share.utilities*data$value.section8,0))
+    
+    data$netexp.housing<-data$netexp.rentormortgage+data$netexp.utilities
+    
   }
   
   
@@ -2077,12 +2165,15 @@ BenefitsCalculator.FoodandHousing<-function(data, APPLY_SECTION8=FALSE, APPLY_LI
   }  
   
   # LIHEAP - only workign for CT right now. 
-  if(APPLY_LIHEAP==FALSE){
+  if(APPLY_LIHEAP==FALSE & APPLY_SECTION8==FALSE){
     data$netexp.utilities<-data$exp.utilities
     data$value.liheap<-0
+  }else if(APPLY_LIHEAP==FALSE & APPLY_SECTION8==TRUE){
+      data$netexp.utilities<-data$netexp.utilities
+      data$value.liheap<-0
   }else{
     data$value.liheap<-function.liheapBenefit(data)
-    data$netexp.utilities<-data$exp.utilities-data$value.liheap
+    data$netexp.utilities<-data$netexp.utilities-data$value.liheap
   }
   
   
@@ -2333,7 +2424,7 @@ data<-data %>%
             ,NetResources = income+income.gift+income.investment+income.child_support+value.employerhealthcare+total.transfers-total.taxes-total.expenses
             ,NetResources.FATES = income+income.gift+income.investment+income.child_support+value.employerhealthcare+total.transfers-total.taxes-total.expenses +value.FATES
             
-            ,netexp.housing=netexp.rentormortgage+netexp.utilities
+            #,netexp.housing=netexp.rentormortgage+netexp.utilities
             ,AfterTaxIncome=(income+income.gift+income.investment+income.child_support)-(tax.income.fed+tax.income.state+tax.FICA+tax.sales)
          
             )
@@ -2369,7 +2460,7 @@ function.createVars.CLIFF<-function(data){
             
             ,NetResources = income+income.gift+income.investment+income.child_support+value.employerhealthcare+total.transfers+value.assistance.other-value.tuition.net-total.taxes-total.expenses-studentLoanRepayment-value.loans
             
-            ,netexp.housing=netexp.rentormortgage+netexp.utilities
+            #,netexp.housing=netexp.rentormortgage+netexp.utilities
             ,AfterTaxIncome=(income+income.gift+income.investment+income.child_support)-(tax.income.fed+tax.income.state+tax.FICA+tax.sales)
             
     )
