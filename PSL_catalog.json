@@ -1,0 +1,156 @@
+{
+    "project_one_line": {
+        "start_header": null,
+        "end_header": null,
+        "source": "https://github.com/FRB-Atlanta-Advancing-Careers/policy-rules-database",
+        "type": "html",
+        "data": "<p>Repository of rules and provisions for all major federal and state public assistance programs, taxes, and tax credits.</p>"
+    },
+    "key_features": {
+        "start_header": null,
+        "end_header": null,
+        "source": null,
+        "type": null,
+        "data": null
+    },
+    "project_overview": {
+        "start_header": "About the Policy Rules Database (PRD)",
+        "end_header": "Description of Each File Included in This Repository",
+        "source": "README.md",
+        "type": "github_file",
+        "data": null
+    },
+    "citation": {
+        "start_header": "Citing the Policy Rules Database",
+        "end_header": null,
+        "source": "README.md",
+        "type": "github_file",
+        "data": null
+    },
+    "license": {
+        "start_header": null,
+        "end_header": null,
+        "source": "https://github.com/FRB-Atlanta-Advancing-Careers/policy-rules-database/blob/main/LICENSE",
+        "data": "<p>GNU General Public License v3.0</p>",
+        "type": "html"
+    },
+    "user_documentation": {
+        "start_header": null,
+        "end_header": null,
+        "data": "<a href=\"http://ccc.pslmodels.org/\">http://ccc.pslmodels.org/content/intro.html/</a>",
+        "source": null,
+        "type": "html"
+    },
+    "user_changelog": {
+        "start_header": null,
+        "end_header": null,
+        "source": null,
+        "type": null,
+        "data": null
+    },
+    "user_changelog_recent": {
+        "start_header": null,
+        "end_header": null,
+        "source": null,
+        "type": null,
+        "data": null
+    },
+    "dev_changelog": {
+        "start_header": null,
+        "end_header": null,
+        "source": null,
+        "type": null,
+        "data": null
+    },
+    "disclaimer": {
+        "start_header": "Disclaimer",
+        "end_header": "Using/contributing to Cost-of-Capital-Calculator",
+        "source": "README.md",
+        "type": "github_file",
+        "data": null
+    },
+    "user_case_studies": {
+        "start_header": null,
+        "end_header": null,
+        "source": null,
+        "type": null,
+        "data": null
+    },
+    "project_roadmap": {
+        "start_header": null,
+        "end_header": null,
+        "source": null,
+        "type": null,
+        "data": null
+    },
+    "contributor_overview": {
+        "start_header": null,
+        "end_header": null,
+        "source": null,
+        "type": null,
+        "data": null
+    },
+    "contributor_guide": {
+        "start_header": "Using/contributing to Cost-of-Capital-Calculator",
+        "end_header": "Citing the Cost-of-Capital-Calculator Model",
+        "source": "README.md",
+        "type": "github_file",
+        "data": "<a href=\"http://ccc.pslmodels.org/content/contributing/contributor_guide.html\">http://ccc.pslmodels.org/content/contributing/contributor_guide.html</a>"
+    },
+    "governance_overview": {
+        "start_header": null,
+        "end_header": null,
+        "source": null,
+        "type": null,
+        "data": null
+    },
+    "public_funding": {
+        "start_header": null,
+        "end_header": null,
+        "source": null,
+        "type": null,
+        "data": null
+    },
+    "link_to_webapp": {
+        "data": "<a href=\"https://compute.studio/PSLmodels/Cost-of-Capital-Calculator/\">https://compute.studio/PSLmodels/Cost-of-Capital-Calculator/</a>",
+        "source": null,
+        "type": "html",
+        "start_header": null,
+        "end_header": null
+    },
+    "public_issue_tracker": {
+        "start_header": null,
+        "end_header": null,
+        "data": "<a href=\"https://github.com/PSLmodels/Cost-of-Capital-Calculator/issues\">https://github.com/PSLmodels/Cost-of-Capital-Calculator/issues</a>",
+        "source": null,
+        "type": "html"
+    },
+    "public_qanda": {
+        "start_header": null,
+        "end_header": null,
+        "data": "<a href=\"https://github.com/PSLmodels/Cost-of-Capital-Calculator/issues\">https://github.com/PSLmodels/Cost-of-Capital-Calculator/issues</a>",
+        "source": null,
+        "type": "html"
+    },
+    "core_maintainers": {
+        "start_header": null,
+        "end_header": null,
+        "data": "<ul><li><a href=\"http://jasondebacker.com\">Jason DeBacker</a></li></ul>",
+        "source": null,
+        "type": "html"
+    },
+    "unit_test": {
+        "start_header": null,
+        "end_header": null,
+        "data": "<a href=\"https://github.com/PSLmodels/Cost-of-Capital-Calculator/tree/master/ccc/tests\">https://github.com/PSLmodels/Cost-of-Capital-Calculator/tree/master/ccc/tests</a>",
+        "source": null,
+        "type": "html"
+    },
+    "integration_test": {
+        "start_header": null,
+        "end_header": null,
+        "data": "<a href=\"https://github.com/PSLmodels/Cost-of-Capital-Calculator/tree/master/ccc/tests\">https://github.com/PSLmodels/Cost-of-Capital-Calculator/tree/master/ccc/tests</a>",
+        "source": null,
+        "type": "html"
+    }
+}
