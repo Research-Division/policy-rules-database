@@ -37,7 +37,7 @@
     "user_documentation": {
         "start_header": null,
         "end_header": null,
-        "data": "<a href=\"http://ccc.pslmodels.org/\">http://ccc.pslmodels.org/content/intro.html/</a>",
+        "data": "https://github.com/FRB-Atlanta-Advancing-Careers/policy-rules-database/blob/main/PRD%20Technical%20Manual.pdf",
         "source": null,
         "type": "html"
     },
@@ -63,10 +63,10 @@
         "data": null
     },
     "disclaimer": {
-        "start_header": "Disclaimer",
-        "end_header": "Using/contributing to Cost-of-Capital-Calculator",
-        "source": "README.md",
-        "type": "github_file",
+        "start_header": null,
+        "end_header": null,
+        "source": null,
+        "type": null,
         "data": null
     },
     "user_case_studies": {
@@ -91,11 +91,11 @@
         "data": null
     },
     "contributor_guide": {
-        "start_header": "Using/contributing to Cost-of-Capital-Calculator",
-        "end_header": "Citing the Cost-of-Capital-Calculator Model",
-        "source": "README.md",
-        "type": "github_file",
-        "data": "<a href=\"http://ccc.pslmodels.org/content/contributing/contributor_guide.html\">http://ccc.pslmodels.org/content/contributing/contributor_guide.html</a>"
+        "start_header": null,
+        "end_header": null,
+        "source": null,
+        "type": null,
+        "data": null
     },
     "governance_overview": {
         "start_header": null,
@@ -112,7 +112,7 @@
         "data": null
     },
     "link_to_webapp": {
-        "data": "<a href=\"https://compute.studio/PSLmodels/Cost-of-Capital-Calculator/\">https://compute.studio/PSLmodels/Cost-of-Capital-Calculator/</a>",
+        "data": "<a href=\"https://emar-data-tools.shinyapps.io/prd_dashboard/\">PRD Dashboard</a>",
         "source": null,
         "type": "html",
         "start_header": null,
@@ -121,35 +121,35 @@
     "public_issue_tracker": {
         "start_header": null,
         "end_header": null,
-        "data": "<a href=\"https://github.com/PSLmodels/Cost-of-Capital-Calculator/issues\">https://github.com/PSLmodels/Cost-of-Capital-Calculator/issues</a>",
+        "data": null,
         "source": null,
         "type": "html"
     },
     "public_qanda": {
         "start_header": null,
         "end_header": null,
-        "data": "<a href=\"https://github.com/PSLmodels/Cost-of-Capital-Calculator/issues\">https://github.com/PSLmodels/Cost-of-Capital-Calculator/issues</a>",
+        "data": null,
         "source": null,
         "type": "html"
     },
     "core_maintainers": {
         "start_header": null,
         "end_header": null,
-        "data": "<ul><li><a href=\"http://jasondebacker.com\">Jason DeBacker</a></li></ul>",
+        "data": "<ul><li><a href=\"https://www.atlantafed.org/economic-mobility-and-resilience/advancing-careers-for-low-income-families.aspx\">Atlanta Fed Advancing Careers Initiative </a></li></ul>",
         "source": null,
         "type": "html"
     },
     "unit_test": {
         "start_header": null,
         "end_header": null,
-        "data": "<a href=\"https://github.com/PSLmodels/Cost-of-Capital-Calculator/tree/master/ccc/tests\">https://github.com/PSLmodels/Cost-of-Capital-Calculator/tree/master/ccc/tests</a>",
+        "data": null,
         "source": null,
         "type": "html"
     },
     "integration_test": {
         "start_header": null,
         "end_header": null,
-        "data": "<a href=\"https://github.com/PSLmodels/Cost-of-Capital-Calculator/tree/master/ccc/tests\">https://github.com/PSLmodels/Cost-of-Capital-Calculator/tree/master/ccc/tests</a>",
+        "data": null,
         "source": null,
         "type": "html"
     }
