@@ -9,7 +9,7 @@ The Policy Rules Database (PRD) is an open-source repository that contains up-to
 
 The terms of the PRD use are defined by the GNU General Public License v3.0. If you are interested in alternative licensing arrangements, please contact elias.ilin@atl.frb.org
 
-# Suggested Citation:
+# Suggested Citation
 
 Ilin, Elias and Ellyn Terry. 2021. 'The Policy Rules Database.' Federal Reserve Bank of Atlanta.
 Available at www.frbatlanta.org/economic-mobility-and-resilience/advancing-careers-forlow-income-families/policy-rules-database.aspx. 
