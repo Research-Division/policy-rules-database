@@ -1,4 +1,4 @@
-# About the Policy Rules Database (PRD)
+# Policy Rules Database (PRD)
 The Policy Rules Database (PRD) is an open-source repository that contains up-to-date rules and provisions for all major federal and state public assistance programs, taxes, and tax credits in a single easy-to-use database.
 
 * To learn more, visit the [PRD website](https://www.atlantafed.org/economic-mobility-and-resilience/advancing-careers-for-low-income-families/policy-rules-database.aspx)
@@ -9,12 +9,12 @@ The Policy Rules Database (PRD) is an open-source repository that contains up-to
 
 The terms of the PRD use are defined by the GNU General Public License v3.0. If you are interested in alternative licensing arrangements, please contact elias.ilin@atl.frb.org
 
-# Citing the Policy Rules Database
+## Citing the Policy Rules Database
 
 Ilin, Elias and Ellyn Terry. 2021. 'The Policy Rules Database.' Federal Reserve Bank of Atlanta.
 Available at www.frbatlanta.org/economic-mobility-and-resilience/advancing-careers-forlow-income-families/policy-rules-database.aspx. 
 
-# How to Use This Repository?
+## How to Use This Repository?
 
 **Step 1: Download the repository**
 
@@ -42,7 +42,7 @@ The PRD GitHub repository gives users flexibility in how to use the database. Th
 
 * Applying PRD calculations to external datasets (CPS, ACS, SIPP etc) for microsimulation purposes 
 
-# Description of Each File Included in This Repository
+## Description of Each File Included in This Repository
 
 This folder contains the following files:
 
