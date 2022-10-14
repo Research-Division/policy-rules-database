@@ -2,7 +2,7 @@
     "project_one_line": {
         "start_header": null,
         "end_header": null,
-        "source": "https://github.com/FRB-Atlanta-Advancing-Careers/policy-rules-database",
+        "source": "https://github.com/PSLmodels/policy-rules-database",
         "type": "html",
         "data": "<p>Repository of rules and provisions for all major federal and state public assistance programs, taxes, and tax credits.</p>"
     },
@@ -14,8 +14,8 @@
         "data": null
     },
     "project_overview": {
-        "start_header": "About the Policy Rules Database (PRD)",
-        "end_header": "Description of Each File Included in This Repository",
+        "start_header": "Policy Rules Database (PRD)",
+        "end_header": "Citing the Policy Rules Database",
         "source": "README.md",
         "type": "github_file",
         "data": null
@@ -37,7 +37,7 @@
     "user_documentation": {
         "start_header": null,
         "end_header": null,
-        "data": "https://github.com/FRB-Atlanta-Advancing-Careers/policy-rules-database/blob/main/PRD%20Technical%20Manual.pdf",
+        "data": "<a href=\"https://github.com/FRB-Atlanta-Advancing-Careers/policy-rules-database/blob/main/README.md\">https://github.com/FRB-Atlanta-Advancing-Careers/policy-rules-database/blob/main/README.md/</a>",
         "source": null,
         "type": "html"
     },
@@ -112,7 +112,7 @@
         "data": null
     },
     "link_to_webapp": {
-        "data": "<a href=\"https://emar-data-tools.shinyapps.io/prd_dashboard/\">PRD Dashboard</a>",
+        "data": "<a href=\"https://emar-data-tools.shinyapps.io/prd_dashboard/\">https://emar-data-tools.shinyapps.io/prd_dashboard/</a>",
         "source": null,
         "type": "html",
         "start_header": null,
@@ -135,7 +135,7 @@
     "core_maintainers": {
         "start_header": null,
         "end_header": null,
-        "data": "<ul><li><a href=\"https://www.atlantafed.org/economic-mobility-and-resilience/advancing-careers-for-low-income-families.aspx\">Atlanta Fed Advancing Careers Initiative </a></li></ul>",
+        "data": "<ul><li><a href=\"https://eliasilin.com\">Elias Ilin</a></li></ul><ul><li><a href=\"https://sites.google.com/view/ellieterry\">Ellie Terry</a></li></ul><ul><li><a href=\"https://www.atlantafed.org/economic-mobility-and-resilience/advancing-careers-for-low-income-families.aspx\">Atlanta Fed Advancing Careers Initiative</a></li></ul>",
         "source": null,
         "type": "html"
     },
