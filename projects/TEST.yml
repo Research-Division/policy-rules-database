@@ -164,6 +164,7 @@ contelig.earlyheadstart: false
 
 contelig.ccdf: true
 
+USEALICE: false
 
 # Trasnfer programs switches
 
