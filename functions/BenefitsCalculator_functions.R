@@ -1130,6 +1130,16 @@ if(APPLY_CCDF==FALSE){
     # Calculate total copay
     data$value.CCDF<-function.CCDFcopay(data
                                         , contelig.ccdf = `contelig.ccdf`) # TRUE/FALSE
+    
+    
+    #-------------------------------------
+    # Adjust for take-up
+    #-------------------------------------
+    # Is take-up variable specified?
+    if(is.null(data$ccdf_takeup)){
+      data$ccdf_takeup<-1
+    }   
+    data$value.CCDF[data$ccdf_takeup==0]<-0
   
     #Calculate net childcare expenses (net of CCDF and Head Start) for SNAP, CDCTC etc
     data<-data %>% 
@@ -1654,6 +1664,111 @@ BenefitsCalculator.Healthcare<-function(data, APPLY_HEALTHCARE=FALSE, APPLY_MEDI
     }
     
     
+    # Adjust for Medicaid take-up
+      
+    # Is take-up variable specified?
+    if(is.null(data$medicaid_adult_takeup)){
+      data$medicaid_adult_takeup<-1
+    }  
+    
+      temp<-data[data$medicaid_adult_takeup==0,]
+      
+      temp<-temp %>% 
+        
+        mutate(premium.medicaid.adult.person1 = NA_real_
+               ,premium.medicaid.adult.person2 = NA_real_
+               ,premium.medicaid.adult.person3 = NA_real_
+               ,premium.medicaid.adult.person4 = NA_real_
+               ,premium.medicaid.adult.person5 = NA_real_
+               ,premium.medicaid.adult.person6 = NA_real_
+               ,premium.medicaid.adult.person7 = NA_real_
+               ,premium.medicaid.adult.person8 = NA_real_
+               ,premium.medicaid.adult.person9 = NA_real_
+               ,premium.medicaid.adult.person10 = NA_real_
+               ,premium.medicaid.adult.person11 = NA_real_
+               ,premium.medicaid.adult.person12 = NA_real_) %>% 
+        
+        mutate(value.medicaid.adult.person1 = NA_real_
+               ,value.medicaid.adult.person2 = NA_real_
+               ,value.medicaid.adult.person3 = NA_real_
+               ,value.medicaid.adult.person4 = NA_real_
+               ,value.medicaid.adult.person5 = NA_real_
+               ,value.medicaid.adult.person6 = NA_real_
+               ,value.medicaid.adult.person7 = NA_real_
+               ,value.medicaid.adult.person8 = NA_real_
+               ,value.medicaid.adult.person9 = NA_real_
+               ,value.medicaid.adult.person10 = NA_real_
+               ,value.medicaid.adult.person11 = NA_real_
+               ,value.medicaid.adult.person12 = NA_real_) %>% 
+        
+        mutate(exp.healthcare.medicaid.adult.person1 = NA_real_
+               ,exp.healthcare.medicaid.adult.person2 = NA_real_
+               ,exp.healthcare.medicaid.adult.person3 = NA_real_
+               ,exp.healthcare.medicaid.adult.person4 = NA_real_
+               ,exp.healthcare.medicaid.adult.person5 = NA_real_
+               ,exp.healthcare.medicaid.adult.person6 = NA_real_
+               ,exp.healthcare.medicaid.adult.person7 = NA_real_
+               ,exp.healthcare.medicaid.adult.person8 = NA_real_
+               ,exp.healthcare.medicaid.adult.person9 = NA_real_
+               ,exp.healthcare.medicaid.adult.person10 = NA_real_
+               ,exp.healthcare.medicaid.adult.person11 = NA_real_
+               ,exp.healthcare.medicaid.adult.person12 = NA_real_) 
+    
+    
+      
+      # Is take-up variable specified?
+      if(is.null(data$medicaid_child_takeup)){
+        data$medicaid_child_takeup<-1
+      }  
+      
+      temp<-data[data$medicaid_child_takeup==0,]
+      
+      temp<-temp %>% 
+        
+        mutate(premium.medicaid.child.person1 = NA_real_
+               ,premium.medicaid.child.person2 = NA_real_
+               ,premium.medicaid.child.person3 = NA_real_
+               ,premium.medicaid.child.person4 = NA_real_
+               ,premium.medicaid.child.person5 = NA_real_
+               ,premium.medicaid.child.person6 = NA_real_
+               ,premium.medicaid.child.person7 = NA_real_
+               ,premium.medicaid.child.person8 = NA_real_
+               ,premium.medicaid.child.person9 = NA_real_
+               ,premium.medicaid.child.person10 = NA_real_
+               ,premium.medicaid.child.person11 = NA_real_
+               ,premium.medicaid.child.person12 = NA_real_) %>% 
+        
+        mutate(value.medicaid.child.person1 = NA_real_
+               ,value.medicaid.child.person2 = NA_real_
+               ,value.medicaid.child.person3 = NA_real_
+               ,value.medicaid.child.person4 = NA_real_
+               ,value.medicaid.child.person5 = NA_real_
+               ,value.medicaid.child.person6 = NA_real_
+               ,value.medicaid.child.person7 = NA_real_
+               ,value.medicaid.child.person8 = NA_real_
+               ,value.medicaid.child.person9 = NA_real_
+               ,value.medicaid.child.person10 = NA_real_
+               ,value.medicaid.child.person11 = NA_real_
+               ,value.medicaid.child.person12 = NA_real_) %>% 
+        
+        mutate(exp.healthcare.medicaid.child.person1 = NA_real_
+               ,exp.healthcare.medicaid.child.person2 = NA_real_
+               ,exp.healthcare.medicaid.child.person3 = NA_real_
+               ,exp.healthcare.medicaid.child.person4 = NA_real_
+               ,exp.healthcare.medicaid.child.person5 = NA_real_
+               ,exp.healthcare.medicaid.child.person6 = NA_real_
+               ,exp.healthcare.medicaid.child.person7 = NA_real_
+               ,exp.healthcare.medicaid.child.person8 = NA_real_
+               ,exp.healthcare.medicaid.child.person9 = NA_real_
+               ,exp.healthcare.medicaid.child.person10 = NA_real_
+               ,exp.healthcare.medicaid.child.person11= NA_real_
+               ,exp.healthcare.medicaid.child.person12 = NA_real_) 
+      
+      data[data$medicaid_child_takeup==0,]<-temp
+      
+    
+    
+    
     # Total Family's Medicaid value taking into account that premium sometimes is paid per family/per person
     data<-data %>% 
       mutate(value.medicaid.adult=rowSums(cbind(value.medicaid.adult.person1,value.medicaid.adult.person2,value.medicaid.adult.person3
@@ -1790,6 +1905,15 @@ BenefitsCalculator.Healthcare<-function(data, APPLY_HEALTHCARE=FALSE, APPLY_MEDI
     if(APPLY_ACA==FALSE){
       data$premium.aca<-NA_real_
     }
+    
+    # Adjust for take-up
+    
+    # Is take-up variable specified?
+    if(is.null(data$aca_takeup)){
+      data$aca_takeup<-1
+    }  
+    
+    data$premium.aca[data$aca_takeup==0]<-NA_real_
     
     data$value.aca<-rowMaxs(cbind(data$exp.healthcare.healthexchange-data$premium.aca,0))
     data$value.aca[is.na(data$value.aca)]<-0
@@ -1975,7 +2099,7 @@ if(APPLY_TANF==FALSE){
     data$value.ssiChild5<-0
     data$value.ssiChild6<-0
 
-    # When SSI is true 'hadssi' is created in benefits_function.R instead of here    
+    # When SSI is TRUE 'hadssi' is created in benefits_function.R instead of here    
     data$hadssi1<-ifelse(data$disability1==1 & !is.na(data$disability1) & data$prev_ssi==1
                          ,1 ,0)
     data$hadssi2<-ifelse(data$disability2==1 & !is.na(data$disability2) & data$prev_ssi==1

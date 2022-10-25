@@ -10,1028 +10,1103 @@
 function.tanfBenefit<-function(data){
   
   data$tanfValue<-0
-
-    # Alabama----
+  
+  # Alabama----
+  
+  if(1 %in% unique(data$stateFIPS)){ # make sure that state is in the list
     
-    if(1 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-      
-      temp<-data[data$stateFIPS==1,]
-      
-      temp<-left_join(temp, tanfData, by=c("stateFIPS", "famsize"))
-      
-      # Step I: Calculate net income
-      temp$income=temp$income+temp$income.gift # add gift income 
-      temp$net.income<-rowMaxs(cbind(temp$income-12*temp$EarnedIncomeDisregard,0)) # earned income deduction
-      #temp$net.income<-rowMaxs(cbind(temp$net.income-0.2*temp$netexp.childcare,0)) # childcare deduction
-      
-      # Step II: Calculate value of the benefit
-      temp$tanfValue<-0
-      subset<-temp$totalassets<temp$AssetTest
-      temp$tanfValue[subset]<-rowMaxs(cbind(12*temp$Value[subset] - temp$net.income[subset],0))
-      
-      # Apply gross income test (if applicable)
-      temp$tanfValue[temp$income>temp$grossIncomeTest]<-0
-      
-      # TANF is not available for two married adults
-      temp$tanfValue[temp$FilingStatus==2 & temp$twoAdults_tanf_policy=="No"]<-0
-      
-      # In some states TANF is not available for childless adults
-      temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
-      
-      if(nrow(data)>1){
-        if(data$Year[1] != data$Year[2]){
-          
-          abc <- 1
-          
-          temp_1 <- temp[temp$careerpathID == 2,]
-          temp_2 <- temp[temp$careerpathID == 1,]
-          
-          if(nrow(temp_1)>0){
-            temp_1$count_tanf <- 0
-            temp_1$row_tanf <- 0
-            temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
-            for(i in 1:length(temp_1$tanfValue)){
-              temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
-            }
-            temp_1$tanfValue[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
-            temp_1$tanfValue[2] <- 0.75*temp_1$tanfValue[2]
+    temp<-data[data$stateFIPS==1,]
+    
+    temp<-left_join(temp, tanfData, by=c("stateFIPS", "famsize"))
+    
+    # Step I: Calculate net income
+    temp$income=temp$income+temp$income.gift # add gift income 
+    temp$net.income<-rowMaxs(cbind(temp$income,0)) # earned income deduction
+    #temp$net.income<-rowMaxs(cbind(temp$net.income-0.2*temp$netexp.childcare,0)) # childcare deduction
+    
+    # Step II: Calculate value of the benefit
+    temp$tanfValue<-0
+    subset<-temp$totalassets<temp$AssetTest
+    temp$tanfValue[subset]<-rowMaxs(cbind(12*temp$Value[subset] - temp$net.income[subset],0))
+    
+    # Apply gross income test (if applicable)
+    temp$tanfValue[temp$income>temp$grossIncomeTest]<-0
+    
+    # TANF is not available for two married adults
+    temp$tanfValue[temp$FilingStatus==2 & temp$twoAdults_tanf_policy=="No"]<-0
+    
+    # In some states TANF is not available for childless adults
+    temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
+    
+    if(nrow(data)>1){
+      if(data$Year[1] != data$Year[2]){
+        
+        abc <- 1
+        
+        temp_1 <- temp[temp$careerpathID == 2,]
+        temp_2 <- temp[temp$careerpathID == 1,]
+        
+        if(nrow(temp_1)>0){
+          temp_1$count_tanf <- 0
+          temp_1$row_tanf <- 0
+          temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
+          for(i in 1:length(temp_1$tanfValue)){
+            temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
           }
-          
-          if(nrow(temp_2)>0){
-            temp_2$count_tanf <- 0
-            temp_2$row_tanf <- 0
-            temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
-            for(i in 1:length(temp_2$tanfValue)){
-              temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
-            }
-            temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
-            temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
-          }
-          
-          temp <- rbind(temp_1, temp_2)
-          
-        }else{
-          abc <- 0
+          temp_1$tanfValue[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
+          #   temp_1$tanfValue[2] <- 0.75*temp_1$tanfValue[2]
         }
-      }
-      
-      data$tanfValue[data$stateFIPS==1]<-temp$tanfValue
-      
-      
-    }
-    
-    # California----
-   
-    if(6 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-      
-      temp<-data[data$stateFIPS==6,]
-      
-      temp<-left_join(temp, tanfData, by=c("stateFIPS", "famsize"))
-      
-      # Step I: Calculate net income
-      
-      temp$income=temp$income+temp$income.gift # add gift income
-      
-      temp$numworkingadults <- 1
-      
-      #  for(i in 1:length(temp$income)){
-      #    if(temp$income[i] > 0 & temp$income.otherfamily[i] == 0){
-      #      temp$numworkingadults[i] <- 1
-      #    }else if(temp$income[i] > 0 & temp$income.otherfamily[i] > 0){
-      #      temp$numworkingadults[i] <- 2
-      #    }
-      #  }
-      
-      
-      temp$net.income<-rowMaxs(cbind(temp$income-((90*temp$numworkingadults*12)+(12*550)+temp$EarnedIncomeDisregard*(temp$income-(90*temp$numworkingadults*12)-(12*550))),0)) # earned income deduction
-      
-      # Step II: Calculate value of the benefit
-      temp$tanfValue<-0
-      subset<-temp$totalassets<temp$AssetTest
-      temp$tanfValue[subset]<-rowMaxs(cbind(12*temp$Value[subset] - temp$net.income[subset],0))
-      
-      # Apply gross income test (if applicable)
-      temp$tanfValue[temp$income-(90*12)>temp$grossIncomeTest]<-0
-      
-      # TANF is not available for two married adults
-      temp$tanfValue[temp$FilingStatus==2 & temp$twoAdults_tanf_policy=="No"]<-0
-      
-      # In some states TANF is not available for childless adults
-      temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
-      
-      if(nrow(data)>1){
-        if(data$Year[1] != data$Year[2]){
-          
-          abc <- 1
-          
-          temp_1 <- temp[temp$careerpathID == 2,]
-          temp_2 <- temp[temp$careerpathID == 1,]
-          
-          if(nrow(temp_1)>0){
-            temp_1$count_tanf <- 0
-            temp_1$row_tanf <- 0
-            temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
-            for(i in 1:length(temp_1$tanfValue)){
-              temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
-            }
-            temp_1$tanfValue[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
-            temp_1$tanfValue[2] <- 0.75*temp_1$tanfValue[2]
+        
+        if(nrow(temp_2)>0){
+          temp_2$count_tanf <- 0
+          temp_2$row_tanf <- 0
+          temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
+          for(i in 1:length(temp_2$tanfValue)){
+            temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
           }
-          
-          if(nrow(temp_2)>0){
-            temp_2$count_tanf <- 0
-            temp_2$row_tanf <- 0
-            temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
-            for(i in 1:length(temp_2$tanfValue)){
-              temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
-            }
-            temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
-            temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
-          }
-          
-          temp <- rbind(temp_1, temp_2)
-          
-        }else{
-          abc <- 0
+          temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
+          #   temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
         }
+        
+        temp <- rbind(temp_1, temp_2)
+        
+      }else{
+        abc <- 0
       }
-      
-      
-      # Merge back
-      data$tanfValue[data$stateFIPS==6]<-temp$tanfValue
-      
-      
     }
     
-   
-    # Colorado----
+    data$tanfValue[data$stateFIPS==1]<-temp$tanfValue
     
-    if(8 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-      
-      temp<-data[data$stateFIPS==8,]
-      
-      temp<-left_join(temp, tanfData, by=c("stateFIPS", "famsize"))
-      
-      # Step I: Calculate net income
-      
-      temp$income=temp$income+temp$income.gift # add gift income
-      
-      temp$net.income<-rowMaxs(cbind(temp$income-temp$EarnedIncomeDisregard*temp$income,0)) # earned income deduction
-      
-      # Step II: Calculate value of the benefit
-      temp$tanfValue<-0
-      subset<-temp$totalassets<temp$AssetTest
-      temp$tanfValue[subset]<-rowMaxs(cbind(12*temp$Value[subset] - temp$net.income[subset],0))
-      
-      # Apply gross income test (if applicable)
-      temp$tanfValue[temp$income>temp$grossIncomeTest]<-0
-      
-      # TANF is not available for two married adults
-      temp$tanfValue[temp$FilingStatus==2 & temp$twoAdults_tanf_policy=="No"]<-0
-      
-      # In some states TANF is not available for childless adults
-      temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
-      
-      if(nrow(data)>1){
-        if(data$Year[1] != data$Year[2]){
-          
-          abc <- 1
-          
-          temp_1 <- temp[temp$careerpathID == 2,]
-          temp_2 <- temp[temp$careerpathID == 1,]
-          
-          if(nrow(temp_1)>0){
-            temp_1$count_tanf <- 0
-            temp_1$row_tanf <- 0
-            temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
-            for(i in 1:length(temp_1$tanfValue)){
-              temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
-            }
-            temp_1$tanfValue[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
-            temp_1$tanfValue[2] <- 0.75*temp_1$tanfValue[2]
+    
+  }
+  
+  ##############
+  # ARKANSAS
+  ##############
+  
+  if(5 %in% unique(data$stateFIPS)){ # make sure that state is in the list
+    
+    temp<-data[data$stateFIPS==5,]
+    
+    temp<-left_join(temp, tanfData, by=c("stateFIPS", "famsize"))
+    
+    
+    
+    # Step I: Calculate net income
+    temp$income=temp$income+temp$income.gift # add gift income 
+    temp$net.income<-rowMaxs(cbind(temp$income-(temp$EarnedIncomeDisregard*temp$income)-0.6*(temp$income-(temp$EarnedIncomeDisregard*temp$income)),0)) # earned income deduction
+    #temp$net.income<-rowMaxs(cbind(temp$net.income-0.2*temp$netexp.childcare,0)) # childcare deduction
+    
+    # Step II: Calculate value of the benefit
+    temp$tanfValue<-0
+    subset<-temp$totalassets<temp$AssetTest
+    temp$tanfValue[subset]<-rowMaxs(cbind(12*temp$Value[subset],0))
+    
+    temp$tanfValue[temp$net.income>(223*12)] <- 0
+    
+    # Apply gross income test (if applicable)
+    temp$tanfValue[temp$income>(temp$grossIncomeTest*12) & min(temp$Year) != temp$Year]<-temp$tanfValue[temp$income>(temp$grossIncomeTest*12) & min(temp$Year) != temp$Year]*0.5
+    
+    # TANF is not available for two married adults
+    temp$tanfValue[temp$FilingStatus==2 & temp$twoAdults_tanf_policy=="No"]<-0
+    
+    # In some states TANF is not available for childless adults
+    temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
+    
+    if(nrow(data)>1){
+      if(data$Year[1] != data$Year[2]){
+        
+        abc <- 1
+        
+        temp_1 <- temp[temp$careerpathID == 2,]
+        temp_2 <- temp[temp$careerpathID == 1,]
+        
+        if(nrow(temp_1)>0){
+          temp_1$count_tanf <- 0
+          temp_1$row_tanf <- 0
+          temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
+          for(i in 1:length(temp_1$tanfValue)){
+            temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
           }
-          
-          if(nrow(temp_2)>0){
-            temp_2$count_tanf <- 0
-            temp_2$row_tanf <- 0
-            temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
-            for(i in 1:length(temp_2$tanfValue)){
-              temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
-            }
-            temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
-            temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
-          }
-          
-          temp <- rbind(temp_1, temp_2)
-          
-        }else{
-          abc <- 0
+          temp_1$tanfValue[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
+          #temp_1$tanfValue[2] <- 0.75*temp_1$tanfValue[2]
         }
-      }
-      
-      # Merge back
-      data$tanfValue[data$stateFIPS==8]<-temp$tanfValue
-      
-    }
-    
-    
-    # Connecticut----
-    
-    if(9 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-      
-      temp<-data[data$stateFIPS==9,]
-      
-      temp<-left_join(temp, tanfData, by=c("stateFIPS", "famsize"))
-      
-      # Step I: Calculate net income
-      temp$net.income<-rowMaxs(cbind(temp$income-12*temp$EarnedIncomeDisregard,0)) # earned income deduction
-      
-      # Step II: Calculate value of the benefit
-      temp$tanfValue<-0
-      subset<-temp$totalassets<temp$AssetTest
-      temp$tanfValue[subset]<-rowMaxs(cbind(12*temp$Value[subset] - temp$net.income[subset],0))
-      
-      # Apply gross income test (if applicable)
-      temp$tanfValue[temp$income>temp$grossIncomeTest]<-0
-      
-      # TANF is not available for two married adults
-      temp$tanfValue[temp$FilingStatus==2 & temp$twoAdults_tanf_policy=="No"]<-0
-      
-      # In some states TANF is not available for childless adults
-      temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
-      
-      if(nrow(data)>1){
-        if(data$Year[1] != data$Year[2]){
-          
-          abc <- 1
-          
-          temp_1 <- temp[temp$careerpathID == 2,]
-          temp_2 <- temp[temp$careerpathID == 1,]
-          
-          if(nrow(temp_1)>0){
-            temp_1$count_tanf <- 0
-            temp_1$row_tanf <- 0
-            temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
-            for(i in 1:length(temp_1$tanfValue)){
-              temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
-            }
-            temp_1$tanfValue[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
-            temp_1$tanfValue[2] <- 0.75*temp_1$tanfValue[2]
+        
+        if(nrow(temp_2)>0){
+          temp_2$count_tanf <- 0
+          temp_2$row_tanf <- 0
+          temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
+          for(i in 1:length(temp_2$tanfValue)){
+            temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
           }
-          
-          if(nrow(temp_2)>0){
-            temp_2$count_tanf <- 0
-            temp_2$row_tanf <- 0
-            temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
-            for(i in 1:length(temp_2$tanfValue)){
-              temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
-            }
-            temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
-            temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
-          }
-          
-          temp <- rbind(temp_1, temp_2)
-          
-        }else{
-          abc <- 0
+          temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
+          # temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
         }
+        
+        temp <- rbind(temp_1, temp_2)
+        
+      }else{
+        abc <- 0
       }
-      # 
-      # Merge back
-      data$tanfValue[data$stateFIPS==9]<-temp$tanfValue
-      
     }
     
-    
-    # District of Columbia ----
-    
-    if(11 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-      
-      temp<-data[data$stateFIPS==11,]
-      
-      temp<-left_join(temp, tanfData, by=c("stateFIPS", "famsize"))
-      
-      # Step I: Calculate net income
-      
-      temp$income=temp$income+temp$income.gift # add gift income
-      
-      # Apply TANF child care income deduction (175 for kids in childcare + $25 for <2)
-      temp$numkidsunder13=rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)<=12,na.rm=TRUE)
-      temp$numkidsunder2=rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)<=1,na.rm=TRUE)
-      
-      temp$childcareDeduction<-temp$numkidsunder13*175+temp$numkidsunder2*25
-      
-      temp$net.income<-rowMaxs(cbind(temp$income-(12*160+temp$EarnedIncomeDisregard*(temp$income-12*160)),0)) # earned income deduction
-      temp$net.income<-rowMaxs(cbind(temp$net.income-12*temp$childcareDeduction,0))
-      
-      # Step II: Calculate value of the benefit
-      temp$tanfValue<-0
-      subset<-temp$totalassets<temp$AssetTest
-      temp$tanfValue[subset]<-rowMaxs(cbind(12*temp$Value[subset] - temp$net.income[subset],0))
-      
-      # Apply gross income test (if applicable)
-      temp$tanfValue[temp$income>temp$grossIncomeTest]<-0
-      
-      # TANF is not available for two married adults
-      temp$tanfValue[temp$FilingStatus==2 & temp$twoAdults_tanf_policy=="No"]<-0
-      
-      # In some states TANF is not available for childless adults
-      temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
-      
-      # Merge back
-      data$tanfValue[data$stateFIPS==11]<-temp$tanfValue
-      
-    }
+    data$tanfValue[data$stateFIPS==5]<-temp$tanfValue
     
     
-    # Florida ----
+  }
+  
+  # California----
+  
+  if(6 %in% unique(data$stateFIPS)){ # make sure that state is in the list
     
-    if(12 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-      
-      temp<-data[data$stateFIPS==12,]
-      
-      temp<-left_join(temp, tanfData, by=c("stateFIPS", "famsize"))
-      
-      # Step I: Calculate net income
-      
-      temp$income=temp$income+temp$income.gift # add gift income
-      
-      temp$net.income<-rowMaxs(cbind(temp$income-((90*12)+(12*200)+temp$EarnedIncomeDisregard*(temp$income-(90*12)-(12*200))+(10*12)),0)) # earned income deduction
-      
-      # Step II: Calculate value of the benefit
-      temp$tanfValue<-0
-      subset<-temp$totalassets<temp$AssetTest
-      temp$tanfValue[subset]<-rowMaxs(cbind(12*temp$Value[subset] - temp$net.income[subset],0))
-      
-      # Apply gross income test (if applicable)
-      temp$tanfValue[(temp$income - (90*12)) > temp$grossIncomeTest]<-0
-      
-      # TANF is not available for two married adults
-      temp$tanfValue[temp$FilingStatus==2 & temp$twoAdults_tanf_policy=="No"]<-0
-      
-      # In some states TANF is not available for childless adults
-      temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
-      
-      if(nrow(data)>1){
-        if(data$Year[1] != data$Year[2]){
-          
-          abc <- 1
-          
-          temp_1 <- temp[temp$careerpathID == 2,]
-          temp_2 <- temp[temp$careerpathID == 1,]
-          
-          if(nrow(temp_1)>0){
-            temp_1$count_tanf <- 0
-            temp_1$row_tanf <- 0
-            temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
-            for(i in 1:length(temp_1$tanfValue)){
-              temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
-            }
-            temp_1$tanfValue[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
-            temp_1$tanfValue[2] <- 0.75*temp_1$tanfValue[2]
+    temp<-data[data$stateFIPS==6,]
+    
+    temp<-left_join(temp, tanfData, by=c("stateFIPS", "famsize"))
+    
+    # Step I: Calculate net income
+    
+    temp$income=temp$income+temp$income.gift # add gift income
+    
+    temp$numworkingadults <- 1
+    
+    #  for(i in 1:length(temp$income)){
+    #    if(temp$income[i] > 0 & temp$income.otherfamily[i] == 0){
+    #      temp$numworkingadults[i] <- 1
+    #    }else if(temp$income[i] > 0 & temp$income.otherfamily[i] > 0){
+    #      temp$numworkingadults[i] <- 2
+    #    }
+    #  }
+    
+    
+    temp$net.income<-rowMaxs(cbind(temp$income-((90*temp$numworkingadults*12)+(12*550)+temp$EarnedIncomeDisregard*(temp$income-(90*temp$numworkingadults*12)-(12*550))),0)) # earned income deduction
+    
+    # Step II: Calculate value of the benefit
+    temp$tanfValue<-0
+    subset<-temp$totalassets<temp$AssetTest
+    temp$tanfValue[subset]<-rowMaxs(cbind(12*temp$Value[subset] - temp$net.income[subset],0))
+    
+    # Apply gross income test (if applicable)
+    temp$tanfValue[temp$income-(90*12)>temp$grossIncomeTest]<-0
+    
+    # TANF is not available for two married adults
+    temp$tanfValue[temp$FilingStatus==2 & temp$twoAdults_tanf_policy=="No"]<-0
+    
+    # In some states TANF is not available for childless adults
+    temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
+    
+    if(nrow(data)>1){
+      if(data$Year[1] != data$Year[2]){
+        
+        abc <- 1
+        
+        temp_1 <- temp[temp$careerpathID == 2,]
+        temp_2 <- temp[temp$careerpathID == 1,]
+        
+        if(nrow(temp_1)>0){
+          temp_1$count_tanf <- 0
+          temp_1$row_tanf <- 0
+          temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
+          for(i in 1:length(temp_1$tanfValue)){
+            temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
           }
-          
-          if(nrow(temp_2)>0){
-            temp_2$count_tanf <- 0
-            temp_2$row_tanf <- 0
-            temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
-            for(i in 1:length(temp_2$tanfValue)){
-              temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
-            }
-            temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
-            temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
-          }
-          
-          temp <- rbind(temp_1, temp_2)
-          
-        }else{
-          abc <- 0
+          temp_1$tanfValue[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
+          #  temp_1$tanfValue[2] <- 0.75*temp_1$tanfValue[2]
         }
-      }
-      
-      
-      # Merge back
-      data$tanfValue[data$stateFIPS==12]<-temp$tanfValue
-      
-      
-    }
-    
-    
-    # Kentucky ----
-    
-    if(21 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-      
-      temp<-data[data$stateFIPS==21,]
-      
-      temp<-left_join(temp, tanfData, by=c("stateFIPS", "famsize"))
-      
-      temp$income=temp$income+temp$income.gift # add gift income
-      
-      
-      # Step I: Calculate net income
-      temp$net.income<-rowMaxs(cbind(temp$income-12*temp$EarnedIncomeDisregard,0)) # earned income deduction
-      #temp$net.income<-rowMaxs(cbind(temp$net.income-0.2*temp$netexp.childcare,0)) # childcare deduction
-      
-      # Step II: Calculate value of the benefit
-      temp$tanfValue<-0
-      subset<-temp$totalassets<temp$AssetTest
-      temp$tanfValue[subset]<-rowMaxs(cbind(12*temp$Value[subset] - temp$net.income[subset],0))
-      
-      # Apply gross income test (if applicable)
-      temp$tanfValue[temp$income>temp$grossIncomeTest]<-0
-      
-      # TANF is not available for two married adults
-      temp$tanfValue[temp$FilingStatus==2 & temp$twoAdults_tanf_policy=="No"]<-0
-      
-      # In some states TANF is not available for childless adults
-      temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
-      
-      if(nrow(data)>1){
-        if(data$Year[1] != data$Year[2]){
-          
-          abc <- 1
-          
-          temp_1 <- temp[temp$careerpathID == 2,]
-          temp_2 <- temp[temp$careerpathID == 1,]
-          
-          if(nrow(temp_1)>0){
-            temp_1$count_tanf <- 0
-            temp_1$row_tanf <- 0
-            temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
-            for(i in 1:length(temp_1$tanfValue)){
-              temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
-            }
-            temp_1$tanfValue[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
-            temp_1$tanfValue[2] <- 0.75*temp_1$tanfValue[2]
+        
+        if(nrow(temp_2)>0){
+          temp_2$count_tanf <- 0
+          temp_2$row_tanf <- 0
+          temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
+          for(i in 1:length(temp_2$tanfValue)){
+            temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
           }
-          
-          if(nrow(temp_2)>0){
-            temp_2$count_tanf <- 0
-            temp_2$row_tanf <- 0
-            temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
-            for(i in 1:length(temp_2$tanfValue)){
-              temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
-            }
-            temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
-            temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
-          }
-          
-          temp <- rbind(temp_1, temp_2)
-          
-        }else{
-          abc <- 0
+          temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
+          #   temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
         }
+        
+        temp <- rbind(temp_1, temp_2)
+        
+      }else{
+        abc <- 0
       }
-      
-      data$tanfValue[data$stateFIPS==21]<-temp$tanfValue
-      
-      
     }
     
     
-    # Louisiana ----
+    # Merge back
+    data$tanfValue[data$stateFIPS==6]<-temp$tanfValue
     
-    if(22 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-      
-      temp<-data[data$stateFIPS==22,]
-      
-      temp<-left_join(temp, tanfData, by=c("stateFIPS", "famsize"))
-      
-      # Step I: Calculate net income
-      temp$net.income<-rowMaxs(cbind(temp$income-12*temp$EarnedIncomeDisregard,0)) # earned income deduction
-      
-      # Step II: Calculate value of the benefit
-      temp$tanfValue<-0
-      subset<-temp$totalassets<temp$AssetTest
-      temp$tanfValue[subset]<-rowMaxs(cbind(12*temp$Value[subset] - temp$net.income[subset],0))
-      
-      # TANF is not available for two married adults
-      temp$tanfValue[temp$FilingStatus==2 & temp$twoAdults_tanf_policy=="No"]<-0
-      
-      # Apply gross income test (if applicable)
-      temp$tanfValue[temp$income>temp$grossIncomeTest]<-0
-      
-      # In some states TANF is not available for childless adults
-      temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
-      
-      if(nrow(data)>1){
-        if(data$Year[1] != data$Year[2]){
-          
-          abc <- 1
-          
-          temp_1 <- temp[temp$careerpathID == 2,]
-          temp_2 <- temp[temp$careerpathID == 1,]
-          
-          if(nrow(temp_1)>0){
-            temp_1$count_tanf <- 0
-            temp_1$row_tanf <- 0
-            temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
-            for(i in 1:length(temp_1$tanfValue)){
-              temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
-            }
-            temp_1$tanfValue[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
-            temp_1$tanfValue[2] <- 0.75*temp_1$tanfValue[2]
+    
+  }
+  
+  
+  # Colorado----
+  
+  if(8 %in% unique(data$stateFIPS)){ # make sure that state is in the list
+    
+    temp<-data[data$stateFIPS==8,]
+    
+    temp<-left_join(temp, tanfData, by=c("stateFIPS", "famsize"))
+    
+    # Step I: Calculate net income
+    
+    temp$income=temp$income+temp$income.gift # add gift income
+    
+    temp$net.income<-rowMaxs(cbind(temp$income-temp$EarnedIncomeDisregard*temp$income,0)) # earned income deduction
+    
+    # Step II: Calculate value of the benefit
+    temp$tanfValue<-0
+    subset<-temp$totalassets<temp$AssetTest
+    temp$tanfValue[subset]<-rowMaxs(cbind(12*temp$Value[subset] - temp$net.income[subset],0))
+    
+    # Apply gross income test (if applicable)
+    temp$tanfValue[temp$income>temp$grossIncomeTest]<-0
+    
+    # TANF is not available for two married adults
+    temp$tanfValue[temp$FilingStatus==2 & temp$twoAdults_tanf_policy=="No"]<-0
+    
+    # In some states TANF is not available for childless adults
+    temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
+    
+    if(nrow(data)>1){
+      if(data$Year[1] != data$Year[2]){
+        
+        abc <- 1
+        
+        temp_1 <- temp[temp$careerpathID == 2,]
+        temp_2 <- temp[temp$careerpathID == 1,]
+        
+        if(nrow(temp_1)>0){
+          temp_1$count_tanf <- 0
+          temp_1$row_tanf <- 0
+          temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
+          for(i in 1:length(temp_1$tanfValue)){
+            temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
           }
-          
-          if(nrow(temp_2)>0){
-            temp_2$count_tanf <- 0
-            temp_2$row_tanf <- 0
-            temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
-            for(i in 1:length(temp_2$tanfValue)){
-              temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
-            }
-            temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
-            temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
-          }
-          
-          temp <- rbind(temp_1, temp_2)
-          
-        }else{
-          abc <- 0
+          temp_1$tanfValue[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
+          #  temp_1$tanfValue[2] <- 0.75*temp_1$tanfValue[2]
         }
-      }
-      
-      # Merge back
-      data$tanfValue[data$stateFIPS==22]<-temp$tanfValue
-      
-    }
-    
-    # Maine ----
-    
-    if(23 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-      
-      temp<-data[data$stateFIPS==23,]
-      
-      temp<-left_join(temp, tanfData, by=c("stateFIPS", "famsize"))
-      
-      # Step I: Calculate net income
-      temp$income=temp$income+temp$income.gift
-      temp$net.income<-rowMaxs(cbind(temp$income-(12*108+temp$EarnedIncomeDisregard*(temp$income-12*108)),0)) # earned income deduction
-      
-      # Step II: Calculate value of the benefit
-      temp$tanfValue<-0
-      subset<-temp$totalassets<temp$AssetTest
-      temp$tanfValue[subset]<-rowMaxs(cbind(12*temp$Value[subset] - temp$net.income[subset],0))
-      
-      # Apply gross income test (if applicable)
-      temp$tanfValue[temp$income>temp$grossIncomeTest]<-0
-      
-      # TANF is not available for two married adults
-      temp$tanfValue[temp$FilingStatus==2 & temp$twoAdults_tanf_policy=="No"]<-0
-      
-      # In some states TANF is not available for childless adults
-      temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
-      
-      if(nrow(data)>1){
-        if(data$Year[1] != data$Year[2]){
-          
-          abc <- 1
-          
-          temp_1 <- temp[temp$careerpathID == 2,]
-          temp_2 <- temp[temp$careerpathID == 1,]
-          
-          if(nrow(temp_1)>0){
-            temp_1$count_tanf <- 0
-            temp_1$row_tanf <- 0
-            temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
-            for(i in 1:length(temp_1$tanfValue)){
-              temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
-            }
-            temp_1$tanfValue[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
-            temp_1$tanfValue[2] <- 0.75*temp_1$tanfValue[2]
+        
+        if(nrow(temp_2)>0){
+          temp_2$count_tanf <- 0
+          temp_2$row_tanf <- 0
+          temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
+          for(i in 1:length(temp_2$tanfValue)){
+            temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
           }
-          
-          if(nrow(temp_2)>0){
-            temp_2$count_tanf <- 0
-            temp_2$row_tanf <- 0
-            temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
-            for(i in 1:length(temp_2$tanfValue)){
-              temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
-            }
-            temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
-            temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
-          }
-          
-          temp <- rbind(temp_1, temp_2)
-          
-        }else{
-          abc <- 0
+          temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
+          #    temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
         }
+        
+        temp <- rbind(temp_1, temp_2)
+        
+      }else{
+        abc <- 0
       }
-      
-      # Merge back
-      data$tanfValue[data$stateFIPS==23]<-temp$tanfValue
-      
     }
     
-
-    # Maryland----
+    # Merge back
+    data$tanfValue[data$stateFIPS==8]<-temp$tanfValue
     
-    if(24 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-      
-      temp<-data[data$stateFIPS==24,]
-      
-      temp<-left_join(temp, tanfData, by=c("stateFIPS", "famsize"))
-      
-      # Step I: Calculate net income
-      temp$income=temp$income+temp$income.gift
-      
-      # temp$monthly_hours <- 1
-      # temp$monthly_hours[temp$hours > 25] <- 2
-      
-      temp$net.income<-rowMaxs(cbind(temp$income-(temp$EarnedIncomeDisregard*temp$income)-200*temp$numkids,0)) # earned income deduction
-      
-      # Step II: Calculate value of the benefit
-      temp$tanfValue<-0
-      subset<-temp$totalassets<temp$AssetTest
-      temp$tanfValue[subset]<-rowMaxs(cbind(12*temp$Value[subset] - temp$net.income[subset],0))
-      
-      # Apply gross income test (if applicable)
-      temp$tanfValue[(0.8*temp$income)>temp$grossIncomeTest]<-0
-      
-      # TANF is not available for two married adults
-      temp$tanfValue[temp$FilingStatus==2 & temp$twoAdults_tanf_policy=="No"]<-0
-      
-      # In some states TANF is not available for childless adults
-      temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
-      
-      if(nrow(data)>1){
-        if(data$Year[1] != data$Year[2]){
-          abc <- 1
-          temp$count_tanf <- 0
-          temp$row_tanf <- 0
-          temp$count_tanf[temp$tanfValue > 0] <- 1
-          for(i in 1:length(temp$tanfValue)){
-            temp$row_tanf[i] <- sum(temp$count_tanf[1:i])
+  }
+  
+  
+  # Connecticut----
+  
+  if(9 %in% unique(data$stateFIPS)){ # make sure that state is in the list
+    
+    temp<-data[data$stateFIPS==9,]
+    
+    temp<-left_join(temp, tanfData, by=c("stateFIPS", "famsize"))
+    
+    # Step I: Calculate net income
+    temp$net.income<-rowMaxs(cbind(temp$income-12*temp$EarnedIncomeDisregard,0)) # earned income deduction
+    
+    # Step II: Calculate value of the benefit
+    temp$tanfValue<-0
+    subset<-temp$totalassets<temp$AssetTest
+    temp$tanfValue[subset]<-rowMaxs(cbind(12*temp$Value[subset] - temp$net.income[subset],0))
+    
+    # Apply gross income test (if applicable)
+    temp$tanfValue[temp$income>temp$grossIncomeTest]<-0
+    
+    # TANF is not available for two married adults
+    temp$tanfValue[temp$FilingStatus==2 & temp$twoAdults_tanf_policy=="No"]<-0
+    
+    # In some states TANF is not available for childless adults
+    temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
+    
+    if(nrow(data)>1){
+      if(data$Year[1] != data$Year[2]){
+        
+        abc <- 1
+        
+        temp_1 <- temp[temp$careerpathID == 2,]
+        temp_2 <- temp[temp$careerpathID == 1,]
+        
+        if(nrow(temp_1)>0){
+          temp_1$count_tanf <- 0
+          temp_1$row_tanf <- 0
+          temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
+          for(i in 1:length(temp_1$tanfValue)){
+            temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
           }
-          temp$tanfValue[temp$row_tanf > (temp$timeLimit/12)] <- 0
-        }else{
-          abc <- 0
+          temp_1$tanfValue[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
+          #   temp_1$tanfValue[2] <- 0.75*temp_1$tanfValue[2]
         }
-      }
-      
-      # Merge back
-      data$tanfValue[data$stateFIPS==24]<-temp$tanfValue
-      
-    }
-    
-    #
-    # Massachusetts----
-    
-    if(25 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-      
-      temp<-data[data$stateFIPS==25,]
-      
-      temp<-left_join(temp, tanfData, by=c("stateFIPS", "famsize"))
-      
-      # Step I: Calculate net income
-      temp$income=temp$income+temp$income.gift
-      temp$net.income<-rowMaxs(cbind(temp$income-(12*200+temp$EarnedIncomeDisregard*(temp$income-12*200)),0)) # earned income deduction
-      
-      # Step II: Calculate value of the benefit
-      temp$tanfValue<-0
-      subset<-temp$totalassets<temp$AssetTest
-      #temp$tanfValue[subset]<-12*temp$Value[subset]
-      temp$tanfValue[subset]<-rowMaxs(cbind(12*temp$Value[subset] - temp$net.income[subset],0))
-      
-      # Apply gross income test (if applicable)
-      temp$tanfValue[temp$income>temp$grossIncomeTest]<-0
-      
-      # TANF is not available for two married adults
-      temp$tanfValue[temp$FilingStatus==2 & temp$twoAdults_tanf_policy=="No"]<-0
-      
-      # In some states TANF is not available for childless adults
-      temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
-      
-      if(nrow(data)>1){
-        if(data$Year[1] != data$Year[2]){
-          
-          abc <- 1
-          
-          temp_1 <- temp[temp$careerpathID == 2,]
-          temp_2 <- temp[temp$careerpathID == 1,]
-          
-          if(nrow(temp_1)>0){
-            temp_1$count_tanf <- 0
-            temp_1$row_tanf <- 0
-            temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
-            for(i in 1:length(temp_1$tanfValue)){
-              temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
-            }
-            temp_1$tanfValue[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
-            temp_1$tanfValue[2] <- 0.75*temp_1$tanfValue[2]
+        
+        if(nrow(temp_2)>0){
+          temp_2$count_tanf <- 0
+          temp_2$row_tanf <- 0
+          temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
+          for(i in 1:length(temp_2$tanfValue)){
+            temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
           }
-          
-          if(nrow(temp_2)>0){
-            temp_2$count_tanf <- 0
-            temp_2$row_tanf <- 0
-            temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
-            for(i in 1:length(temp_2$tanfValue)){
-              temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
-            }
-            temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
-            temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
-          }
-          
-          temp <- rbind(temp_1, temp_2)
-          
-        }else{
-          abc <- 0
+          temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
+          #   temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
         }
+        
+        temp <- rbind(temp_1, temp_2)
+        
+      }else{
+        abc <- 0
       }
-      
-      # Merge back
-      data$tanfValue[data$stateFIPS==25]<-temp$tanfValue
-      
     }
+    # 
+    # Merge back
+    data$tanfValue[data$stateFIPS==9]<-temp$tanfValue
     
+  }
+  
+  
+  # District of Columbia ----
+  
+  if(11 %in% unique(data$stateFIPS)){ # make sure that state is in the list
     
-    # New York----
+    temp<-data[data$stateFIPS==11,]
     
-    if(36 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-      
-      temp<-data[data$stateFIPS==36,]
-      
-      temp<-left_join(temp, tanfData, by=c("stateFIPS", "famsize"))
-      
-      # Step I: Calculate net income
-      temp$income=temp$income+temp$income.gift
-      temp$net.income<-rowMaxs(cbind(temp$income-(12*90+temp$EarnedIncomeDisregard*(temp$income-12*90)),0)) # earned income deduction
-      
-      # Step II: Calculate value of the benefit
-      temp$tanfValue<-0
-      subset<-temp$totalassets<temp$AssetTest
-      temp$tanfValue[subset]<-rowMaxs(cbind(12*temp$Value[subset] - temp$net.income[subset],0))
-      
-      # Apply gross income test (if applicable)
-      temp$tanfValue[temp$income>temp$grossIncomeTest]<-0
-      
-      # TANF is not available for two married adults
-      temp$tanfValue[temp$FilingStatus==2 & temp$twoAdults_tanf_policy=="No"]<-0
-      
-      # In some states TANF is not available for childless adults
-      temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
-      
-      if(nrow(data)>1){
-        if(data$Year[1] != data$Year[2]){
-          
-          abc <- 1
-          
-          temp_1 <- temp[temp$careerpathID == 2,]
-          temp_2 <- temp[temp$careerpathID == 1,]
-          
-          if(nrow(temp_1)>0){
-            temp_1$count_tanf <- 0
-            temp_1$row_tanf <- 0
-            temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
-            for(i in 1:length(temp_1$tanfValue)){
-              temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
-            }
-            temp_1$tanfValue[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
-            temp_1$tanfValue[2] <- 0.75*temp_1$tanfValue[2]
+    temp<-left_join(temp, tanfData, by=c("stateFIPS", "famsize"))
+    
+    # Step I: Calculate net income
+    
+    temp$income=temp$income+temp$income.gift # add gift income
+    
+    # Apply TANF child care income deduction (175 for kids in childcare + $25 for <2)
+    temp$numkidsunder13=rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)<=12,na.rm=TRUE)
+    temp$numkidsunder2=rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)<=1,na.rm=TRUE)
+    
+    temp$childcareDeduction<-temp$numkidsunder13*175+temp$numkidsunder2*25
+    
+    temp$net.income<-rowMaxs(cbind(temp$income-(12*160+temp$EarnedIncomeDisregard*(temp$income-12*160)),0)) # earned income deduction
+    temp$net.income<-rowMaxs(cbind(temp$net.income-12*temp$childcareDeduction,0))
+    
+    # Step II: Calculate value of the benefit
+    temp$tanfValue<-0
+    subset<-temp$totalassets<temp$AssetTest
+    temp$tanfValue[subset]<-rowMaxs(cbind(12*temp$Value[subset] - temp$net.income[subset],0))
+    
+    # Apply gross income test (if applicable)
+    temp$tanfValue[temp$income>temp$grossIncomeTest]<-0
+    
+    # TANF is not available for two married adults
+    temp$tanfValue[temp$FilingStatus==2 & temp$twoAdults_tanf_policy=="No"]<-0
+    
+    # In some states TANF is not available for childless adults
+    temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
+    
+    # Merge back
+    data$tanfValue[data$stateFIPS==11]<-temp$tanfValue
+    
+  }
+  
+  
+  # Florida ----
+  
+  if(12 %in% unique(data$stateFIPS)){ # make sure that state is in the list
+    
+    temp<-data[data$stateFIPS==12,]
+    
+    temp<-left_join(temp, tanfData, by=c("stateFIPS", "famsize"))
+    
+    # Step I: Calculate net income
+    
+    temp$income=temp$income+temp$income.gift # add gift income
+    
+    temp$net.income<-rowMaxs(cbind(temp$income-((90*12)+(12*200)+temp$EarnedIncomeDisregard*(temp$income-(90*12)-(12*200))+(10*12)),0)) # earned income deduction
+    
+    # Step II: Calculate value of the benefit
+    temp$tanfValue<-0
+    subset<-temp$totalassets<temp$AssetTest
+    temp$tanfValue[subset]<-rowMaxs(cbind(12*temp$Value[subset] - temp$net.income[subset],0))
+    
+    # Apply gross income test (if applicable)
+    temp$tanfValue[(temp$income - (90*12)) > temp$grossIncomeTest]<-0
+    
+    # TANF is not available for two married adults
+    temp$tanfValue[temp$FilingStatus==2 & temp$twoAdults_tanf_policy=="No"]<-0
+    
+    # In some states TANF is not available for childless adults
+    temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
+    
+    if(nrow(data)>1){
+      if(data$Year[1] != data$Year[2]){
+        
+        abc <- 1
+        
+        temp_1 <- temp[temp$careerpathID == 2,]
+        temp_2 <- temp[temp$careerpathID == 1,]
+        
+        if(nrow(temp_1)>0){
+          temp_1$count_tanf <- 0
+          temp_1$row_tanf <- 0
+          temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
+          for(i in 1:length(temp_1$tanfValue)){
+            temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
           }
-          
-          if(nrow(temp_2)>0){
-            temp_2$count_tanf <- 0
-            temp_2$row_tanf <- 0
-            temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
-            for(i in 1:length(temp_2$tanfValue)){
-              temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
-            }
-            temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
-            temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
-          }
-          
-          temp <- rbind(temp_1, temp_2)
-          
-        }else{
-          abc <- 0
+          temp_1$tanfValue[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
+          #    temp_1$tanfValue[2] <- 0.75*temp_1$tanfValue[2]
         }
-      }
-      
-      # Merge back
-      data$tanfValue[data$stateFIPS==36]<-temp$tanfValue
-      
-    }
-    
-    
-    # Tennessee ----
-    
-    if(47 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-      
-      temp<-data[data$stateFIPS==47,]
-      
-      tanfData$grossIncomeTest[tanfData$stateFIPS == 47] <- c(21672, 30420, 34392, 38892, 41844, 44604, 47088, 49572, 52056, 54540, 57024, 59058)
-      tanfData$Value[tanfData$stateFIPS == 47] <- c(244, 343,387, 438, 471, 502, 530, 558, 586, 614, 642, 670)
-      
-      
-      
-      temp<-left_join(temp, tanfData, by=c("stateFIPS", "famsize"))
-      
-      # Step I: Calculate net income
-      temp$income=temp$income+temp$income.gift
-      temp$net.income<-rowMaxs(cbind(temp$income-(temp$EarnedIncomeDisregard*temp$income),0)) # earned income deduction
-      
-      # Step II: Calculate value of the benefit
-      temp$tanfValue<-0
-      subset<-temp$totalassets<temp$AssetTest
-      temp$tanfValue[subset]<-rowMaxs(cbind(12*temp$Value[subset] - temp$net.income[subset],0))
-      
-      # Apply gross income test (if applicable)
-      temp$tanfValue[temp$income>temp$grossIncomeTest]<-0
-      
-      # TANF is not available for two married adults
-      temp$tanfValue[temp$FilingStatus==2 & temp$twoAdults_tanf_policy=="No"]<-0
-      
-      # In some states TANF is not available for childless adults
-      temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
-      
-      if(nrow(data)>1){
-        if(data$Year[1] != data$Year[2]){
-          
-          abc <- 1
-          
-          temp_1 <- temp[temp$careerpathID == 2,]
-          temp_2 <- temp[temp$careerpathID == 1,]
-          
-          if(nrow(temp_1)>0){
-            temp_1$count_tanf <- 0
-            temp_1$row_tanf <- 0
-            temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
-            for(i in 1:length(temp_1$tanfValue)){
-              temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
-            }
-            temp_1$tanfValue[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
-            temp_1$tanfValue[2] <- 0.75*temp_1$tanfValue[2]
+        
+        if(nrow(temp_2)>0){
+          temp_2$count_tanf <- 0
+          temp_2$row_tanf <- 0
+          temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
+          for(i in 1:length(temp_2$tanfValue)){
+            temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
           }
-          
-          if(nrow(temp_2)>0){
-            temp_2$count_tanf <- 0
-            temp_2$row_tanf <- 0
-            temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
-            for(i in 1:length(temp_2$tanfValue)){
-              temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
-            }
-            temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
-            temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
-          }
-          
-          temp <- rbind(temp_1, temp_2)
-          
-        }else{
-          abc <- 0
+          temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
+          #   temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
         }
+        
+        temp <- rbind(temp_1, temp_2)
+        
+      }else{
+        abc <- 0
       }
-      # 
-      # Merge back
-      data$tanfValue[data$stateFIPS==47]<-temp$tanfValue
-      
     }
     
     
-    # Texas ----
+    # Merge back
+    data$tanfValue[data$stateFIPS==12]<-temp$tanfValue
     
-    if(48 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-      
-      temp<-data[data$stateFIPS==48,]
-      
-      temp<-left_join(temp, tanfData, by=c("stateFIPS", "famsize"))
-      
-      # Step I: Calculate net income
-      temp$income=temp$income+temp$income.gift
-      
-      temp$net.income<-rowMaxs(cbind(
-        temp$income-(temp$EarnedIncomeDisregard*temp$income)-(120*12),0)
-      ) # earned income deduction
-      
-      # Step II: Calculate value of the benefit
-      temp$tanfValue<-0
-      subset<-temp$totalassets<temp$AssetTest
-      temp$tanfValue[subset]<-rowMaxs(cbind(12*temp$Value[subset] - temp$net.income[subset],0))
-      
-      # Apply gross income test (if applicable)
-      temp$tanfValue[((temp$EarnedIncomeDisregard*temp$income)-(120*12))>temp$grossIncomeTest]<-0
-      
-      # TANF is not available for two married adults
-      temp$tanfValue[temp$FilingStatus==2 & temp$twoAdults_tanf_policy=="No"]<-0
-      
-      # In some states TANF is not available for childless adults
-      temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
-      
-      if(nrow(data)>1){
-        if(data$Year[1] != data$Year[2]){
-          
-          abc <- 1
-          
-          temp_1 <- temp[temp$careerpathID == 2,]
-          temp_2 <- temp[temp$careerpathID == 1,]
-          
-          if(nrow(temp_1)>0){
-            temp_1$count_tanf <- 0
-            temp_1$row_tanf <- 0
-            temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
-            for(i in 1:length(temp_1$tanfValue)){
-              temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
-            }
-            temp_1$tanfValue[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
-            temp_1$tanfValue[2] <- 0.75*temp_1$tanfValue[2]
+    
+  }
+  
+  
+  # Kentucky ----
+  
+  if(21 %in% unique(data$stateFIPS)){ # make sure that state is in the list
+    
+    temp<-data[data$stateFIPS==21,]
+    
+    temp<-left_join(temp, tanfData, by=c("stateFIPS", "famsize"))
+    
+    temp$income=temp$income+temp$income.gift # add gift income
+    
+    
+    # Step I: Calculate net income
+    temp$net.income<-rowMaxs(cbind(temp$income-12*temp$EarnedIncomeDisregard,0)) # earned income deduction
+    #temp$net.income<-rowMaxs(cbind(temp$net.income-0.2*temp$netexp.childcare,0)) # childcare deduction
+    
+    # Step II: Calculate value of the benefit
+    temp$tanfValue<-0
+    subset<-temp$totalassets<temp$AssetTest
+    temp$tanfValue[subset]<-rowMaxs(cbind(12*temp$Value[subset] - temp$net.income[subset],0))
+    
+    # Apply gross income test (if applicable)
+    temp$tanfValue[temp$income>temp$grossIncomeTest]<-0
+    
+    # TANF is not available for two married adults
+    temp$tanfValue[temp$FilingStatus==2 & temp$twoAdults_tanf_policy=="No"]<-0
+    
+    # In some states TANF is not available for childless adults
+    temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
+    
+    if(nrow(data)>1){
+      if(data$Year[1] != data$Year[2]){
+        
+        abc <- 1
+        
+        temp_1 <- temp[temp$careerpathID == 2,]
+        temp_2 <- temp[temp$careerpathID == 1,]
+        
+        if(nrow(temp_1)>0){
+          temp_1$count_tanf <- 0
+          temp_1$row_tanf <- 0
+          temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
+          for(i in 1:length(temp_1$tanfValue)){
+            temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
           }
-          
-          if(nrow(temp_2)>0){
-            temp_2$count_tanf <- 0
-            temp_2$row_tanf <- 0
-            temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
-            for(i in 1:length(temp_2$tanfValue)){
-              temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
-            }
-            temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
-            temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
-          }
-          
-          temp <- rbind(temp_1, temp_2)
-          
-        }else{
-          abc <- 0
+          temp_1$tanfValue[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
+          #    temp_1$tanfValue[2] <- 0.75*temp_1$tanfValue[2]
         }
-      }
-      
-      # Merge back
-      data$tanfValue[data$stateFIPS==48]<-temp$tanfValue
-      
-    }
-    
-    
-    # Washington ----
-    
-    if(53 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-      
-      temp<-data[data$stateFIPS==53,]
-      
-      temp<-left_join(temp, tanfData, by=c("stateFIPS", "famsize"))
-      
-      # Step I: Calculate net income
-      temp$income=temp$income+temp$income.gift
-      temp$net.income<-rowMaxs(cbind(temp$income-(temp$EarnedIncomeDisregard*temp$income),0)) # earned income deduction
-      
-      # Step II: Calculate value of the benefit
-      temp$tanfValue<-0
-      subset<-temp$totalassets<temp$AssetTest
-      temp$tanfValue[subset]<-rowMaxs(cbind(12*temp$Value[subset] - temp$net.income[subset],0))
-      
-      # Apply gross income test (if applicable)
-      temp$tanfValue[temp$income>temp$grossIncomeTest]<-0
-      
-      # TANF is not available for two married adults
-      temp$tanfValue[temp$FilingStatus==2 & temp$twoAdults_tanf_policy=="No"]<-0
-      
-      # In some states TANF is not available for childless adults
-      temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
-      
-      if(nrow(data)>1){
-        if(data$Year[1] != data$Year[2]){
-          
-          abc <- 1
-          
-          temp_1 <- temp[temp$careerpathID == 2,]
-          temp_2 <- temp[temp$careerpathID == 1,]
-          
-          if(nrow(temp_1)>0){
-            temp_1$count_tanf <- 0
-            temp_1$row_tanf <- 0
-            temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
-            for(i in 1:length(temp_1$tanfValue)){
-              temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
-            }
-            temp_1$tanfValue[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
-            temp_1$tanfValue[2] <- 0.75*temp_1$tanfValue[2]
+        
+        if(nrow(temp_2)>0){
+          temp_2$count_tanf <- 0
+          temp_2$row_tanf <- 0
+          temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
+          for(i in 1:length(temp_2$tanfValue)){
+            temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
           }
-          
-          if(nrow(temp_2)>0){
-            temp_2$count_tanf <- 0
-            temp_2$row_tanf <- 0
-            temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
-            for(i in 1:length(temp_2$tanfValue)){
-              temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
-            }
-            temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
-            temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
-          }
-          
-          temp <- rbind(temp_1, temp_2)
-          
-        }else{
-          abc <- 0
+          temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
+          #    temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
         }
+        
+        temp <- rbind(temp_1, temp_2)
+        
+      }else{
+        abc <- 0
       }
-      
-      # Merge back
-      data$tanfValue[data$stateFIPS==53]<-temp$tanfValue
-      
     }
     
+    data$tanfValue[data$stateFIPS==21]<-temp$tanfValue
     
-    return(data$tanfValue)
     
+  }
+  
+  
+  # Louisiana ----
+  
+  if(22 %in% unique(data$stateFIPS)){ # make sure that state is in the list
+    
+    temp<-data[data$stateFIPS==22,]
+    
+    temp<-left_join(temp, tanfData, by=c("stateFIPS", "famsize"))
+    
+    # Step I: Calculate net income
+    temp$net.income<-rowMaxs(cbind(temp$income-12*temp$EarnedIncomeDisregard,0)) # earned income deduction
+    
+    # Step II: Calculate value of the benefit
+    temp$tanfValue<-0
+    subset<-temp$totalassets<temp$AssetTest
+    temp$tanfValue[subset]<-rowMaxs(cbind(12*temp$Value[subset] - temp$net.income[subset],0))
+    
+    # TANF is not available for two married adults
+    temp$tanfValue[temp$FilingStatus==2 & temp$twoAdults_tanf_policy=="No"]<-0
+    
+    # Apply gross income test (if applicable)
+    temp$tanfValue[temp$income>temp$grossIncomeTest]<-0
+    
+    # In some states TANF is not available for childless adults
+    temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
+    
+    if(nrow(data)>1){
+      if(data$Year[1] != data$Year[2]){
+        
+        abc <- 1
+        
+        temp_1 <- temp[temp$careerpathID == 2,]
+        temp_2 <- temp[temp$careerpathID == 1,]
+        
+        if(nrow(temp_1)>0){
+          temp_1$count_tanf <- 0
+          temp_1$row_tanf <- 0
+          temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
+          for(i in 1:length(temp_1$tanfValue)){
+            temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
+          }
+          temp_1$tanfValue[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
+          #   temp_1$tanfValue[2] <- 0.75*temp_1$tanfValue[2]
+        }
+        
+        if(nrow(temp_2)>0){
+          temp_2$count_tanf <- 0
+          temp_2$row_tanf <- 0
+          temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
+          for(i in 1:length(temp_2$tanfValue)){
+            temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
+          }
+          temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
+          #  temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
+        }
+        
+        temp <- rbind(temp_1, temp_2)
+        
+      }else{
+        abc <- 0
+      }
+    }
+    
+    # Merge back
+    data$tanfValue[data$stateFIPS==22]<-temp$tanfValue
+    
+  }
+  
+  # Maine ----
+  
+  if(23 %in% unique(data$stateFIPS)){ # make sure that state is in the list
+    
+    temp<-data[data$stateFIPS==23,]
+    
+    temp<-left_join(temp, tanfData, by=c("stateFIPS", "famsize"))
+    
+    # Step I: Calculate net income
+    temp$income=temp$income+temp$income.gift
+    temp$net.income<-rowMaxs(cbind(temp$income-(12*108+temp$EarnedIncomeDisregard*(temp$income-12*108)),0)) # earned income deduction
+    
+    # Step II: Calculate value of the benefit
+    temp$tanfValue<-0
+    subset<-temp$totalassets<temp$AssetTest
+    temp$tanfValue[subset]<-rowMaxs(cbind(12*temp$Value[subset] - temp$net.income[subset],0))
+    
+    # Apply gross income test (if applicable)
+    temp$tanfValue[temp$income>temp$grossIncomeTest]<-0
+    
+    # TANF is not available for two married adults
+    temp$tanfValue[temp$FilingStatus==2 & temp$twoAdults_tanf_policy=="No"]<-0
+    
+    # In some states TANF is not available for childless adults
+    temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
+    
+    if(nrow(data)>1){
+      if(data$Year[1] != data$Year[2]){
+        
+        abc <- 1
+        
+        temp_1 <- temp[temp$careerpathID == 2,]
+        temp_2 <- temp[temp$careerpathID == 1,]
+        
+        if(nrow(temp_1)>0){
+          temp_1$count_tanf <- 0
+          temp_1$row_tanf <- 0
+          temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
+          for(i in 1:length(temp_1$tanfValue)){
+            temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
+          }
+          temp_1$tanfValue[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
+          #    temp_1$tanfValue[2] <- 0.75*temp_1$tanfValue[2]
+        }
+        
+        if(nrow(temp_2)>0){
+          temp_2$count_tanf <- 0
+          temp_2$row_tanf <- 0
+          temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
+          for(i in 1:length(temp_2$tanfValue)){
+            temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
+          }
+          temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
+          #    temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
+        }
+        
+        temp <- rbind(temp_1, temp_2)
+        
+      }else{
+        abc <- 0
+      }
+    }
+    
+    # Merge back
+    data$tanfValue[data$stateFIPS==23]<-temp$tanfValue
+    
+  }
+  
+  
+  # Maryland----
+  
+  if(24 %in% unique(data$stateFIPS)){ # make sure that state is in the list
+    
+    temp<-data[data$stateFIPS==24,]
+    
+    temp<-left_join(temp, tanfData, by=c("stateFIPS", "famsize"))
+    
+    # Step I: Calculate net income
+    temp$income=temp$income+temp$income.gift
+    
+    # temp$monthly_hours <- 1
+    # temp$monthly_hours[temp$hours > 25] <- 2
+    
+    temp$net.income<-rowMaxs(cbind(temp$income-(temp$EarnedIncomeDisregard*temp$income)-200*temp$numkids,0)) # earned income deduction
+    
+    # Step II: Calculate value of the benefit
+    temp$tanfValue<-0
+    subset<-temp$totalassets<temp$AssetTest
+    temp$tanfValue[subset]<-rowMaxs(cbind(12*temp$Value[subset] - temp$net.income[subset],0))
+    
+    # Apply gross income test (if applicable)
+    temp$tanfValue[(0.8*temp$income)>temp$grossIncomeTest]<-0
+    
+    # TANF is not available for two married adults
+    temp$tanfValue[temp$FilingStatus==2 & temp$twoAdults_tanf_policy=="No"]<-0
+    
+    # In some states TANF is not available for childless adults
+    temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
+    
+    if(nrow(data)>1){
+      if(data$Year[1] != data$Year[2]){
+        abc <- 1
+        temp$count_tanf <- 0
+        temp$row_tanf <- 0
+        temp$count_tanf[temp$tanfValue > 0] <- 1
+        for(i in 1:length(temp$tanfValue)){
+          temp$row_tanf[i] <- sum(temp$count_tanf[1:i])
+        }
+        temp$tanfValue[temp$row_tanf > (temp$timeLimit/12)] <- 0
+      }else{
+        abc <- 0
+      }
+    }
+    
+    # Merge back
+    data$tanfValue[data$stateFIPS==24]<-temp$tanfValue
+    
+  }
+  
+  #
+  # Massachusetts----
+  
+  if(25 %in% unique(data$stateFIPS)){ # make sure that state is in the list
+    
+    temp<-data[data$stateFIPS==25,]
+    
+    temp<-left_join(temp, tanfData, by=c("stateFIPS", "famsize"))
+    
+    # Step I: Calculate net income
+    temp$income=temp$income+temp$income.gift
+    temp$net.income<-rowMaxs(cbind(temp$income-(12*200+temp$EarnedIncomeDisregard*(temp$income-12*200)),0)) # earned income deduction
+    
+    # Step II: Calculate value of the benefit
+    temp$tanfValue<-0
+    subset<-temp$totalassets<temp$AssetTest
+    #temp$tanfValue[subset]<-12*temp$Value[subset]
+    temp$tanfValue[subset]<-rowMaxs(cbind(12*temp$Value[subset] - temp$net.income[subset],0))
+    
+    # Apply gross income test (if applicable)
+    temp$tanfValue[temp$income>temp$grossIncomeTest]<-0
+    
+    # TANF is not available for two married adults
+    temp$tanfValue[temp$FilingStatus==2 & temp$twoAdults_tanf_policy=="No"]<-0
+    
+    # In some states TANF is not available for childless adults
+    temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
+    
+    if(nrow(data)>1){
+      if(data$Year[1] != data$Year[2]){
+        
+        abc <- 1
+        
+        temp_1 <- temp[temp$careerpathID == 2,]
+        temp_2 <- temp[temp$careerpathID == 1,]
+        
+        if(nrow(temp_1)>0){
+          temp_1$count_tanf <- 0
+          temp_1$row_tanf <- 0
+          temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
+          for(i in 1:length(temp_1$tanfValue)){
+            temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
+          }
+          temp_1$tanfValue[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
+          temp_1$tanfValue[2] <- 0.75*temp_1$tanfValue[2]
+        }
+        
+        if(nrow(temp_2)>0){
+          temp_2$count_tanf <- 0
+          temp_2$row_tanf <- 0
+          temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
+          for(i in 1:length(temp_2$tanfValue)){
+            temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
+          }
+          temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
+          temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
+        }
+        
+        temp <- rbind(temp_1, temp_2)
+        
+      }else{
+        abc <- 0
+      }
+    }
+    
+    # Merge back
+    data$tanfValue[data$stateFIPS==25]<-temp$tanfValue
+    
+  }
+  
+  
+  # New York----
+  
+  if(36 %in% unique(data$stateFIPS)){ # make sure that state is in the list
+    
+    temp<-data[data$stateFIPS==36,]
+    
+    temp<-left_join(temp, tanfData, by=c("stateFIPS", "famsize"))
+    
+    # Step I: Calculate net income
+    temp$income=temp$income+temp$income.gift
+    temp$net.income<-rowMaxs(cbind(temp$income-(12*90+temp$EarnedIncomeDisregard*(temp$income-12*90)),0)) # earned income deduction
+    
+    # Step II: Calculate value of the benefit
+    temp$tanfValue<-0
+    subset<-temp$totalassets<temp$AssetTest
+    temp$tanfValue[subset]<-rowMaxs(cbind(12*temp$Value[subset] - temp$net.income[subset],0))
+    
+    # Apply gross income test (if applicable)
+    temp$tanfValue[temp$income>temp$grossIncomeTest]<-0
+    
+    # TANF is not available for two married adults
+    temp$tanfValue[temp$FilingStatus==2 & temp$twoAdults_tanf_policy=="No"]<-0
+    
+    # In some states TANF is not available for childless adults
+    temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
+    
+    if(nrow(data)>1){
+      if(data$Year[1] != data$Year[2]){
+        
+        abc <- 1
+        
+        temp_1 <- temp[temp$careerpathID == 2,]
+        temp_2 <- temp[temp$careerpathID == 1,]
+        
+        if(nrow(temp_1)>0){
+          temp_1$count_tanf <- 0
+          temp_1$row_tanf <- 0
+          temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
+          for(i in 1:length(temp_1$tanfValue)){
+            temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
+          }
+          temp_1$tanfValue[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
+          #  temp_1$tanfValue[2] <- 0.75*temp_1$tanfValue[2]
+        }
+        
+        if(nrow(temp_2)>0){
+          temp_2$count_tanf <- 0
+          temp_2$row_tanf <- 0
+          temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
+          for(i in 1:length(temp_2$tanfValue)){
+            temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
+          }
+          temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
+          # temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
+        }
+        
+        temp <- rbind(temp_1, temp_2)
+        
+      }else{
+        abc <- 0
+      }
+    }
+    
+    # Merge back
+    data$tanfValue[data$stateFIPS==36]<-temp$tanfValue
+    
+  }
+  
+  
+  # Tennessee ----
+  
+  if(47 %in% unique(data$stateFIPS)){ # make sure that state is in the list
+    
+    temp<-data[data$stateFIPS==47,]
+    
+    tanfData$grossIncomeTest[tanfData$stateFIPS == 47] <- c(21672, 30420, 34392, 38892, 41844, 44604, 47088, 49572, 52056, 54540, 57024, 59058)
+    tanfData$Value[tanfData$stateFIPS == 47] <- c(244, 343,387, 438, 471, 502, 530, 558, 586, 614, 642, 670)
+    
+    
+    
+    temp<-left_join(temp, tanfData, by=c("stateFIPS", "famsize"))
+    
+    # Step I: Calculate net income
+    temp$income=temp$income+temp$income.gift
+    temp$net.income<-rowMaxs(cbind(temp$income-(250*12)-(175*12*temp$numkids),0)) # earned income deduction
+    
+    # Step II: Calculate value of the benefit
+    temp$tanfValue<-0
+    subset<-temp$totalassets<temp$AssetTest
+    temp$tanfValue[subset]<-rowMaxs(cbind(12*temp$Value[subset] - temp$net.income[subset],0))
+    
+    # Apply gross income test (if applicable)
+    temp$tanfValue[temp$income>temp$grossIncomeTest]<-0
+    
+    # TANF is not available for two married adults
+    temp$tanfValue[temp$FilingStatus==2 & temp$twoAdults_tanf_policy=="No"]<-0
+    
+    # In some states TANF is not available for childless adults
+    temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
+    
+    if(nrow(data)>1){
+      if(data$Year[1] != data$Year[2]){
+        
+        abc <- 1
+        
+        temp_1 <- temp[temp$careerpathID == 2,]
+        temp_2 <- temp[temp$careerpathID == 1,]
+        
+        if(nrow(temp_1)>0){
+          temp_1$count_tanf <- 0
+          temp_1$row_tanf <- 0
+          temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
+          for(i in 1:length(temp_1$tanfValue)){
+            temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
+          }
+          temp_1$tanfValue[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
+          #    temp_1$tanfValue[2] <- 0.75*temp_1$tanfValue[2]
+        }
+        
+        if(nrow(temp_2)>0){
+          temp_2$count_tanf <- 0
+          temp_2$row_tanf <- 0
+          temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
+          for(i in 1:length(temp_2$tanfValue)){
+            temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
+          }
+          temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
+          #  temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
+        }
+        
+        temp <- rbind(temp_1, temp_2)
+        
+      }else{
+        abc <- 0
+      }
+    }
+    # 
+    # Merge back
+    data$tanfValue[data$stateFIPS==47]<-temp$tanfValue
+    
+  }
+  
+  
+  # Texas ----
+  
+  if(48 %in% unique(data$stateFIPS)){ # make sure that state is in the list
+    
+    temp<-data[data$stateFIPS==48,]
+    
+    temp<-left_join(temp, tanfData, by=c("stateFIPS", "famsize"))
+    
+    # Step I: Calculate net income
+    temp$income=temp$income+temp$income.gift
+    
+    temp$net.income<-rowMaxs(cbind(
+      temp$income-(temp$EarnedIncomeDisregard*temp$income)-(120*12),0)
+    ) # earned income deduction
+    
+    # Step II: Calculate value of the benefit
+    temp$tanfValue<-0
+    subset<-temp$totalassets<temp$AssetTest
+    temp$tanfValue[subset]<-rowMaxs(cbind(12*temp$Value[subset] - temp$net.income[subset],0))
+    
+    # Apply gross income test (if applicable)
+    temp$tanfValue[((temp$EarnedIncomeDisregard*temp$income)-(120*12))>temp$grossIncomeTest]<-0
+    
+    # TANF is not available for two married adults
+    temp$tanfValue[temp$FilingStatus==2 & temp$twoAdults_tanf_policy=="No"]<-0
+    
+    # In some states TANF is not available for childless adults
+    temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
+    
+    if(nrow(data)>1){
+      if(data$Year[1] != data$Year[2]){
+        
+        abc <- 1
+        
+        temp_1 <- temp[temp$careerpathID == 2,]
+        temp_2 <- temp[temp$careerpathID == 1,]
+        
+        if(nrow(temp_1)>0){
+          temp_1$count_tanf <- 0
+          temp_1$row_tanf <- 0
+          temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
+          for(i in 1:length(temp_1$tanfValue)){
+            temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
+          }
+          temp_1$tanfValue[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
+          #    temp_1$tanfValue[2] <- 0.75*temp_1$tanfValue[2]
+        }
+        
+        if(nrow(temp_2)>0){
+          temp_2$count_tanf <- 0
+          temp_2$row_tanf <- 0
+          temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
+          for(i in 1:length(temp_2$tanfValue)){
+            temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
+          }
+          temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
+          #     temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
+        }
+        
+        temp <- rbind(temp_1, temp_2)
+        
+      }else{
+        abc <- 0
+      }
+    }
+    
+    # Merge back
+    data$tanfValue[data$stateFIPS==48]<-temp$tanfValue
+    
+  }
+  
+  
+  # Washington ----
+  
+  if(53 %in% unique(data$stateFIPS)){ # make sure that state is in the list
+    
+    temp<-data[data$stateFIPS==53,]
+    
+    temp<-left_join(temp, tanfData, by=c("stateFIPS", "famsize"))
+    
+    # Step I: Calculate net income
+    temp$income=temp$income+temp$income.gift
+    temp$net.income<-rowMaxs(cbind(temp$income-(temp$EarnedIncomeDisregard*temp$income),0)) # earned income deduction
+    
+    # Step II: Calculate value of the benefit
+    temp$tanfValue<-0
+    subset<-temp$totalassets<temp$AssetTest
+    temp$tanfValue[subset]<-rowMaxs(cbind(12*temp$Value[subset] - temp$net.income[subset],0))
+    
+    # Apply gross income test (if applicable)
+    temp$tanfValue[temp$income>temp$grossIncomeTest]<-0
+    
+    # TANF is not available for two married adults
+    temp$tanfValue[temp$FilingStatus==2 & temp$twoAdults_tanf_policy=="No"]<-0
+    
+    # In some states TANF is not available for childless adults
+    temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
+    
+    if(nrow(data)>1){
+      if(data$Year[1] != data$Year[2]){
+        
+        abc <- 1
+        
+        temp_1 <- temp[temp$careerpathID == 2,]
+        temp_2 <- temp[temp$careerpathID == 1,]
+        
+        if(nrow(temp_1)>0){
+          temp_1$count_tanf <- 0
+          temp_1$row_tanf <- 0
+          temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
+          for(i in 1:length(temp_1$tanfValue)){
+            temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
+          }
+          temp_1$tanfValue[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
+          #    temp_1$tanfValue[2] <- 0.75*temp_1$tanfValue[2]
+        }
+        
+        if(nrow(temp_2)>0){
+          temp_2$count_tanf <- 0
+          temp_2$row_tanf <- 0
+          temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
+          for(i in 1:length(temp_2$tanfValue)){
+            temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
+          }
+          temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
+          #   temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
+        }
+        
+        temp <- rbind(temp_1, temp_2)
+        
+      }else{
+        abc <- 0
+      }
+    }
+    
+    # Merge back
+    data$tanfValue[data$stateFIPS==53]<-temp$tanfValue
+    
+  }
+  
+  
+  return(data$tanfValue)
+  
   
 }
 
@@ -1740,23 +1815,23 @@ function.snapBenefit<-function(data){
     data$AssetTest_Elder_Dis_under200FPL[data$stateFIPS==33 & data$kid_count ==0]<-data$AssetTestFed_Elder_Dis[data$stateFIPS==33 & data$kid_count ==0]
       # Determine categorical eligibility through SSI & TANF
     data$ssi_recipients_count<-rowSums(cbind(data$value.ssiAdlt1, data$value.ssiAdlt2, data$value.ssiAdlt3, data$value.ssiAdlt4, data$value.ssiAdlt5, data$value.ssiAdlt6, data$value.ssiChild1, data$value.ssiChild2, data$value.ssiChild3, data$value.ssiChild4, data$value.ssiChild5, data$value.ssiChild6)>0, na.rm=TRUE)
-    not_categ_elig_ssi<-data$ssi_recipients_count<data$famsize # if not everyone in the family receives SSI
+    data$not_categ_elig_ssi<-data$ssi_recipients_count<data$famsize # if not everyone in the family receives SSI
     
-    not_categ_elig_tanf<-data$value.tanf==0 # if family doesn't receive TANF
+    data$not_categ_elig_tanf<-data$value.tanf==0 # if family doesn't receive TANF
     
     # Determine if the family FAILS income tests
-    fail_grossIncomeTest<-data$income.gross>data$GrossIncomeEligibility & (not_categ_elig_tanf==TRUE & not_categ_elig_ssi==TRUE)
+    data$fail_grossIncomeTest<-data$income.gross>data$GrossIncomeEligibility & (data$not_categ_elig_tanf==TRUE & data$not_categ_elig_ssi==TRUE)
     #some states waive net income tests
-    fail_netIncomeTest_nonelddis<-(data$disabled_count==0 & data$elderly_count==0) & data$netincome>data$NetIncomeEligibility_nonelddis  
-    fail_netIncomeTest_Elder_Dis<-(data$disabled_count>0 | data$elderly_count>0) & data$netincome>data$NetIncomeEligibility_Elder_Dis
+    data$fail_netIncomeTest_nonelddis<-(data$disabled_count==0 & data$elderly_count==0) & data$netincome>data$NetIncomeEligibility_nonelddis  
+    data$fail_netIncomeTest_Elder_Dis<-(data$disabled_count>0 | data$elderly_count>0) & data$netincome>data$NetIncomeEligibility_Elder_Dis
     
     # Determine if the family FAILS asset tests
-    fail_assetTest_regular<-(data$disabled_count==0 & data$elderly_count==0) & data$totalassets>data$AssetTest_nonelddis & (not_categ_elig_tanf==TRUE & not_categ_elig_ssi==TRUE) # regular asset test for families WITHOUT elderly/disabled
-    fail_assetTest_Elderly_Disabled_under200FPL<-(data$disabled_count>0 | data$elderly_count>0) & data$income.gross <= 2*data$FPL & data$totalassets>data$AssetTest_Elder_Dis_under200FPL & (not_categ_elig_tanf==TRUE & not_categ_elig_ssi==TRUE) # regular asset test for families WITH elderly/disabled
-    fail_assetTest_Elderly_Disabled_over200FPL<-(data$disabled_count>0 | data$elderly_count>0) & data$income.gross > 2*data$FPL & data$totalassets>data$AssetTest_Elder_Dis_over200FPL & (not_categ_elig_tanf==TRUE & not_categ_elig_ssi==TRUE) # special asset test for families WITH elderly/disabled and income > 200% FPL
+    data$fail_assetTest_regular<-(data$disabled_count==0 & data$elderly_count==0) & data$totalassets>data$AssetTest_nonelddis & (data$not_categ_elig_tanf==TRUE & data$not_categ_elig_ssi==TRUE) # regular asset test for families WITHOUT elderly/disabled
+    data$fail_assetTest_Elderly_Disabled_under200FPL<-(data$disabled_count>0 | data$elderly_count>0) & data$income.gross <= 2*data$FPL & data$totalassets>data$AssetTest_Elder_Dis_under200FPL & (data$not_categ_elig_tanf==TRUE & data$not_categ_elig_ssi==TRUE) # regular asset test for families WITH elderly/disabled
+    data$fail_assetTest_Elderly_Disabled_over200FPL<-(data$disabled_count>0 | data$elderly_count>0) & data$income.gross > 2*data$FPL & data$totalassets>data$AssetTest_Elder_Dis_over200FPL & (data$not_categ_elig_tanf==TRUE & data$not_categ_elig_ssi==TRUE) # special asset test for families WITH elderly/disabled and income > 200% FPL
     
     # Calculate the benefit if all income and asset tests are satisfied
-    subset<-fail_grossIncomeTest==FALSE & fail_netIncomeTest_Elder_Dis==FALSE & fail_netIncomeTest_nonelddis==FALSE & fail_assetTest_regular==FALSE & fail_assetTest_Elderly_Disabled_under200FPL==FALSE & fail_assetTest_Elderly_Disabled_over200FPL==FALSE
+    subset<-data$fail_grossIncomeTest==FALSE & data$fail_netIncomeTest_Elder_Dis==FALSE & data$fail_netIncomeTest_nonelddis==FALSE & data$fail_assetTest_regular==FALSE & data$fail_assetTest_Elderly_Disabled_under200FPL==FALSE & data$fail_assetTest_Elderly_Disabled_over200FPL==FALSE
     
     data$snapValue<-0
     data$snapValue[subset]<-rowMins(cbind(rowMaxs(cbind(12*data$MaxBenefit[subset]-0.3*data$netincome[subset],12*data$MinBenefit[subset])),12*data$MaxBenefit[subset]))
@@ -1855,7 +1930,7 @@ function.section8Benefit<-function(data){
       mutate(exp.disability_work = exp.disability_work.person1+exp.disability_work.person2+exp.disability_work.person3+exp.disability_work.person4+exp.disability_work.person5+exp.disability_work.person6+exp.disability_work.person7+exp.disability_work.person8+exp.disability_work.person9+exp.disability_work.person10+exp.disability_work.person11+exp.disability_work.person12)
     
     # Calculate earnings of all disabled family members 
-    data$earnings_disabled_members<-rowSums(cbind(data$income1*data$disability1,data$income2*data$disability2,data$income3*data$disability3,data$income4*data$disability4,data$income5*data$disability5,data$income6*data$disability6), na.rm = TRUE)
+    data$earnings_disabled_members<-rowMaxs(cbind(data$income1*data$disability1+data$income2*data$disability2+data$income3*data$disability3+data$income4*data$disability4+data$income5*data$disability5+data$income6*data$disability6, 0), na.rm = TRUE)
     
     # Calculate Disability Work Expense Deduction - cannot exceed the total earnings of all disabled family members 
     data$DisabilityWorkExpDeduction<-rowMins(cbind(data$earnings_disabled_members, data$exp.disability_work))
@@ -4146,7 +4221,7 @@ function.CCDFcopay<-function(data
     if(31 %in% unique(data$stateFIPS)){
       
       ccdfData_NE$stateFIPS <- 31
-      ccdfData_NE <- ccdfData_NE[ccdfData_NE$famsize < 12,]
+      #ccdfData_NE <- ccdfData_NE[ccdfData_NE$famsize <= 12,]
       
       temp <- data[data$stateFIPS==31,]
       
@@ -5131,10 +5206,13 @@ function.CCDFcopay<-function(data
       
       #----------------------------------
       # Step 1: Assign copays
-      #----------------------------------
-      temp<-left_join(temp, ccdfData_PA, by=c("stateFIPS", "AKorHI", "famsize"))
+     # #----------------------------------
+      #ccdfData_PA$IncomeDisregard <- 0
       
-      temp$income<-temp$income-12*temp$IncomeDisregard
+      temp<-left_join(temp, ccdfData_PA, by=c("stateFIPS", "AKorHI", "famsize", "ruleYear"))
+
+      temp[is.na(temp)] <- 0
+      #temp$income<-temp$income-12*temp$IncomeDisregard
       
       temp$FTcopay<-NA
       
@@ -5175,6 +5253,27 @@ function.CCDFcopay<-function(data
       temp$FTcopay[temp$income>temp$Bin34Max & temp$income<=temp$Bin35Max]<-temp$CopayBin35[temp$income>temp$Bin34Max & temp$income<=temp$Bin35Max]
       temp$FTcopay[temp$income>temp$Bin35Max & temp$income<=temp$Bin36Max]<-temp$CopayBin36[temp$income>temp$Bin35Max & temp$income<=temp$Bin36Max]
       temp$FTcopay[temp$income>temp$Bin36Max & temp$income<=temp$Bin37Max]<-temp$CopayBin37[temp$income>temp$Bin36Max & temp$income<=temp$Bin37Max]
+      temp$FTcopay[temp$income>temp$Bin37Max & temp$income<=temp$Bin38Max]<-temp$CopayBin38[temp$income>temp$Bin37Max & temp$income<=temp$Bin38Max]
+      temp$FTcopay[temp$income>temp$Bin38Max & temp$income<=temp$Bin39Max]<-temp$CopayBin39[temp$income>temp$Bin38Max & temp$income<=temp$Bin39Max]
+      temp$FTcopay[temp$income>temp$Bin39Max & temp$income<=temp$Bin40Max]<-temp$CopayBin40[temp$income>temp$Bin39Max & temp$income<=temp$Bin40Max]
+      temp$FTcopay[temp$income>temp$Bin40Max & temp$income<=temp$Bin41Max]<-temp$CopayBin41[temp$income>temp$Bin40Max & temp$income<=temp$Bin41Max]
+      temp$FTcopay[temp$income>temp$Bin41Max & temp$income<=temp$Bin42Max]<-temp$CopayBin42[temp$income>temp$Bin41Max & temp$income<=temp$Bin42Max]
+      temp$FTcopay[temp$income>temp$Bin42Max & temp$income<=temp$Bin43Max]<-temp$CopayBin43[temp$income>temp$Bin42Max & temp$income<=temp$Bin43Max]
+      temp$FTcopay[temp$income>temp$Bin43Max & temp$income<=temp$Bin44Max]<-temp$CopayBin44[temp$income>temp$Bin43Max & temp$income<=temp$Bin44Max]
+      temp$FTcopay[temp$income>temp$Bin44Max & temp$income<=temp$Bin45Max]<-temp$CopayBin45[temp$income>temp$Bin44Max & temp$income<=temp$Bin45Max]
+      temp$FTcopay[temp$income>temp$Bin45Max & temp$income<=temp$Bin46Max]<-temp$CopayBin46[temp$income>temp$Bin45Max & temp$income<=temp$Bin46Max]
+      temp$FTcopay[temp$income>temp$Bin46Max & temp$income<=temp$Bin47Max]<-temp$CopayBin47[temp$income>temp$Bin46Max & temp$income<=temp$Bin47Max]
+      temp$FTcopay[temp$income>temp$Bin47Max & temp$income<=temp$Bin48Max]<-temp$CopayBin48[temp$income>temp$Bin47Max & temp$income<=temp$Bin48Max]
+      temp$FTcopay[temp$income>temp$Bin48Max & temp$income<=temp$Bin49Max]<-temp$CopayBin49[temp$income>temp$Bin48Max & temp$income<=temp$Bin49Max]
+      temp$FTcopay[temp$income>temp$Bin49Max & temp$income<=temp$Bin50Max]<-temp$CopayBin50[temp$income>temp$Bin49Max & temp$income<=temp$Bin50Max]
+      temp$FTcopay[temp$income>temp$Bin50Max & temp$income<=temp$Bin51Max]<-temp$CopayBin51[temp$income>temp$Bin50Max & temp$income<=temp$Bin51Max]
+      temp$FTcopay[temp$income>temp$Bin51Max & temp$income<=temp$Bin52Max]<-temp$CopayBin52[temp$income>temp$Bin51Max & temp$income<=temp$Bin52Max]
+      temp$FTcopay[temp$income>temp$Bin52Max & temp$income<=temp$Bin53Max]<-temp$CopayBin53[temp$income>temp$Bin52Max & temp$income<=temp$Bin53Max]
+      temp$FTcopay[temp$income>temp$Bin53Max & temp$income<=temp$Bin54Max]<-temp$CopayBin54[temp$income>temp$Bin53Max & temp$income<=temp$Bin54Max]
+      temp$FTcopay[temp$income>temp$Bin54Max & temp$income<=temp$Bin55Max]<-temp$CopayBin55[temp$income>temp$Bin54Max & temp$income<=temp$Bin55Max]
+      temp$FTcopay[temp$income>temp$Bin55Max & temp$income<=temp$Bin56Max]<-temp$CopayBin56[temp$income>temp$Bin55Max & temp$income<=temp$Bin56Max]
+      temp$FTcopay[temp$income>temp$Bin56Max & temp$income<=temp$Bin57Max]<-temp$CopayBin57[temp$income>temp$Bin56Max & temp$income<=temp$Bin57Max]
+      temp$FTcopay[temp$income>temp$Bin57Max & temp$income<=temp$Bin58Max]<-temp$CopayBin58[temp$income>temp$Bin57Max & temp$income<=temp$Bin58Max]
     
       
       # Apply asset test
@@ -5639,223 +5738,223 @@ function.CCDFcopay<-function(data
       providercost_VT$stateFIPS <- 50
       
       
-      temp<-left_join(temp, providercost_VT, by=c("stateFIPS"))
+      #  temp<-left_join(temp, providercost_VT, by=c("stateFIPS"))
       
       # Determine Expense based on Age of Children
-      temp<-temp %>% 
-        mutate(sprPerson1=(case_when(agePerson1 %in% c(0)~ftdailyrate.infant,
-                                     agePerson1 %in% c(1:2)~ftdailyrate.toddler,
-                                     agePerson1 %in% c(3:5)~ftdailyrate.preschool,  
-                                     agePerson1 %in% c(6:12)~ftdailyrate.schoolage,
-                                     agePerson1 > 12 ~ 0,
-                                     TRUE~0)
-        )
-        )
+      # temp<-temp %>% 
+      #    mutate(sprPerson1=(case_when(agePerson1 %in% c(0)~ftdailyrate.infant,
+      #                                 agePerson1 %in% c(1:2)~ftdailyrate.toddler,
+      #                                 agePerson1 %in% c(3:5)~ftdailyrate.preschool,  
+      #                                 agePerson1 %in% c(6:12)~ftdailyrate.schoolage,
+      #                                 agePerson1 > 12 ~ 0,
+      #                                 TRUE~0)
+      #    )
+      #    )
       
-      temp<-temp %>% 
-        mutate(sprPerson2=(case_when(agePerson2 %in% c(0)~ftdailyrate.infant,
-                                     agePerson2 %in% c(1:2)~ftdailyrate.toddler,
-                                     agePerson2 %in% c(3:5)~ftdailyrate.preschool,  
-                                     agePerson2 %in% c(6:12)~ftdailyrate.schoolage,
-                                     agePerson2 > 12 ~ 0,
-                                     TRUE~0)
-        )
-        )
+      #    temp<-temp %>% 
+      #      mutate(sprPerson2=(case_when(agePerson2 %in% c(0)~ftdailyrate.infant,
+      #                                   agePerson2 %in% c(1:2)~ftdailyrate.toddler,
+      #                                   agePerson2 %in% c(3:5)~ftdailyrate.preschool,  
+      #                                   agePerson2 %in% c(6:12)~ftdailyrate.schoolage,
+      #                                   agePerson2 > 12 ~ 0,
+      #                                   TRUE~0)
+      #      )
+      #      )
       
-      temp<-temp %>% 
-        mutate(sprPerson3=(case_when(agePerson3 %in% c(0)~ftdailyrate.infant,
-                                     agePerson3 %in% c(1:2)~ftdailyrate.toddler,
-                                     agePerson3 %in% c(3:5)~ftdailyrate.preschool,  
-                                     agePerson3 %in% c(6:12)~ftdailyrate.schoolage,
-                                     agePerson3 > 12 ~ 0,
-                                     
-                                     TRUE~0)
-        )
-        )
+      #    temp<-temp %>% 
+      #      mutate(sprPerson3=(case_when(agePerson3 %in% c(0)~ftdailyrate.infant,
+      #                                   agePerson3 %in% c(1:2)~ftdailyrate.toddler,
+      #                                   agePerson3 %in% c(3:5)~ftdailyrate.preschool,  
+      #                                   agePerson3 %in% c(6:12)~ftdailyrate.schoolage,
+      #                                   agePerson3 > 12 ~ 0,
       
-      temp<-temp %>% 
-        mutate(sprPerson4=(case_when(agePerson4 %in% c(0)~ftdailyrate.infant,
-                                     agePerson4 %in% c(1:2)~ftdailyrate.toddler,
-                                     agePerson4 %in% c(3:5)~ftdailyrate.preschool,  
-                                     agePerson4 %in% c(6:12)~ftdailyrate.schoolage,
-                                     agePerson4 > 12 ~ 0,
-                                     TRUE~0)
-        )
-        )
+      #                                   TRUE~0)
+      #      )
+      #      )
       
-      temp<-temp %>% 
-        mutate(sprPerson5=(case_when(agePerson5 %in% c(0)~ftdailyrate.infant,
-                                     agePerson5 %in% c(1:2)~ftdailyrate.toddler,
-                                     agePerson5 %in% c(3:5)~ftdailyrate.preschool,  
-                                     agePerson5 %in% c(6:12)~ftdailyrate.schoolage,
-                                     agePerson5 > 12 ~ 0,
-                                     TRUE~0)
-        )
-        )
+      #   temp<-temp %>% 
+      #      mutate(sprPerson4=(case_when(agePerson4 %in% c(0)~ftdailyrate.infant,
+      #                                   agePerson4 %in% c(1:2)~ftdailyrate.toddler,
+      #                                   agePerson4 %in% c(3:5)~ftdailyrate.preschool,  
+      #                                   agePerson4 %in% c(6:12)~ftdailyrate.schoolage,
+      #                                   agePerson4 > 12 ~ 0,
+      #                                   TRUE~0)
+      #      )
+      #      )
       
-      temp<-temp %>% 
-        mutate(sprPerson6=(case_when(agePerson6 %in% c(0)~ftdailyrate.infant,
-                                     agePerson6 %in% c(1:2)~ftdailyrate.toddler,
-                                     agePerson6 %in% c(3:5)~ftdailyrate.preschool,  
-                                     agePerson6 %in% c(6:12)~ftdailyrate.schoolage,
-                                     agePerson6 > 12 ~ 0,
-                                     TRUE~0)
-        )
-        )
+      #    temp<-temp %>% 
+      #      mutate(sprPerson5=(case_when(agePerson5 %in% c(0)~ftdailyrate.infant,
+      #                                   agePerson5 %in% c(1:2)~ftdailyrate.toddler,
+      #                                   agePerson5 %in% c(3:5)~ftdailyrate.preschool,  
+      #                                   agePerson5 %in% c(6:12)~ftdailyrate.schoolage,
+      #                                   agePerson5 > 12 ~ 0,
+      #                                   TRUE~0)
+      #      )
+      #      )
       
-      temp<-temp %>% 
-        mutate(sprPerson7=(case_when(agePerson7 %in% c(0)~ftdailyrate.infant,
-                                     agePerson7 %in% c(1:2)~ftdailyrate.toddler,
-                                     agePerson7 %in% c(3:5)~ftdailyrate.preschool,  
-                                     agePerson7 %in% c(6:12)~ftdailyrate.schoolage,
-                                     agePerson7 > 12 ~ 0,
-                                     TRUE~0)
-        )
-        )
+      #   temp<-temp %>% 
+      #      mutate(sprPerson6=(case_when(agePerson6 %in% c(0)~ftdailyrate.infant,
+      #                                   agePerson6 %in% c(1:2)~ftdailyrate.toddler,
+      #                                   agePerson6 %in% c(3:5)~ftdailyrate.preschool,  
+      #                                   agePerson6 %in% c(6:12)~ftdailyrate.schoolage,
+      #                                   agePerson6 > 12 ~ 0,
+      #                                   TRUE~0)
+      #      )
+      #      )
       
-      temp<-temp %>% 
-        mutate(sprPerson8=(case_when(agePerson8 %in% c(0)~ftdailyrate.infant,
-                                     agePerson8 %in% c(1:2)~ftdailyrate.toddler,
-                                     agePerson8 %in% c(3:5)~ftdailyrate.preschool,  
-                                     agePerson8 %in% c(6:12)~ftdailyrate.schoolage,
-                                     TRUE~0)
-        )
-        )
+      #    temp<-temp %>% 
+      #      mutate(sprPerson7=(case_when(agePerson7 %in% c(0)~ftdailyrate.infant,
+      #                                   agePerson7 %in% c(1:2)~ftdailyrate.toddler,
+      #                                   agePerson7 %in% c(3:5)~ftdailyrate.preschool,  
+      #                                   agePerson7 %in% c(6:12)~ftdailyrate.schoolage,
+      #                                   agePerson7 > 12 ~ 0,
+      #                                   TRUE~0)
+      #      )
+      #      )
       
-      temp<-temp %>% 
-        mutate(sprPerson9=(case_when(agePerson9 %in% c(0)~ftdailyrate.infant,
-                                     agePerson9 %in% c(1:2)~ftdailyrate.toddler,
-                                     agePerson9 %in% c(3:5)~ftdailyrate.preschool,  
-                                     agePerson9 %in% c(6:12)~ftdailyrate.schoolage,
-                                     TRUE~0)
-        )
-        )
+      #    temp<-temp %>% 
+      #      mutate(sprPerson8=(case_when(agePerson8 %in% c(0)~ftdailyrate.infant,
+      #                                   agePerson8 %in% c(1:2)~ftdailyrate.toddler,
+      #                                   agePerson8 %in% c(3:5)~ftdailyrate.preschool,  
+      #                                   agePerson8 %in% c(6:12)~ftdailyrate.schoolage,
+      #                                   TRUE~0)
+      #      )
+      #      )
       
-      temp<-temp %>% 
-        mutate(sprPerson10=(case_when(agePerson10 %in% c(0)~ftdailyrate.infant,
-                                      agePerson10 %in% c(1:2)~ftdailyrate.toddler,
-                                      agePerson10 %in% c(3:5)~ftdailyrate.preschool,  
-                                      agePerson10 %in% c(6:12)~ftdailyrate.schoolage,
-                                      TRUE~0)
-        )
-        )
+      #    temp<-temp %>% 
+      #      mutate(sprPerson9=(case_when(agePerson9 %in% c(0)~ftdailyrate.infant,
+      #                                   agePerson9 %in% c(1:2)~ftdailyrate.toddler,
+      #                                   agePerson9 %in% c(3:5)~ftdailyrate.preschool,  
+      #                                   agePerson9 %in% c(6:12)~ftdailyrate.schoolage,
+      #                                   TRUE~0)
+      ##      )
+      #      )
       
-      temp<-temp %>% 
-        mutate(sprPerson11=(case_when(agePerson11 %in% c(0)~ftdailyrate.infant,
-                                      agePerson11 %in% c(1:2)~ftdailyrate.toddler,
-                                      agePerson11 %in% c(3:5)~ftdailyrate.preschool,  
-                                      agePerson11 %in% c(6:12)~ftdailyrate.schoolage,
-                                      TRUE~0)
-        )
-        )
+      #  temp<-temp %>% 
+      #    mutate(sprPerson10=(case_when(agePerson10 %in% c(0)~ftdailyrate.infant,
+      #                                  agePerson10 %in% c(1:2)~ftdailyrate.toddler,
+      #                                  agePerson10 %in% c(3:5)~ftdailyrate.preschool,  
+      #                                  agePerson10 %in% c(6:12)~ftdailyrate.schoolage,
+      #                                  TRUE~0)
+      #    )
+      #    )
       
-      temp<-temp %>% 
-        mutate(sprPerson12=(case_when(agePerson12 %in% c(0)~ftdailyrate.infant,
-                                      agePerson12 %in% c(1:2)~ftdailyrate.toddler,
-                                      agePerson12 %in% c(3:5)~ftdailyrate.preschool,  
-                                      agePerson12 %in% c(6:12)~ftdailyrate.schoolage,
-                                      TRUE~0)
-        )
-        )
+      # temp<-temp %>% 
+      #    mutate(sprPerson11=(case_when(agePerson11 %in% c(0)~ftdailyrate.infant,
+      #                                  agePerson11 %in% c(1:2)~ftdailyrate.toddler,
+      #                                  agePerson11 %in% c(3:5)~ftdailyrate.preschool,  
+      #                                  agePerson11 %in% c(6:12)~ftdailyrate.schoolage,
+      #                                  TRUE~0)
+      #    )
+      #    )
+      
+      #  temp<-temp %>% 
+      #    mutate(sprPerson12=(case_when(agePerson12 %in% c(0)~ftdailyrate.infant,
+      ##                                  agePerson12 %in% c(1:2)~ftdailyrate.toddler,
+      #                                  agePerson12 %in% c(3:5)~ftdailyrate.preschool,  
+      #                                  agePerson12 %in% c(6:12)~ftdailyrate.schoolage,
+      #                                  TRUE~0)
+      #    )
+      #    )
       
       # sprTotal=sprPerson1+sprPerson2+sprPerson3+sprPerson4+sprPerson5+sprPerson6+sprPerson7
-      temp<-temp %>% 
-        mutate(annualcost1=(case_when(agePerson1 < 5 ~ sprPerson1*daysofcareneeded0to4,
-                                      agePerson1 > 4 & agePerson1 < 13 ~ sprPerson1*daysofcareneeded5to12,
-                                      agePerson1 > 12 ~ 0,
-                                      TRUE~0)
-        )
-        )
+      #   temp<-temp %>% 
+      #      mutate(annualcost1=(case_when(agePerson1 < 5 ~ sprPerson1*daysofcareneeded0to4,
+      #                                    agePerson1 > 4 & agePerson1 < 13 ~ sprPerson1*daysofcareneeded5to12,
+      #                                    agePerson1 > 12 ~ 0,
+      #                                    TRUE~0)
+      #      )
+      #      )
       
-      temp<-temp %>% 
-        mutate(annualcost2=(case_when(agePerson2 < 5 ~ sprPerson2*daysofcareneeded0to4,
-                                      agePerson2 > 4 & agePerson2 < 13 ~ sprPerson2*daysofcareneeded5to12,
-                                      agePerson2 > 12 ~ 0,
-                                      TRUE~0)
-        )
-        )
+      #    temp<-temp %>% 
+      #      mutate(annualcost2=(case_when(agePerson2 < 5 ~ sprPerson2*daysofcareneeded0to4,
+      #                                   agePerson2 > 4 & agePerson2 < 13 ~ sprPerson2*daysofcareneeded5to12,
+      #                                    agePerson2 > 12 ~ 0,
+      #                                    TRUE~0)
+      #     )
+      #    )
       
-      temp<-temp %>% 
-        mutate(annualcost3=(case_when(agePerson3 < 5 ~ sprPerson3*daysofcareneeded0to4,
-                                      agePerson3 > 4 & agePerson3 < 13 ~ sprPerson3*daysofcareneeded5to12,
-                                      agePerson3 > 12 ~ 0,
-                                      TRUE~0)
-        )
-        )
+      #  temp<-temp %>% 
+      #    mutate(annualcost3=(case_when(agePerson3 < 5 ~ sprPerson3*daysofcareneeded0to4,
+      #                                  agePerson3 > 4 & agePerson3 < 13 ~ sprPerson3*daysofcareneeded5to12,
+      #                                 agePerson3 > 12 ~ 0,
+      #                                  TRUE~0)
+      #    )
+      #    )
       
-      temp<-temp %>% 
-        mutate(annualcost4=(case_when(agePerson4 < 5 ~ sprPerson4*daysofcareneeded0to4,
-                                      agePerson4 > 4 & agePerson4 < 13 ~ sprPerson4*daysofcareneeded5to12,
-                                      agePerson4 > 12 ~ 0,
-                                      TRUE~0)
-        )
-        )
+      #  temp<-temp %>% 
+      #    mutate(annualcost4=(case_when(agePerson4 < 5 ~ sprPerson4*daysofcareneeded0to4,
+      #                                  agePerson4 > 4 & agePerson4 < 13 ~ sprPerson4*daysofcareneeded5to12,
+      #                                  agePerson4 > 12 ~ 0,
+      #                                  TRUE~0)
+      #    )
+      #    )
       
-      temp<-temp %>% 
-        mutate(annualcost5=(case_when(agePerson5 < 5 ~ sprPerson5*daysofcareneeded0to4,
-                                      agePerson5 > 4 & agePerson5 < 13 ~ sprPerson5*daysofcareneeded5to12,
-                                      agePerson5 > 12 ~ 0,
-                                      TRUE~0)
-        )
-        )
+      #  temp<-temp %>% 
+      #    mutate(annualcost5=(case_when(agePerson5 < 5 ~ sprPerson5*daysofcareneeded0to4,
+      #                                  agePerson5 > 4 & agePerson5 < 13 ~ sprPerson5*daysofcareneeded5to12,
+      #                                  agePerson5 > 12 ~ 0,
+      #                                  TRUE~0)
+      #    )
+      #    )
       
-      temp<-temp %>% 
-        mutate(annualcost6=(case_when(agePerson6 < 5 ~ sprPerson6*daysofcareneeded0to4,
-                                      agePerson6 > 4 & agePerson6 < 13 ~ sprPerson6*daysofcareneeded5to12,
-                                      agePerson6 > 12 ~ 0,
-                                      TRUE~0)
-        )
-        )
+      # temp<-temp %>% 
+      #    mutate(annualcost6=(case_when(agePerson6 < 5 ~ sprPerson6*daysofcareneeded0to4,
+      #                                  agePerson6 > 4 & agePerson6 < 13 ~ sprPerson6*daysofcareneeded5to12,
+      #                                  agePerson6 > 12 ~ 0,
+      #                                  TRUE~0)
+      #    )
+      #    )
       
-      temp<-temp %>% 
-        mutate(annualcost7=(case_when(agePerson7 < 5 ~ sprPerson7*daysofcareneeded0to4,
-                                      agePerson7 > 4 & agePerson7 < 13 ~ sprPerson7*daysofcareneeded5to12,
-                                      agePerson7 > 12 ~ 0,
-                                      TRUE~0)
-        )
-        )
+      #  temp<-temp %>% 
+      #    mutate(annualcost7=(case_when(agePerson7 < 5 ~ sprPerson7*daysofcareneeded0to4,
+      #                                  agePerson7 > 4 & agePerson7 < 13 ~ sprPerson7*daysofcareneeded5to12,
+      #                                  agePerson7 > 12 ~ 0,
+      #                                  TRUE~0)
+      #    )
+      #    )
       
-      temp<-temp %>% 
-        mutate(annualcost8=(case_when(agePerson8 < 5 ~ sprPerson8*daysofcareneeded0to4,
-                                      agePerson8 > 4 & agePerson8 < 13 ~ sprPerson8*daysofcareneeded5to12,
-                                      TRUE~0)
-        )
-        )
+      #    temp<-temp %>% 
+      #      mutate(annualcost8=(case_when(agePerson8 < 5 ~ sprPerson8*daysofcareneeded0to4,
+      #                                    agePerson8 > 4 & agePerson8 < 13 ~ sprPerson8*daysofcareneeded5to12,
+      #                                    TRUE~0)
+      #      )
+      #      )
       
-      temp<-temp %>% 
-        mutate(annualcost9=(case_when(agePerson9 < 5 ~ sprPerson9*daysofcareneeded0to4,
-                                      agePerson9 > 4 & agePerson9 < 13 ~ sprPerson9*daysofcareneeded5to12,
-                                      TRUE~0)
-        )
-        )
+      #   temp<-temp %>% 
+      #      mutate(annualcost9=(case_when(agePerson9 < 5 ~ sprPerson9*daysofcareneeded0to4,
+      #                                   agePerson9 > 4 & agePerson9 < 13 ~ sprPerson9*daysofcareneeded5to12,
+      #                                  TRUE~0)
+      #   )
+      #  )
       
-      temp<-temp %>% 
-        mutate(annualcost10=(case_when(agePerson10 < 5 ~ sprPerson10*daysofcareneeded0to4,
-                                       agePerson10 > 4 & agePerson10 < 13 ~ sprPerson10*daysofcareneeded5to12,
-                                       TRUE~0)
-        )
-        )
+      #  temp<-temp %>% 
+      #    mutate(annualcost10=(case_when(agePerson10 < 5 ~ sprPerson10*daysofcareneeded0to4,
+      #                                  agePerson10 > 4 & agePerson10 < 13 ~ sprPerson10*daysofcareneeded5to12,
+      #                                 TRUE~0)
+      #  )
+      #  )
       
-      temp<-temp %>% 
-        mutate(annualcost11=(case_when(agePerson11 < 5 ~ sprPerson11*daysofcareneeded0to4,
-                                       agePerson11 > 4 & agePerson11 < 13 ~ sprPerson11*daysofcareneeded5to12,
-                                       TRUE~0)
-        )
-        )
+      #temp<-temp %>% 
+      #        mutate(annualcost11=(case_when(agePerson11 < 5 ~ sprPerson11*daysofcareneeded0to4,
+      #                                       agePerson11 > 4 & agePerson11 < 13 ~ sprPerson11*daysofcareneeded5to12,
+      #                                       TRUE~0)
+      #       )
+      #        )
       
-      temp<-temp %>% 
-        mutate(annualcost12=(case_when(agePerson12 < 5 ~ sprPerson12*daysofcareneeded0to4,
-                                       agePerson12 > 4 & agePerson12 < 13 ~ sprPerson12*daysofcareneeded5to12,
-                                       TRUE~0)
-        )
-        )
+      #     temp<-temp %>% 
+      #        mutate(annualcost12=(case_when(agePerson12 < 5 ~ sprPerson12*daysofcareneeded0to4,
+      #                                       agePerson12 > 4 & agePerson12 < 13 ~ sprPerson12*daysofcareneeded5to12,
+      #                                       TRUE~0)
+      #        )
+      #        )
       
-      temp$annualCost<-temp$annualcost1+temp$annualcost2+temp$annualcost3+temp$annualcost4+temp$annualcost5+temp$annualcost6+temp$annualcost7+temp$annualcost8+temp$annualcost9+temp$annualcost10+temp$annualcost11+temp$annualcost12
+      #     temp$annualCost<-temp$annualcost1+temp$annualcost2+temp$annualcost3+temp$annualcost4+temp$annualcost5+temp$annualcost6+temp$annualcost7+temp$annualcost8+temp$annualcost9+temp$annualcost10+temp$annualcost11+temp$annualcost12
       
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
-      temp<-left_join(temp, ccdfData_VT, by=c("stateFIPS", "famsize"))
+      temp<-left_join(temp, ccdfData_VT, by=c("stateFIPS", "famsize", "ruleYear"))
       
       temp$income<-temp$income-12*temp$IncomeDisregard
       
@@ -5870,20 +5969,20 @@ function.CCDFcopay<-function(data
       temp$FTcopay[temp$income>temp$Bin6Max & temp$income<=temp$Bin7Max]<-temp$ShareofCost7[temp$income>temp$Bin6Max & temp$income<=temp$Bin7Max]
       temp$FTcopay[temp$income>temp$Bin7Max & temp$income<=temp$Bin8Max]<-temp$ShareofCost8[temp$income>temp$Bin7Max & temp$income<=temp$Bin8Max]
       temp$FTcopay[temp$income>temp$Bin8Max & temp$income<=temp$Bin9Max]<-temp$ShareofCost9[temp$income>temp$Bin8Max & temp$income<=temp$Bin9Max]
-      temp$FTcopay[temp$income>temp$Bin9Max & temp$income<=temp$Bin10Max]<-temp$ShareofCost10[temp$income>temp$Bin9Max & temp$income<=temp$Bin10Max]
-      temp$FTcopay[temp$income>temp$Bin10Max & temp$income<=temp$Bin11Max]<-temp$ShareofCost11[temp$income>temp$Bin10Max & temp$income<=temp$Bin11Max]
-      temp$FTcopay[temp$income>temp$Bin11Max & temp$income<=temp$Bin12Max]<-temp$ShareofCost12[temp$income>temp$Bin11Max & temp$income<=temp$Bin12Max]
-      temp$FTcopay[temp$income>temp$Bin12Max & temp$income<=temp$Bin13Max]<-temp$ShareofCost13[temp$income>temp$Bin12Max & temp$income<=temp$Bin13Max]
-      temp$FTcopay[temp$income>temp$Bin13Max & temp$income<=temp$Bin14Max]<-temp$ShareofCost14[temp$income>temp$Bin13Max & temp$income<=temp$Bin14Max]
-      temp$FTcopay[temp$income>temp$Bin14Max & temp$income<=temp$Bin15Max]<-temp$ShareofCost15[temp$income>temp$Bin14Max & temp$income<=temp$Bin15Max]
-      temp$FTcopay[temp$income>temp$Bin15Max & temp$income<=temp$Bin16Max]<-temp$ShareofCost16[temp$income>temp$Bin15Max & temp$income<=temp$Bin16Max]
-      temp$FTcopay[temp$income>temp$Bin16Max & temp$income<=temp$Bin17Max]<-temp$ShareofCost17[temp$income>temp$Bin16Max & temp$income<=temp$Bin17Max]
-      temp$FTcopay[temp$income>temp$Bin17Max & temp$income<=temp$Bin18Max]<-temp$ShareofCost18[temp$income>temp$Bin17Max & temp$income<=temp$Bin18Max]
-      temp$FTcopay[temp$income>temp$Bin18Max & temp$income<=temp$Bin19Max]<-temp$ShareofCost19[temp$income>temp$Bin18Max & temp$income<=temp$Bin19Max]
-      temp$FTcopay[temp$income>temp$Bin19Max & temp$income<=temp$Bin20Max]<-temp$ShareofCost20[temp$income>temp$Bin19Max & temp$income<=temp$Bin20Max]
-      temp$FTcopay[temp$income>temp$Bin20Max & temp$income<=temp$Bin21Max]<-temp$ShareofCost21[temp$income>temp$Bin20Max & temp$income<=temp$Bin21Max]
-      temp$FTcopay[temp$income>temp$Bin21Max & temp$income<=temp$Bin22Max]<-temp$ShareofCost22[temp$income>temp$Bin21Max & temp$income<=temp$Bin22Max]
-      temp$FTcopay[temp$income>temp$Bin22Max & temp$income<=temp$Bin23Max]<-temp$ShareofCost23[temp$income>temp$Bin22Max & temp$income<=temp$Bin23Max]
+      # temp$FTcopay[temp$income>temp$Bin9Max & temp$income<=temp$Bin10Max]<-temp$ShareofCost10[temp$income>temp$Bin9Max & temp$income<=temp$Bin10Max]
+      #  temp$FTcopay[temp$income>temp$Bin10Max & temp$income<=temp$Bin11Max]<-temp$ShareofCost11[temp$income>temp$Bin10Max & temp$income<=temp$Bin11Max]
+      #  temp$FTcopay[temp$income>temp$Bin11Max & temp$income<=temp$Bin12Max]<-temp$ShareofCost12[temp$income>temp$Bin11Max & temp$income<=temp$Bin12Max]
+      #  temp$FTcopay[temp$income>temp$Bin12Max & temp$income<=temp$Bin13Max]<-temp$ShareofCost13[temp$income>temp$Bin12Max & temp$income<=temp$Bin13Max]
+      #  temp$FTcopay[temp$income>temp$Bin13Max & temp$income<=temp$Bin14Max]<-temp$ShareofCost14[temp$income>temp$Bin13Max & temp$income<=temp$Bin14Max]
+      #  temp$FTcopay[temp$income>temp$Bin14Max & temp$income<=temp$Bin15Max]<-temp$ShareofCost15[temp$income>temp$Bin14Max & temp$income<=temp$Bin15Max]
+      #  temp$FTcopay[temp$income>temp$Bin15Max & temp$income<=temp$Bin16Max]<-temp$ShareofCost16[temp$income>temp$Bin15Max & temp$income<=temp$Bin16Max]
+      #  temp$FTcopay[temp$income>temp$Bin16Max & temp$income<=temp$Bin17Max]<-temp$ShareofCost17[temp$income>temp$Bin16Max & temp$income<=temp$Bin17Max]
+      #  temp$FTcopay[temp$income>temp$Bin17Max & temp$income<=temp$Bin18Max]<-temp$ShareofCost18[temp$income>temp$Bin17Max & temp$income<=temp$Bin18Max]
+      #  temp$FTcopay[temp$income>temp$Bin18Max & temp$income<=temp$Bin19Max]<-temp$ShareofCost19[temp$income>temp$Bin18Max & temp$income<=temp$Bin19Max]
+      #  temp$FTcopay[temp$income>temp$Bin19Max & temp$income<=temp$Bin20Max]<-temp$ShareofCost20[temp$income>temp$Bin19Max & temp$income<=temp$Bin20Max]
+      #  temp$FTcopay[temp$income>temp$Bin20Max & temp$income<=temp$Bin21Max]<-temp$ShareofCost21[temp$income>temp$Bin20Max & temp$income<=temp$Bin21Max]
+      #  temp$FTcopay[temp$income>temp$Bin21Max & temp$income<=temp$Bin22Max]<-temp$ShareofCost22[temp$income>temp$Bin21Max & temp$income<=temp$Bin22Max]
+      #  temp$FTcopay[temp$income>temp$Bin22Max & temp$income<=temp$Bin23Max]<-temp$ShareofCost23[temp$income>temp$Bin22Max & temp$income<=temp$Bin23Max]
       
       # Apply asset test
       subset<-temp$totalassets > temp$AssetTest
@@ -5892,9 +5991,9 @@ function.CCDFcopay<-function(data
       #----------------------------------
       # Step 2: Calculate total copays
       #----------------------------------
-      temp$totcopay <- temp$annualCost*(1-temp$FTcopay)
+      #temp$totcopay <- temp$FTcopay*52
       
-      temp$totcopay<-rowMins(cbind(temp$annualCost*(1-temp$FTcopay),temp$netexp.childcare))
+      temp$totcopay<-rowMins(cbind(temp$FTcopay*52,temp$netexp.childcare))
       
       # Set copay to zero if no children
       temp$totcopay[temp$numkidsincare0to4+temp$numkidsincare5to12==0]<-0
@@ -8752,16 +8851,13 @@ function.fedcdctc<-function(data
     
     data$value.fedcdctc<-0
     
-    subset1<-data$income.base.AGI<=data$IncomeBin1Max
-    data$value.fedcdctc[subset1]<-data$CreditRateBin1[subset1]*rowMins(cbind(data$qualifyingExpenses[subset1],data$MaxExpense[subset1]))
+    subset1<-data$income.base.AGI <= data$IncomeBin1Max # Receive Maximum Credit
+    data$value.fedcdctc[subset1]<-data$MaxCredit[subset1]*rowMins(cbind(rowMins(cbind(data$qualifyingExpenses[subset1],data$MaxExpense[subset1])),data$income.base.AGI[subset1]))
     
-    subset2<-data$income.base.AGI>data$IncomeBin1Max & data$income.base.AGI<=data$IncomeBin2Max
-    data$value.fedcdctc[subset2]<-(data$CreditRateBin1[subset2]-data$PhaseOutRate1[subset2]*(data$income.base.AGI[subset2]-data$IncomeBin1Max[subset2]))*rowMins(cbind(data$qualifyingExpenses[subset2],data$MaxExpense[subset2]))
+    subset2<-data$income.base.AGI > data$IncomeBin1Max # Receive Phase-Out Credit bounded by the minimum credit from below
+    data$value.fedcdctc[subset2]<-(rowMaxs(cbind(data$MaxCredit[subset2]-data$PhaseOutRate[subset2],data$MinCredit[subset2]))*(data$income.base.AGI[subset2]-data$IncomeBin1Max[subset2]))*rowMins(cbind(rowMins(cbind(data$qualifyingExpenses[subset2],data$MaxExpense[subset2])),data$income.base.AGI[subset2]))
     
-    subset3<-data$income.base.AGI>data$IncomeBin2Max
-    data$value.fedcdctc[subset3]<-rowMaxs(cbind((data$CreditRateBin2[subset3]-data$PhaseOutRate2[subset3]*(data$income.base.AGI[subset3]-data$IncomeBin1Max[subset3]))*rowMins(cbind(data$qualifyingExpenses[subset3],data$MaxExpense[subset3])),0))
-    
-    # CDCTC is non-refundable
+    # Adjust if CDCTC is non-refundable
     subset<-data$Refundable=="No"
     data$value.fedcdctc[subset]<-rowMins(cbind(data$value.fedcdctc[subset],data$totalfederaltax[subset]))
     
@@ -9125,6 +9221,7 @@ function.statecdctc<-function(data
     #6. Minnesota (stateFIPS==27)
     #-------------------------------------
     if(27 %in% unique(data$stateFIPS)){ # make sure that state is in the list
+      
       temp<-data[data$stateFIPS==27,]
       
       subset1<- temp$income.base<=temp$IncomeBin1Max
@@ -9149,7 +9246,7 @@ function.statecdctc<-function(data
       temp$value.statecdctc[subset7]<-rowMaxs(cbind(temp$PercentOfFederalBin7[subset7]*temp$federalcdctc[subset7], temp$PercentOfExpensesBin6[subset7]*temp$qualifyingExpenses[subset7]))
       
       # Only state with maximum credit
-      temp$value.statecdctc<-rowMaxs(cbind(temp$value.statecdctc,1400))
+      temp$value.statecdctc<-rowMins(cbind(temp$value.statecdctc,1400))
       
       # Adjust for refundability
       subset<-temp$Refundable=="No"
