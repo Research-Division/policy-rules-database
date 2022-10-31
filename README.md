@@ -1,5 +1,5 @@
 # Policy Rules Database (PRD)
-The Policy Rules Database (PRD) is an open-source repository that contains up-to-date rules and provisions for all major federal and state public assistance programs, taxes, and tax credits in a single easy-to-use database.
+The Policy Rules Database (PRD) is an open-source repository that contains up-to-date rules and provisions for all major federal and state public assistance programs, taxes, and tax credits in a single easy-to-use database. 
 
 * [Subscribe](http://eepurl.com/ib_0eT) to receive email updates about new features of the Policy Rules Database
 
