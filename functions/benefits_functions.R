@@ -11,32 +11,66 @@ function.tanfBenefit<-function(data){
   
   data$tanfValue<-0
   
+  
+   # USUAL TANF PROCESS
+   # 1. SEGMENT DATA FOR SPECIFIC STATE (I.E. TEMP <- DATA[DATA$STATEFIPS = X,])\
+   # 2. LEFT_JOIN WITH TANF DATA BY STATE FIPS & FAM SIZE (MAY NEED TO EXTEND THIS TO NUM KIDS)\
+   # 3. ADD GIFT INCOME TO INCOME 
+
+   # 4. NEED TO DETERMINE APPLICANT VERSUS RECIPIENT (I.E. SOMEONE APPLYING FOR TANF VS. SOMEONE ALREADY ON TANF, AKIN TO
+        #CCDF WHERE THERE IS INITIAL ELIG. VS. CONT. ELIG.)
+  # 4.5. SUBTRACT ANY ADULT RECEIVING SSI FROM THE FAMILY SIZE. I.E. A FAMILY OF 4 WITH ONE ADULT RECEIVING SSI = FAMILY OF 3.
+   # 5. CALCULATE NET INCOME - LOOK AT "LIST OF DEDUCTIONS FOR QUALIFICATION" AND "IncomeDisregardDescription" FOR REFERENCE TO HOW TO CALCULATE 
+   # 6. ALSO LOOK AT "INCOME DISREGARD DESCRIPTION" FOR DETAILS ON DEDUCTIONS MADE FOR NET INCOME CALCULATION VS. BENEFIT CALCULATION
+   # 7. SEE IF NET INCOME IS LESS THAN THE STANDARD OF NEED (StandardOfNeed)
+   # 8. IF NET INCOME IS LESS THAN THE STANDARD OF NEED, CALCULATE THE BENEFIT AMOUNT. USUALLY, THIS IS THE MAXIMUM BENEFIT MINUS THE NET INCOME, THOUGH IT VARIES BY STATE
+   # 9. LOOK AT "LIST OF DEDUCTIONS FOR QUALIFICATIONS" AND "LIST OF DEDUCTIONS FOR BENEFIT ALLOTMENT" TO SEE THE DIFFERENCE BETWEEN CALCULATING THE NET INCOME AND CALCULATING BENEFIT ALLOTMENT
+   # 10. IF THE AMOUNT CALCULATED FOR THE BENEFIT ALLOTMENT IS GREATER THAN THE MAXIMUM BENEFIT, THEN BENEFIT = 0. 
+   # NOTE: MOST STATES REQUIRES A $10 MINIMUM BENEFIT. THE EXCEPTION IS NORTH CAROLINA, WHICH REQUIRES A $25 MINIMUM BENEFIT.
+   # 11. ONCE YOU'VE PASSED THE STANDARD OF NEED TEST AND THE BENEFIT ALLOTMENT > 0, CHECK THE CHILDLESS_TANF_POLICY AND THE TWO PARENTS POLICY AND THE GROSS INCOME TEST
+  # 12. IF CHILDLESS = "NO' AND THE FAMILY OBSERVED HAS NO CHILDREN, THEN THEY'RE DISQUALIFIED FROM TANF
+  # 13. IF TWO PARENTS = "NO" AND THE FAMILY HAS TWO PARENTS IN THE HOUSEHOLD, THEN THEY'RE DISQUALIFIED
+  # 14. IF THE GROSS EARNED INCOME IS GREATER THAN THE GROSSINCOMETEST AMOUNT FOR FAMILY SIZE X, THEN BENEFIT = 0
+  
+  
+  
+  
   # Alabama----
   
   if(1 %in% unique(data$stateFIPS)){ # make sure that state is in the list
+   
     
+    # step 1 
     temp<-data[data$stateFIPS==1,]
     
+    # step 2
     temp<-left_join(temp, tanfData, by=c("stateFIPS", "famsize"))
     
-    # Step I: Calculate net income
-    temp$income=temp$income+temp$income.gift # add gift income 
-    temp$net.income<-rowMaxs(cbind(temp$income,0)) # earned income deduction
+    # Step 3: add gift income
+    temp$income=temp$income+temp$income.gift 
+    
+    # add gift income 
+    temp$net.income<-rowMaxs(cbind(temp$income - temp$EarnedIncomeDisregard*temp$income,0)) # earned income deduction
     #temp$net.income<-rowMaxs(cbind(temp$net.income-0.2*temp$netexp.childcare,0)) # childcare deduction
     
     # Step II: Calculate value of the benefit
     temp$tanfValue<-0
     subset<-temp$totalassets<temp$AssetTest
-    temp$tanfValue[subset]<-rowMaxs(cbind(12*temp$Value[subset] - temp$net.income[subset],0))
+    temp$tanfValue[subset]<-rowMaxs(cbind(temp$Value[subset] - temp$net.income[subset],0))
     
     # Apply gross income test (if applicable)
     temp$tanfValue[temp$income>temp$grossIncomeTest]<-0
+    temp$tanfValue[temp$net.income>temp$StandardofNeed]<-0
     
     # TANF is not available for two married adults
     temp$tanfValue[temp$FilingStatus==2 & temp$twoAdults_tanf_policy=="No"]<-0
     
     # In some states TANF is not available for childless adults
     temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
+    
+    
+    #### TIME SERIES CODE
+    
     
     if(nrow(data)>1){
       if(data$Year[1] != data$Year[2]){
@@ -75,7 +109,7 @@ function.tanfBenefit<-function(data){
       }
     }
     
-    data$tanfValue[data$stateFIPS==1]<-temp$tanfValue
+    data$tanfValue[data$stateFIPS==1]<-temp$tanfValue*12
     
     
   }
@@ -83,19 +117,20 @@ function.tanfBenefit<-function(data){
   ##############
   # ARKANSAS
   ##############
-  
   if(5 %in% unique(data$stateFIPS)){ # make sure that state is in the list
     
     temp<-data[data$stateFIPS==5,]
-    
     temp<-left_join(temp, tanfData, by=c("stateFIPS", "famsize"))
-    
     
     
     # Step I: Calculate net income
     temp$income=temp$income+temp$income.gift # add gift income 
-    temp$net.income<-rowMaxs(cbind(temp$income-(temp$EarnedIncomeDisregard*temp$income)-0.6*(temp$income-(temp$EarnedIncomeDisregard*temp$income)),0)) # earned income deduction
+    # temp$net.income<-rowMaxs(cbind(temp$income-(temp$EarnedIncomeDisregard*temp$income)-0.6*(temp$income-(temp$EarnedIncomeDisregard*temp$income)),0)) # earned income deduction
     #temp$net.income<-rowMaxs(cbind(temp$net.income-0.2*temp$netexp.childcare,0)) # childcare deduction
+    
+    
+    
+    
     
     # Step II: Calculate value of the benefit
     temp$tanfValue<-0
@@ -105,7 +140,7 @@ function.tanfBenefit<-function(data){
     temp$tanfValue[temp$net.income>(223*12)] <- 0
     
     # Apply gross income test (if applicable)
-    temp$tanfValue[temp$income>(temp$grossIncomeTest*12) & min(temp$Year) != temp$Year]<-temp$tanfValue[temp$income>(temp$grossIncomeTest*12) & min(temp$Year) != temp$Year]*0.5
+    temp$tanfValue[temp$income>(temp$grossIncomeTest) & min(temp$Year) != temp$Year]<-temp$tanfValue[temp$income>(temp$grossIncomeTest) & min(temp$Year) != temp$Year]*0.5
     
     # TANF is not available for two married adults
     temp$tanfValue[temp$FilingStatus==2 & temp$twoAdults_tanf_policy=="No"]<-0
@@ -154,7 +189,6 @@ function.tanfBenefit<-function(data){
     
     
   }
-  
   # California----
   
   if(6 %in% unique(data$stateFIPS)){ # make sure that state is in the list
@@ -312,22 +346,106 @@ function.tanfBenefit<-function(data){
   
   # Connecticut----
   
-  if(9 %in% unique(data$stateFIPS)){ # make sure that state is in the list
+  if(9 %in% unique(data$stateFIPS)){# make sure that state is in the list
+    
+    
+    list1 <- c(13590,
+               18310,
+               23030,
+               27750,
+               32470,
+               37190,
+               41910,
+               46630,
+               51350,
+               56070,
+               60790,
+               65510
+    )
+    
+    
+    tanfData$grossIncomeTest[tanfData$stateFIPS == 9] <- list1
+    
+    tanfData$StandardofNeed <- 0
+    
+    tanfData$StandardofNeed[tanfData$stateFIPS == 9] <- c(7488,
+                                                          10080,
+                                                          12672,
+                                                          15276,
+                                                          17868,
+                                                          20460,
+                                                          23064,
+                                                          25656,
+                                                          28248,
+                                                          30840,
+                                                          33432,
+                                                          36024
+    )
+    
+    tanfData$Value[tanfData$stateFIPS == 9] <- c(456,
+                                                 614,
+                                                 771,
+                                                 930,
+                                                 1087,
+                                                 1404,
+                                                 1561,
+                                                 1718, 
+                                                 1875, 
+                                                 2032, 
+                                                 2189, 
+                                                 2346 
+    )
+    
+    tanfData$timeLimit[tanfData$stateFIPS == 9] <- 21
+    
     
     temp<-data[data$stateFIPS==9,]
+    
+    #tanfData$timeLimit[tanfData$stateFIPS==9] <- 60
     
     temp<-left_join(temp, tanfData, by=c("stateFIPS", "famsize"))
     
     # Step I: Calculate net income
-    temp$net.income<-rowMaxs(cbind(temp$income-12*temp$EarnedIncomeDisregard,0)) # earned income deduction
+    temp$net.income<-rowMaxs(cbind(temp$income - 12*90,0)) # earned income deduction
     
     # Step II: Calculate value of the benefit
     temp$tanfValue<-0
     subset<-temp$totalassets<temp$AssetTest
-    temp$tanfValue[subset]<-rowMaxs(cbind(12*temp$Value[subset] - temp$net.income[subset],0))
+    temp$tanfValue[subset]<-rowMaxs(cbind(12*temp$Value[subset] 
+                                          ,0))
     
     # Apply gross income test (if applicable)
-    temp$tanfValue[temp$income>temp$grossIncomeTest]<-0
+    
+    
+    #  temp$tanfValue[temp$income>(temp$grossIncomeTest)]<-0
+    temp$tanfValue[temp$net.income>(temp$grossIncomeTest)]<-0
+    
+    if(nrow(data)>1){
+      
+      temp$tanfValue[temp$Year == min(temp$Year) & temp$net.income>(temp$StandardofNeed)]<-0
+      
+      if(data$Year[1] != data$Year[2]){ 
+        temp_1 <- temp[temp$careerpathID == 2,]
+        temp_2 <- temp[temp$careerpathID == 1,]
+        
+        
+        
+        if(temp_1$tanfValue[1] == 0){
+          temp_1$tanfValue <- 0
+        }
+        
+        if(temp_2$tanfValue[1] == 0){
+          temp_2$tanfValue <- 0
+        }
+        
+        temp <- rbind(temp_1, temp_2)
+        
+        
+      }
+    }
+    
+    #temp$tanfValue[1, temp]
+    
     
     # TANF is not available for two married adults
     temp$tanfValue[temp$FilingStatus==2 & temp$twoAdults_tanf_policy=="No"]<-0
@@ -335,8 +453,16 @@ function.tanfBenefit<-function(data){
     # In some states TANF is not available for childless adults
     temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
     
+    
+    
+    
+    
+    
+    
     if(nrow(data)>1){
       if(data$Year[1] != data$Year[2]){
+        
+        temp$tanfValue2 <- temp$tanfValue
         
         abc <- 1
         
@@ -344,14 +470,37 @@ function.tanfBenefit<-function(data){
         temp_2 <- temp[temp$careerpathID == 1,]
         
         if(nrow(temp_1)>0){
+          
           temp_1$count_tanf <- 0
           temp_1$row_tanf <- 0
           temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
           for(i in 1:length(temp_1$tanfValue)){
             temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
           }
-          temp_1$tanfValue[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
-          #   temp_1$tanfValue[2] <- 0.75*temp_1$tanfValue[2]
+          
+          
+          temp_1$tanfValue2[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
+          temp_1$tanfValue2[2] <- 0.75*temp_1$tanfValue[2]
+          
+          # you qualify for 21 month time limit + 6 month extension because poor 
+          if((12*temp_1$Value[2])>temp_1$net.income[2]){
+            temp_1$tanfValue2[temp_1$row_tanf > ceiling(temp_1$timeLimit/12) + 1] <- 0
+            temp_1$tanfValue2[2] <- temp_1$tanfValue[2]
+            temp_1$tanfValue2[3] <- 0.25*temp_1$tanfValue[2]
+            
+          }
+          # you qualify for 21 month time limit + 6 month extension because poor  + additional 6 month extension because poor 
+          
+          if((12*temp_1$Value[3])>temp_1$net.income[3]){
+            temp_1$tanfValue2[temp_1$row_tanf > ceiling(temp_1$timeLimit/12) + 1] <- 0
+            temp_1$tanfValue2[2] <- temp_1$tanfValue[2]
+            temp_1$tanfValue2[3] <- 0.75*temp_1$tanfValue[2]
+            
+          }
+          
+          
+          temp_1$tanfValue <- temp_1$tanfValue2
+          
         }
         
         if(nrow(temp_2)>0){
@@ -362,21 +511,46 @@ function.tanfBenefit<-function(data){
             temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
           }
           temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
-          #   temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
+          temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
+          
+          
+          if((12*temp_2$Value[2])>temp_2$net.income[2]){
+            temp_2$tanfValue2[temp_2$row_tanf > ceiling(temp_2$timeLimit/12) + 1] <- 0
+            temp_2$tanfValue2[2] <- temp_2$tanfValue[2]
+            temp_2$tanfValue2[3] <- 0.25*temp_2$tanfValue[2]
+            
+          }
+          
+          if((12*temp_2$Value[3])>temp_2$net.income[3]){
+            temp_2$tanfValue2[temp_2$row_tanf > ceiling(temp_2$timeLimit/12) + 1] <- 0
+            temp_2$tanfValue2[2] <- temp_2$tanfValue[2]
+            temp_2$tanfValue2[3] <- 0.75*temp_2$tanfValue[2]
+            
+          }
+          
+          temp_2$tanfValue <- temp_2$tanfValue2
+          
+          
         }
         
+        
+        
         temp <- rbind(temp_1, temp_2)
+        
+        
         
       }else{
         abc <- 0
       }
     }
+    
+    
+    
     # 
     # Merge back
     data$tanfValue[data$stateFIPS==9]<-temp$tanfValue
     
   }
-  
   
   # District of Columbia ----
   
@@ -921,6 +1095,11 @@ function.tanfBenefit<-function(data){
     # In some states TANF is not available for childless adults
     temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
     
+    
+    
+    # TIME SERIES
+    
+    
     if(nrow(data)>1){
       if(data$Year[1] != data$Year[2]){
         
@@ -1123,7 +1302,6 @@ function.ssdiBenefit<-function(data){
   data<-left_join(data, ssdiData, by=c("ruleYear"))
   data$value.ssdi<-0
   data$value.ssdi.mnth<-0
-  data$ssdiTotalRecdMnth<-0
   data$ssdi_sga<-data$ssdi_sga*12 # make into a yearly value
   data$ssdi_blind_sga<-data$ssdi_blind_sga*12  # make into a yearly value
   data$disabledkids<-rowSums(cbind(data$agePerson1, data$agePerson2, data$agePerson3, data$agePerson4, data$agePerson5, data$agePerson6, data$agePerson7, data$agePerson8, data$agePerson9, data$agePerson10, data$agePerson11, data$agePerson12)<18 & cbind(data$disability1, data$disability2, data$disability3, data$disability4, data$disability5, data$disability6, data$disability7, data$disability8, data$disability9, data$disability10, data$disability11, data$disability12)==1, na.rm=TRUE)
@@ -1225,8 +1403,29 @@ function.ssdiBenefit<-function(data){
   data$value.ssdi.mnth<-data$famSSDIbenefit
   data$value.ssdi<-data$value.ssdi.mnth*12
   
+  # create lag of the value of ssdi. Once value of ssdi reaches zero, disabled ppl may still qualify for Medicare part A
+  data$hadssdi1<-case_when(data$disability1==1 & !is.na(data$disability1) & data$value.ssdi>0 ~ 0
+                          ,data$disability1==1 & !is.na(data$disability1) & data$value.ssdi<=0 ~ 1
+                          ,TRUE ~ 0)
+  data$hadssdi2<-case_when(data$disability2==1 & !is.na(data$disability2) & data$value.ssdi>0 ~ 0,
+                          data$disability2==1 & !is.na(data$disability2) & data$value.ssdi<=0 ~ 1
+                          ,TRUE ~ 0)
+  data$hadssdi3<-case_when(data$disability3==1 & !is.na(data$disability3) & data$value.ssdi>0 ~ 0,
+                          data$disability3==1 & !is.na(data$disability3) & data$value.ssdi<=0 ~ 1
+                          ,TRUE ~ 0)
+  data$hadssdi4<-case_when(data$disability4==1 & !is.na(data$disability4) & data$value.ssdi>0 ~ 0,
+                          data$disability4==1 & !is.na(data$disability4) & data$value.ssdi<=0 ~ 1
+                          ,TRUE ~ 0)
+  data$hadssdi5<-case_when(data$disability5==1 & !is.na(data$disability5) & data$value.ssdi>0 ~ 0,
+                          data$disability5==1 & !is.na(data$disability5) & data$value.ssdi<=0 ~ 1
+                          ,TRUE ~ 0)
+  data$hadssdi6<-case_when(data$disability6==1 & !is.na(data$disability6) & data$value.ssdi>0 ~ 0,
+                          data$disability6==1 & !is.na(data$disability6) & data$value.ssdi<=0 ~ 1
+                          ,TRUE ~ 0)
+  
   data.ssdi<-data %>%
-    select(value.ssdi, portionedAuxAdlt1, portionedAuxAdlt2)
+    select(value.ssdi, portionedAuxAdlt1, portionedAuxAdlt2,hadssdi1,hadssdi2,hadssdi3
+           ,hadssdi4,hadssdi5,hadssdi6) # may need data$recdssdi1-6 here
   
   #### TEST SSDI OUTPUT ####
   # outputTest<-function(data){
@@ -1358,7 +1557,7 @@ function.ssiBenefit<-function(data){
   data$ineligible.adlt.earned.income<-0
   data$ssi.deemed.remain<-0
   data$eligible.adlt.unearned.income<-0
-  data$income.disregard.remain<-0 # difference between eligible.adlt.unearned.income & income disregard ($20)
+  #data$income.disregard.remain<-0 # difference between eligible.adlt.unearned.income & income disregard ($20) # er:CHECK AND CAN PROBABLY DELETE
   
   subset3<-data$married==1 & (data$disability1==1 & !is.na(data$disability1)) & (data$disability2==0 & !is.na(data$disability2)) # Currently don't have situation where disability1==0 & disability2==1
   
@@ -1368,14 +1567,14 @@ function.ssiBenefit<-function(data){
   data$ineligible.adlt.earnings<-data$month.earned.income2
   data$gross.ineligible.adlt.unearned.income<-data$month.unearned.income2
   data$eligible.adlt.unearned.income<-rowMaxs(cbind(data$month.unearned.income1,0),na.rm=TRUE) # Monthly unearned income - monthly interest (we don't have monthly interest)
-  data$income.disregard.remain<-rowMaxs(cbind(data$eligible.adlt.unearned.income-data$income_disregard,0),na.rm=TRUE)
+  #data$income.disregard.remain<-rowMaxs(cbind(data$eligible.adlt.unearned.income-data$income_disregard,0),na.rm=TRUE)# er:CHECK AND CAN PROBABLY DELETE
   
   data$ineligible.adlt.unearned.income[subset3]<-rowMaxs(cbind(data$gross.ineligible.adlt.unearned.income[subset3]-data$deemed.nondisabled.child.allocation[subset3],0),na.rm=TRUE)
   data$remaining.deemable.income[subset3]<-rowMaxs(cbind(data$deemed.nondisabled.child.allocation[subset3]-data$gross.ineligible.adlt.unearned.income[subset3],0),na.rm=TRUE)
   data$ineligible.adlt.earned.income[subset3]<-rowMaxs(cbind(data$ineligible.adlt.earnings[subset3]-data$remaining.deemable.income[subset3],0),na.rm=TRUE)
   
   subset4<-data$ineligible.adlt.earned.income+data$ineligible.adlt.unearned.income<=data$fbr_difference & data$married==1 & (data$disability1==1 & !is.na(data$disability1)) & (data$disability2==0 & !is.na(data$disability2))
-  data$ssi.income[subset4]<-rowMaxs(cbind(rowMaxs(cbind(data$eligible.adlt.unearned.income[subset4]-data$income_disregard[subset4],0),na.rm=TRUE)+rowMaxs(cbind(data$earnings_disregard_pct[subset4],0),na.rm=TRUE)*rowMaxs(cbind(data$eligible.adlt.earnings[subset4]-data$income.disregard.remain[subset4]-data$earnings_disregard_amt[subset4]-data$disab.work.exp[subset4],0),na.rm=TRUE),0),na.rm=TRUE)
+  data$ssi.income[subset4]<-rowMaxs(cbind(rowMaxs(cbind(data$eligible.adlt.unearned.income[subset4]-data$income_disregard[subset4],0),na.rm=TRUE)+rowMaxs(cbind(data$earnings_disregard_pct[subset4],0),na.rm=TRUE)*rowMaxs(cbind(data$eligible.adlt.earnings[subset4]-(rowMaxs(cbind(data$income_disregard[subset4]-data$eligible.adlt.unearned.income[subset4],0),na.rm=TRUE))-data$earnings_disregard_amt[subset4]-data$disab.work.exp[subset4],0),na.rm=TRUE),0),na.rm=TRUE)
   data$value.ssi.mnth[subset4]<-rowMaxs(cbind(data$fbr_individual[subset4]+data$ssp_spouse_as_fbr_individual[subset4]-data$ssi.income[subset4],0),na.rm=TRUE)
   
   subset5<-data$ineligible.adlt.earned.income+data$ineligible.adlt.unearned.income>data$fbr_difference & data$married==1 & (data$disability1==1 & !is.na(data$disability1)) & (data$disability2==0 & !is.na(data$disability2))
@@ -1395,14 +1594,14 @@ function.ssiBenefit<-function(data){
   data$ineligible.adlt.earnings<-data$month.earned.income1
   data$gross.ineligible.adlt.unearned.income<-data$month.unearned.income1
   data$eligible.adlt.unearned.income<-rowMaxs(cbind(data$month.unearned.income2,0),na.rm=TRUE) # Monthly unearned income - monthly interest (we don't have monthly interest)
-  data$income.disregard.remain<-rowMaxs(cbind(data$eligible.adlt.unearned.income-data$income_disregard,0),na.rm=TRUE)
+  #data$income.disregard.remain<-rowMaxs(cbind(data$eligible.adlt.unearned.income-data$income_disregard,0),na.rm=TRUE) # er:CHECK AND CAN PROBABLY DELETE
   
   data$ineligible.adlt.unearned.income[subset3.1]<-rowMaxs(cbind(data$gross.ineligible.adlt.unearned.income[subset3.1]-data$deemed.nondisabled.child.allocation[subset3.1],0),na.rm=TRUE)
   data$remaining.deemable.income[subset3.1]<-rowMaxs(cbind(data$deemed.nondisabled.child.allocation[subset3.1]-data$gross.ineligible.adlt.unearned.income[subset3.1],0),na.rm=TRUE)
   data$ineligible.adlt.earned.income[subset3.1]<-rowMaxs(cbind(data$ineligible.adlt.earnings[subset3.1]-data$remaining.deemable.income[subset3.1],0),na.rm=TRUE)
   
   subset4<-data$ineligible.adlt.earned.income+data$ineligible.adlt.unearned.income<=data$fbr_difference & data$married==1 & (data$disability1==0 & !is.na(data$disability1)) & (data$disability2==1 & !is.na(data$disability2))
-  data$ssi.income[subset4]<-rowMaxs(cbind(rowMaxs(cbind(data$eligible.adlt.unearned.income[subset4]-data$income_disregard[subset4],0),na.rm=TRUE)+rowMaxs(cbind(data$earnings_disregard_pct[subset4],0),na.rm=TRUE)*rowMaxs(cbind(data$eligible.adlt.earnings[subset4]-data$income.disregard.remain[subset4]-data$earnings_disregard_amt[subset4]-data$disab.work.exp[subset4],0),na.rm=TRUE),0),na.rm=TRUE)
+  data$ssi.income[subset4]<-rowMaxs(cbind(rowMaxs(cbind(data$eligible.adlt.unearned.income[subset4]-data$income_disregard[subset4],0),na.rm=TRUE)+rowMaxs(cbind(data$earnings_disregard_pct[subset4],0),na.rm=TRUE)*rowMaxs(cbind(data$eligible.adlt.earnings[subset4]-(rowMaxs(cbind(data$income_disregard[subset4]-data$eligible.adlt.unearned.income[subset4],0),na.rm=TRUE))-data$earnings_disregard_amt[subset4]-data$disab.work.exp[subset4],0),na.rm=TRUE),0),na.rm=TRUE)
   data$value.ssi.mnth[subset4]<-rowMaxs(cbind(data$fbr_individual[subset4]+data$ssp_spouse_as_fbr_individual[subset4]-data$ssi.income[subset4],0),na.rm=TRUE)
   
   subset5<-data$ineligible.adlt.earned.income+data$ineligible.adlt.unearned.income>data$fbr_difference & data$married==1 & (data$disability1==0 & !is.na(data$disability1)) & (data$disability2==1 & !is.na(data$disability2))
@@ -1592,7 +1791,7 @@ function.ssiBenefit<-function(data){
                                       ifelse(data$parent1.ssi==1 & data$parent2.ssi==0,rowSums(cbind(data$ann.earned.income2,data$ann.unearned.income2,data$cash.distr,data$assets.car1),na.rm=TRUE),
                                              ifelse(data$parent1.ssi==0 & data$parent2.ssi==0,rowSums(cbind(data$ann.earned.income1,data$ann.earned.income2,data$ann.unearned.income1,data$ann.unearned.income2,data$cash,data$assets.car1),na.rm=TRUE),0)))
   
-  data$asset.test<-ifelse(data$disabledkids>0 & (data$total.countable.assets-data$asset_limit)/data$disabledkids<data$asset_limit_child, data$asset.test<-1, data$asset.test<-0)
+  data$asset.test<-ifelse(data$disabledkids>0 & ((data$total.countable.assets-data$asset_limit)/data$disabledkids)<data$asset_limit_child, data$asset.test<-1, data$asset.test<-0)
   
   # Step 10: Count number of SSI-eligible parents of eligible child and factor in allocations
   data$num.parents<-ifelse(data$married==1,2,1)
@@ -1608,7 +1807,7 @@ function.ssiBenefit<-function(data){
   subset7<-data$num.parents==2 & rowSums(cbind(data$disability1+data$disability2),na.rm=TRUE)==1 & data$num.parents.ssi==0 # DID NOT INCLUDE MARRIED==1 BC ASSUME NUM.PARENTS==2 THEN THEY ARE MARRIED
   data$deemed.income[subset7]<-data$ssi.deemed.remain[subset7]
   
-  subset8<-data$parent1.ssi==0 & data$parent1.tanf==0 
+  subset8<-data$parent1.ssi==0 & data$parent1.tanf==0
   data$mnthly.unearned.income[subset8]<-rowMaxs(cbind(data$month.unearned.income1[subset8],0),na.rm=TRUE)
   data$mnthly.earned.income[subset8]<-rowMaxs(cbind(data$month.earned.income1[subset8],0),na.rm=TRUE)
   
@@ -1616,13 +1815,13 @@ function.ssiBenefit<-function(data){
   data$mnthly.unearned.income[subset9]<-rowSums(cbind(data$mnthly.unearned.income[subset9],data$month.unearned.income2[subset9]),na.rm=TRUE)
   data$mnthly.earned.income[subset9]<-rowSums(cbind(data$mnthly.earned.income[subset9],data$month.earned.income2[subset9]),na.rm=TRUE)
   
-  data$deemable.unearned.income<-rowMaxs(cbind(data$mnthly.unearned.income-(data$nondisabled_child_allocation*data$non_disabledkids),0),na.rm=TRUE)
-  data$allocation.remainder<-rowMaxs(cbind((data$nondisabled_child_allocation*data$non_disabledkids)-data$mnthly.unearned.income,0),na.rm = TRUE)
+  data$deemable.unearned.income<-rowMaxs(cbind(data$mnthly.unearned.income-(data$non_disabled_child_allocation*data$non_disabledkids),0),na.rm=TRUE)
+  data$allocation.remainder<-rowMaxs(cbind((data$non_disabled_child_allocation*data$non_disabledkids)-data$mnthly.unearned.income,0),na.rm = TRUE)
   data$deemable.earned.income<-rowMaxs(cbind(data$mnthly.earned.income-data$allocation.remainder,0),na.rm=TRUE)
   data$deemed.unearned.income<-rowMaxs(cbind(data$deemable.unearned.income-data$income_disregard,0),na.rm=TRUE)
   data$deemed.disregard.remainder<-rowMaxs(cbind(data$income_disregard-data$deemable.unearned.income,0),na.rm=TRUE)
   data$deemed.earned.income<-rowMaxs(cbind(1-data$earnings_disregard_pct,0),na.rm=TRUE)*rowMaxs(cbind(data$deemable.earned.income-data$deemed.disregard.remainder-data$earnings_disregard_amt,0),na.rm=TRUE)
-  data$deemed.income<-rowMaxs(cbind(data$deemed.unearned.income+data$deemed.earned.income-data$parental_allocation,0),na.rm=TRUE) # ER 8/15/22: Add in 2/3 child support
+  data$deemed.income<-rowMaxs(cbind(data$deemed.unearned.income+data$deemed.earned.income-data$parental_allocation,0),na.rm=TRUE) 
   
   # Step 11: deem income to disabled children
   data$deemed.income.perchild<-rowMaxs(cbind((data$deemed.income + ((data$child_support/data$numkids)*.66))/data$disabledkids,0),na.rm=TRUE)
@@ -1736,7 +1935,7 @@ function.snapBenefit<-function(data){
 
     data<-left_join(data, snapData, by=c("ruleYear","stateFIPS", "famsize"))
     
-    # First, calculate total countable income
+    # First, calculate total countable income 
     data$income.gross<-rowSums(cbind(data$income,data$income.gift,data$income.child_support,data$income.investment,data$value.tanf,data$value.ssi,data$value.ssdi),na.rm=TRUE) # ER 7/4/22: I added rowSums, I was getting error without it
     #data$income.gross<-data$income+data$income.gift+data$income.child_support+data$income.investment+data$value.tanf+data$value.ssi+data$value.ssdi
     
@@ -1746,7 +1945,7 @@ function.snapBenefit<-function(data){
     data$kid_count<-rowSums(cbind(data$agePerson1, data$agePerson2, data$agePerson3, data$agePerson4, data$agePerson5, data$agePerson6, data$agePerson7, data$agePerson8, data$agePerson9, data$agePerson10, data$agePerson11, data$agePerson12)<19, na.rm=TRUE)
     
     # Step I: Calculate Earned Income Deduction
-    data$EarnedIncomeDeduction<-0.2*data$income.gross
+    data$EarnedIncomeDeduction<-0.2*data$income #earned income only
     
     # Step II: Calculate adjusted income
     data$adjustedincome<-rowMaxs(cbind(data$income.gross-data$EarnedIncomeDeduction-12*data$StandardDeduction-data$netexp.childcare,0),na.rm=TRUE) #ER 7/4/22: standard deduction and childcare are NULL; I added rowMaxs, I was getting error just without it
@@ -1754,10 +1953,10 @@ function.snapBenefit<-function(data){
     
     # Step III: Calculate Utility Deductions
     data$UtiilityDeduction<-0
-    subset<-(data$netexp.utilities>0 | data$liheap>0 | data$HeatandEatState=="Yes") & data$HCSUA=="Mandatory"
+    subset<-(data$netexp.utilities>0 | data$HeatandEatState=="Yes") & data$HCSUA=="Mandatory" #liheap >0 should be in list of "|" staetments runs after this program so will alwys be 0 
     data$UtiilityDeduction[subset]<-12*data$HCSUAValue[subset]
     
-    subset<-(data$netexp.utilities>0 | data$liheap>0 | data$HeatandEatState=="Yes") & data$HCSUA=="Optional"
+    subset<-(data$netexp.utilities>0 |  data$HeatandEatState=="Yes") & data$HCSUA=="Optional" #liheap >0 should be in list of "|" staetments runs after this program so will alwys be 0 
     data$UtiilityDeduction[subset]<-rowMaxs(cbind(12*data$HCSUAValue[subset],data$netexp.utilities[subset]))
     
     
@@ -1874,7 +2073,7 @@ function.wicBenefit<-function(data){
   data$income.eligible[data$categorically.eligible == 1] <-TRUE
   data$income.eligible[data$income.countable < data$IncomeEligibility]<-TRUE
   
-  # Step 5: Calculate WIC value
+  # Step 5: Calculate WIC value ##NEED TO CHANGE THIS TO USE WIC COSTS 
   data$value.WIC<- data$numinfants * data$value.infant + data$numkidsage1to4 * data$value.kidsage1to4 + data$mom*data$value.women 
   data$value.WIC[data$income.eligible==FALSE]<-0
   
@@ -1965,19 +2164,19 @@ function.section8Benefit<-function(data){
 
 function.RAPBenefit<-function(data){
     
-    data<-left_join(data, section8Data, by=c("stateFIPS", "countyortownName", "numadults", "numkids"))
+    data<-left_join(data, section8Data, by=c("ruleYear","stateFIPS", "countyortownName", "numadults", "numkids"))
     
     data$income.countable = data$income
     
     # Step I: Calculate Adjusted Income
-    data$adjustedincome<-rowMaxs(cbind(data$income.countable - data$numkids*data$DependentDeduction - data$netexp.childcare,0))
+    data$adjustedincome<-rowMaxs(cbind(data$income.countable - data$numkids*data$DependentDeduction - data$netexp.childcare,0),na.rm = TRUE)
     
     # Step II: Determine Total Tenant Payment
-    data$ttp<-rowMaxs(cbind(0.1*data$income.countable,0.4*data$adjustedincome))
+    data$ttp<-rowMaxs(cbind(0.1*data$income.countable,0.4*data$adjustedincome),na.rm=TRUE)
     
     # Step III: Determine benefit value
     data$section8value<-0
-    data$section8value<-rowMaxs(cbind(rowMins(cbind(data$exp.rentormortgage,data$MaxGrossRent))-data$ttp,0))
+    data$section8value<-rowMaxs(cbind(rowMins(cbind(data$exp.rentormortgage,data$MaxGrossRent))-data$ttp,0),na.rm=TRUE)
     
     data$section8value[data$ownorrent!="rent"]<-0
     
@@ -2058,6 +2257,39 @@ function.liheapBenefit<-function(data){
     
   }
   
+  if(9 %in% unique(data$stateFIPS)){ # make sure that state is in the list
+    
+    temp<-data[data$stateFIPS==9,]
+    
+    # One third of the utility is the energy spending (cite)
+    temp$exp.utilities<-0.3*temp$exp.utilities 
+    
+    temp<-left_join(temp, liheapData, by=c("stateFIPS", "famsize"))
+    
+    # Step I: Countable income
+    temp$income<-rowSums(cbind(temp$income,temp$value.ssi,temp$value.tanf,temp$value.snap,0),na.rm=TRUE)
+    
+    temp$value.liheap<-NA
+    
+    temp$value.liheap[temp$income>=0 & temp$income<=temp$Bin1Max]<-rowMins(cbind(temp$exp.utilities[temp$income>=0 & temp$income<=temp$Bin1Max], temp$MaxBenefit1[temp$income>=0 & temp$income<=temp$Bin1Max]),na.rm=TRUE)
+    temp$value.liheap[temp$income>=temp$Bin1Max & temp$income<=temp$Bin2Max]<-rowMins(cbind(temp$exp.utilities[temp$income>=temp$Bin1Max & temp$income<=temp$Bin2Max], temp$MaxBenefit2[temp$income>=temp$Bin1Max & temp$income<=temp$Bin2Max]),na.rm=TRUE)
+    temp$value.liheap[temp$income>=temp$Bin2Max & temp$income<=temp$Bin3Max]<-rowMins(cbind(temp$exp.utilities[temp$income>=temp$Bin2Max & temp$income<=temp$Bin3Max], temp$MaxBenefit3[temp$income>=temp$Bin2Max & temp$income<=temp$Bin3Max]),na.rm=TRUE)
+    temp$value.liheap[temp$income>=temp$Bin3Max & temp$income<=temp$Bin4Max]<-rowMins(cbind(temp$exp.utilities[temp$income>=temp$Bin3Max & temp$income<=temp$Bin4Max], temp$MaxBenefit4[temp$income>=temp$Bin3Max & temp$income<=temp$Bin4Max]),na.rm=TRUE)
+    temp$value.liheap[temp$income>=temp$Bin4Max & temp$income<=temp$Bin5Max]<-rowMins(cbind(temp$exp.utilities[temp$income>=temp$Bin4Max & temp$income<=temp$Bin5Max], temp$MaxBenefit5[temp$income>=temp$Bin4Max & temp$income<=temp$Bin5Max]),na.rm=TRUE)
+    temp$value.liheap[temp$income>=temp$Bin5Max & temp$income<=temp$Bin6Max]<-rowMins(cbind(temp$exp.utilities[temp$income>=temp$Bin5Max & temp$income<=temp$Bin6Max], temp$MaxBenefit6[temp$income>=temp$Bin5Max & temp$income<=temp$Bin6Max]),na.rm=TRUE)
+    temp$value.liheap[temp$income>=temp$Bin6Max & temp$income<=temp$Bin7Max]<-rowMins(cbind(temp$exp.utilities[temp$income>=temp$Bin6Max & temp$income<=temp$Bin7Max], temp$MaxBenefit7[temp$income>=temp$Bin6Max & temp$income<=temp$Bin7Max]),na.rm=TRUE)
+    temp$value.liheap[temp$income>=temp$Bin7Max & temp$income<=temp$Bin8Max]<-rowMins(cbind(temp$exp.utilities[temp$income>=temp$Bin7Max & temp$income<=temp$Bin8Max], temp$MaxBenefit8[temp$income>=temp$Bin7Max & temp$income<=temp$Bin8Max]),na.rm=TRUE)
+    temp$value.liheap[temp$income>=temp$Bin8Max & temp$income<=temp$Bin9Max]<-rowMins(cbind(temp$exp.utilities[temp$income>=temp$Bin8Max & temp$income<=temp$Bin9Max], temp$MaxBenefit9[temp$income>=temp$Bin8Max & temp$income<=temp$Bin9Max]),na.rm=TRUE)
+    temp$value.liheap[temp$income>=temp$Bin9Max]<-rowMins(cbind(temp$exp.utilities[temp$income>=temp$Bin9Max], temp$MaxBenefit10[temp$income>=temp$Bin9Max]),na.rm=TRUE)
+    
+    # Apply upper limit OR categorical eligibility
+    subset<-(temp$income>temp$Bin10Max & temp$value.snap==0 & temp$value.tanf==0 & temp$value.ssi==0) 
+    temp$value.liheap[subset]<-0
+    
+    data$value.liheap[data$stateFIPS==9]<-temp$value.liheap
+    
+  }
+  
   return(data$value.liheap)
   
 }
@@ -2076,7 +2308,7 @@ function.CCDFcopay<-function(data
     
     data$InitialEligibility<-NA
     
-    
+    data$netexp.childcareperson1 <- data$netexp.childcare
     #count number of kids who still need childcare, after head start & preK taken into account
     # Calculate number of children in care (separately for age < 5 & age b/w 5 and 12)
     data$numkidsincare0to4<-rowSums(cbind(data$netexp.childcareperson1 >0 & data$agePerson1<=4
@@ -2132,9 +2364,9 @@ function.CCDFcopay<-function(data
             child9_5to12 = case_when(agePerson9>=5 & agePerson9<=12 ~1, TRUE ~ 0),
             child10_5to12 = case_when(agePerson10>=5 & agePerson10<=12 ~1, TRUE ~ 0),
             child11_5to12 = case_when(agePerson11>=5 & agePerson11<=12 ~1, TRUE ~ 0),
-            child12_5to12 = case_when(agePerson12>=5 & agePerson12<=12 ~1, TRUE ~ 0)) %>% 
+            child12_5to12 = case_when(agePerson12>=5 & agePerson12<=12 ~1, TRUE ~ 0))
              
-      mutate(netexpchildcare0to4= netexp.childcareperson1*child1_0to4 + netexp.childcareperson2*child2_0to4 +netexp.childcareperson3*child3_0to4+netexp.childcareperson4*child4_0to4+ netexp.childcareperson5*child5_0to4 + netexp.childcareperson6*child6_0to4+ netexp.childcareperson7*child7_0to4+ netexp.childcareperson8*child8_0to4+ netexp.childcareperson9*child9_0to4+ netexp.childcareperson10*child10_0to4+ netexp.childcareperson11*child11_0to4+ netexp.childcareperson12*child12_0to4,
+      data<- data %>%   mutate(netexpchildcare0to4= netexp.childcareperson1*child1_0to4 + netexp.childcareperson2*child2_0to4 +netexp.childcareperson3*child3_0to4+netexp.childcareperson4*child4_0to4+ netexp.childcareperson5*child5_0to4 + netexp.childcareperson6*child6_0to4+ netexp.childcareperson7*child7_0to4+ netexp.childcareperson8*child8_0to4+ netexp.childcareperson9*child9_0to4+ netexp.childcareperson10*child10_0to4+ netexp.childcareperson11*child11_0to4+ netexp.childcareperson12*child12_0to4,
               childcareexp0to4= childcare.exp.person1*child1_0to4 + childcare.exp.person2*child2_0to4 +childcare.exp.person3*child3_0to4+childcare.exp.person4*child4_0to4+ childcare.exp.person5*child5_0to4 + childcare.exp.person6*child6_0to4 + childcare.exp.person7*child7_0to4 + childcare.exp.person8*child8_0to4 + childcare.exp.person9*child9_0to4 + childcare.exp.person10*child10_0to4 + childcare.exp.person11*child11_0to4 + childcare.exp.person12*child12_0to4,
               netexpchildcare5to12= netexp.childcareperson1*child1_5to12 + netexp.childcareperson2*child2_5to12 +netexp.childcareperson3*child3_5to12+netexp.childcareperson4*child4_5to12+ netexp.childcareperson5*child5_5to12 + netexp.childcareperson6*child6_5to12 + netexp.childcareperson7*child7_5to12 + netexp.childcareperson8*child8_5to12 + netexp.childcareperson9*child9_5to12 + netexp.childcareperson10*child10_5to12 + netexp.childcareperson11*child11_5to12 + netexp.childcareperson12*child12_5to12,
               childcareexp5to12= childcare.exp.person1*child1_5to12 + childcare.exp.person2*child2_5to12 +childcare.exp.person3*child3_5to12+childcare.exp.person4*child4_5to12+ childcare.exp.person5*child5_5to12 + childcare.exp.person6*child6_5to12 + childcare.exp.person7*child7_5to12 + childcare.exp.person8*child8_5to12 + childcare.exp.person9*child9_5to12 + childcare.exp.person10*child10_5to12 + childcare.exp.person11*child11_5to12 + childcare.exp.person12*child12_5to12,         
@@ -2155,7 +2387,7 @@ function.CCDFcopay<-function(data
       temp<-data[data$stateFIPS==1,]
       temp$numkidsInCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
       
-      temp$ruleYear<-2022 # always use the most recent year
+    #  temp$ruleYear<-2022 # always use the most recent year
       
       #----------------------------------
       # Step 1: Assign copays
@@ -2167,7 +2399,7 @@ function.CCDFcopay<-function(data
       #----------------------------------
       
       # Adjust for the income disregard
-      temp$income<-temp$income-12*temp$IncomeDisregard
+      #temp$income<-temp$income-12*temp$IncomeDisregard
       
       temp$FTcopay<-NA
       
@@ -2225,7 +2457,7 @@ function.CCDFcopay<-function(data
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
-      temp<-left_join(temp, ccdfData_AK, by=c("stateFIPS", "AKorHI", "famsize"))
+      temp<-left_join(temp, ccdfData_AK, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize"))
       
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
@@ -2364,7 +2596,7 @@ function.CCDFcopay<-function(data
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
-      temp<-left_join(temp, ccdfData_AZ, by=c("stateFIPS", "AKorHI", "famsize"))
+      temp<-left_join(temp, ccdfData_AZ, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize"))
       
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
@@ -2422,7 +2654,7 @@ function.CCDFcopay<-function(data
       
       temp<-data[data$stateFIPS==5,]
       
-      temp$ruleYear<-2022 # always use the most recent year
+     # temp$ruleYear<-2022 # always use the most recent year
       
       #----------------------------------
       # Step 1: Assign copays
@@ -2484,7 +2716,7 @@ function.CCDFcopay<-function(data
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
-      temp<-left_join(temp, ccdfData_CA, by=c("stateFIPS", "AKorHI", "famsize"))
+      temp<-left_join(temp, ccdfData_CA, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize"))
       
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
@@ -2588,7 +2820,7 @@ function.CCDFcopay<-function(data
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
-      temp<-left_join(temp, ccdfData_CO, by=c("stateFIPS", "AKorHI", "famsize", "countyortownName", "numkidsInCare"))
+      temp<-left_join(temp, ccdfData_CO, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize", "countyortownName", "numkidsInCare"))
       
       temp$income<-temp$income-12*temp$IncomeDisregard
       
@@ -2596,9 +2828,10 @@ function.CCDFcopay<-function(data
       temp$COPAY <- 0
       temp$x <- 0
       
-      for(i in 1:length(temp$income)){
-        temp$x[i] <- max(0, temp$income[i] - temp$Bin1Max[i])
-      }
+      # What the fuck is that??
+      #for(i in 1:length(temp$income)){
+      #  temp$x[i] <- max(0, temp$income[i] - temp$Bin1Max[i])
+      #}
       
       temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1Max]<-temp$CopayBin1[temp$income>=0 & temp$income<=temp$Bin1Max]
       temp$FTcopay[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]<-temp$CopayBin2[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max] # Add $15 if user is over 100% FPL and have more than one kid in care
@@ -2656,7 +2889,7 @@ function.CCDFcopay<-function(data
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
-      temp<-left_join(temp, ccdfData_CT, by=c("stateFIPS", "AKorHI", "famsize"))
+      temp<-left_join(temp, ccdfData_CT, by=c("ruleYear",  "stateFIPS", "AKorHI", "famsize"))
       
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
@@ -2708,7 +2941,7 @@ function.CCDFcopay<-function(data
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
-      temp<-left_join(temp, ccdfData_DE, by=c("stateFIPS", "AKorHI", "famsize"))
+      temp<-left_join(temp, ccdfData_DE, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize"))
       
       temp$income<-temp$income-12*temp$IncomeDisregard
       
@@ -2761,7 +2994,7 @@ function.CCDFcopay<-function(data
       
       temp<-data[data$stateFIPS==11,]
       
-      temp$ruleYear<-2022 # always use the most recent year
+     # temp$ruleYear<-2022 # always use the most recent year
       
       #----------------------------------
       # Step 1: Assign copays
@@ -2862,12 +3095,12 @@ function.CCDFcopay<-function(data
       
       temp<-data[data$stateFIPS==12,]
       
-      temp$ruleYear<-2022 # always use the most recent year
+    #  temp$ruleYear<-2022 # always use the most recent year
       
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
-      temp<-left_join(temp, ccdfData_FL, by=c("stateFIPS", "AKorHI", "countyortownName", "famsize","ruleYear"))
+      temp<-left_join(temp, ccdfData_FL, by=c("stateFIPS", "AKorHI", "countyortownName", "famsize", "ruleYear"))
       
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
@@ -2957,7 +3190,7 @@ function.CCDFcopay<-function(data
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
-      temp<-left_join(temp, ccdfData_GA, by=c("stateFIPS", "AKorHI", "famsize"))
+      temp<-left_join(temp, ccdfData_GA, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize"))
       
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
@@ -3006,13 +3239,13 @@ function.CCDFcopay<-function(data
     # Per family
     if(15 %in% unique(data$stateFIPS)){ # make sure that state is in the list
       
-     
+     # Why do you hardcode this here?
       ccdfData_HI$stateFIPS <- 15
       ccdfData_HI$AssetTest <- 1000000
       
        temp<-data[data$stateFIPS==15,]
       
-       temp$ruleYear<-2022 # always use the most recent year
+     # temp$ruleYear<-2022 # always use the most recent year
        
       #----------------------------------
       # Step 1: Assign copays
@@ -3077,6 +3310,36 @@ function.CCDFcopay<-function(data
       
       ccdfData_IA$stateFIPS <- 19
       
+      ccdfData_IA$Bin1Max <- ccdfData_IA$Bin1Max*12
+      ccdfData_IA$Bin2Max <- ccdfData_IA$Bin2Max*12
+      ccdfData_IA$Bin3Max <- ccdfData_IA$Bin3Max*12
+      ccdfData_IA$Bin4Max <- ccdfData_IA$Bin4Max*12
+      ccdfData_IA$Bin5Max <- ccdfData_IA$Bin5Max*12
+      ccdfData_IA$Bin6Max <- ccdfData_IA$Bin6Max*12
+      ccdfData_IA$Bin7Max <- ccdfData_IA$Bin7Max*12
+      ccdfData_IA$Bin8Max <- ccdfData_IA$Bin8Max*12
+      ccdfData_IA$Bin9Max <- ccdfData_IA$Bin9Max*12
+      ccdfData_IA$Bin10Max <- ccdfData_IA$Bin10Max*12
+      ccdfData_IA$Bin11Max <- ccdfData_IA$Bin11Max*12
+      ccdfData_IA$Bin12Max <- ccdfData_IA$Bin12Max*12
+      ccdfData_IA$Bin13Max <- ccdfData_IA$Bin13Max*12
+      ccdfData_IA$Bin14Max <- ccdfData_IA$Bin14Max*12
+      ccdfData_IA$Bin15Max <- ccdfData_IA$Bin15Max*12
+      ccdfData_IA$Bin16Max <- ccdfData_IA$Bin16Max*12
+      ccdfData_IA$Bin17Max <- ccdfData_IA$Bin17Max*12
+      ccdfData_IA$Bin18Max <- ccdfData_IA$Bin18Max*12
+      ccdfData_IA$Bin19Max <- ccdfData_IA$Bin19Max*12
+      ccdfData_IA$Bin20Max <- ccdfData_IA$Bin20Max*12
+      ccdfData_IA$Bin21Max <- ccdfData_IA$Bin21Max*12
+      ccdfData_IA$Bin22Max <- ccdfData_IA$Bin22Max*12
+      ccdfData_IA$Bin23Max <- ccdfData_IA$Bin23Max*12
+      ccdfData_IA$Bin24Max <- ccdfData_IA$Bin24Max*12
+      ccdfData_IA$Bin25Max <- ccdfData_IA$Bin25Max*12
+      ccdfData_IA$Bin26Max <- ccdfData_IA$Bin26Max*12
+      ccdfData_IA$Bin27Max <- ccdfData_IA$Bin27Max*12
+      ccdfData_IA$Bin28Max <- ccdfData_IA$Bin28Max*12
+      #----------------------------------
+      
       temp<-data[data$stateFIPS==19,]
       
       
@@ -3086,7 +3349,7 @@ function.CCDFcopay<-function(data
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
-      temp<-left_join(temp, ccdfData_IA, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare"))
+      temp<-left_join(temp, ccdfData_IA, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize", "numkidsInCare"))
       
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
@@ -3167,7 +3430,7 @@ function.CCDFcopay<-function(data
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
-      temp<-left_join(temp, ccdfData_ID, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare"))
+      temp<-left_join(temp, ccdfData_ID, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize", "numkidsInCare"))
       
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
@@ -3221,7 +3484,7 @@ function.CCDFcopay<-function(data
       
       temp<-data[data$stateFIPS==17,]
       
-      temp$ruleYear<-2022 # always use the most recent year
+      #temp$ruleYear<-2022 # always use the most recent year
       
       #----------------------------------
       # Step 1: Assign copays
@@ -3315,7 +3578,7 @@ function.CCDFcopay<-function(data
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
-      temp<-left_join(temp, ccdfData_IN, by=c("stateFIPS", "AKorHI", "famsize"))
+      temp<-left_join(temp, ccdfData_IN, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize"))
       
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
@@ -3379,7 +3642,7 @@ function.CCDFcopay<-function(data
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
-      temp<-left_join(temp, ccdfData_KS, by=c("stateFIPS", "AKorHI", "famsize"))
+      temp<-left_join(temp, ccdfData_KS, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize"))
       
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
@@ -3449,7 +3712,7 @@ function.CCDFcopay<-function(data
       #----------------------------------``
       # Step 1: Assign copays
       #----------------------------------
-      temp<-left_join(temp, ccdfData_KY, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare"))
+      temp<-left_join(temp, ccdfData_KY, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize", "numkidsInCare"))
       
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
@@ -3544,7 +3807,7 @@ function.CCDFcopay<-function(data
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
-      temp<-left_join(temp, ccdfData_LA, by=c("stateFIPS", "AKorHI", "famsize"))
+      temp<-left_join(temp, ccdfData_LA, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize"))
       
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
@@ -3606,7 +3869,7 @@ function.CCDFcopay<-function(data
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
-      temp<-left_join(temp, ccdfData_ME, by=c("stateFIPS", "AKorHI", "famsize"))
+      temp<-left_join(temp, ccdfData_ME, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize"))
       
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
@@ -3666,7 +3929,7 @@ function.CCDFcopay<-function(data
       
       temp$numkidsInCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
       
-      temp$ruleYear<-2022 # always use the most recent year
+      #temp$ruleYear<-2022 # always use the most recent year
       
       #----------------------------------
       # Step 1: Assign copays
@@ -3733,7 +3996,7 @@ function.CCDFcopay<-function(data
       
       temp<-data[data$stateFIPS==25,]
       
-      temp$ruleYear<-2022 # always use the most recent year
+      #temp$ruleYear<-2022 # always use the most recent year
       
       #----------------------------------
       # Step 1: Assign copays
@@ -3826,7 +4089,7 @@ function.CCDFcopay<-function(data
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
-      temp<-left_join(temp, ccdfData_MI, by=c("stateFIPS", "AKorHI", "famsize"))
+      temp<-left_join(temp, ccdfData_MI, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize"))
       
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
@@ -3882,7 +4145,7 @@ function.CCDFcopay<-function(data
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
-      temp<-left_join(temp, ccdfData_MN, by=c("stateFIPS", "AKorHI", "famsize"))
+      temp<-left_join(temp, ccdfData_MN, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize"))
       
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
@@ -3966,7 +4229,7 @@ function.CCDFcopay<-function(data
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
-      temp<-left_join(temp, ccdfData_MS, by=c("stateFIPS", "AKorHI", "famsize"))
+      temp<-left_join(temp, ccdfData_MS, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize"))
       
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
@@ -4094,7 +4357,7 @@ function.CCDFcopay<-function(data
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
-      temp<-left_join(temp, ccdfData_MO, by=c("stateFIPS", "AKorHI", "famsize"))
+      temp<-left_join(temp, ccdfData_MO, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize"))
       
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
@@ -4160,7 +4423,7 @@ function.CCDFcopay<-function(data
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
-      temp<-left_join(temp, ccdfData_MT, by=c("stateFIPS", "AKorHI", "famsize"))
+      temp<-left_join(temp, ccdfData_MT, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize"))
       
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
@@ -4228,7 +4491,7 @@ function.CCDFcopay<-function(data
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
-      temp<-left_join(temp, ccdfData_NE, by=c("stateFIPS", "AKorHI", "famsize"))
+      temp<-left_join(temp, ccdfData_NE, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize"))
       
       temp$income<-temp$income-12*temp$IncomeDisregard
       
@@ -4277,10 +4540,12 @@ function.CCDFcopay<-function(data
       
       temp <- data[data$stateFIPS==32,]
       
-      temp$ruleYear<-2022 # always use the most recent year
+      ##temp$ruleYear<-2022 # always use the most recent year
       
       
-      temp<-left_join(temp, providercost_NV, by=c("stateFIPS", "countyortownName"))
+      #temp<-left_join(temp, providercost_NV, by=c("stateFIPS", "countyortownName", "ruleYear")) # EI: ruleYear is not working here !! 
+      providercost_NV$ruleYear<-providercost_NV$yearofdata
+      temp<-left_join(temp, providercost_NV, by=c("stateFIPS", "countyortownName", "ruleYear")) 
       
         # Determine Expense based on Age of Children
         temp<-temp %>% 
@@ -4539,7 +4804,7 @@ function.CCDFcopay<-function(data
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
-      temp<-left_join(temp, ccdfData_NM, by=c("stateFIPS", "AKorHI", "famsize"))
+      temp<-left_join(temp, ccdfData_NM, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize"))
       
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
@@ -4710,7 +4975,7 @@ function.CCDFcopay<-function(data
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
-      temp<-left_join(temp, ccdfData_NH, by=c("stateFIPS", "AKorHI", "famsize"))
+      temp<-left_join(temp, ccdfData_NH, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize"))
       
       temp$income<-temp$income-12*temp$IncomeDisregard
       
@@ -4761,7 +5026,7 @@ function.CCDFcopay<-function(data
       
       temp<-data[data$stateFIPS==34,]
       
-      temp$ruleYear<-2022 # always use the most recent year
+      #temp$ruleYear<-2022 # always use the most recent year
       
       temp$numkidsInCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
       
@@ -4855,7 +5120,7 @@ function.CCDFcopay<-function(data
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
-      temp<-left_join(temp, ccdfData_NC, by=c("stateFIPS", "AKorHI", "famsize"))
+      temp<-left_join(temp, ccdfData_NC, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize"))
       
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
@@ -4904,7 +5169,7 @@ function.CCDFcopay<-function(data
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
-      temp<-left_join(temp, ccdfData_ND, by=c("stateFIPS", "AKorHI", "famsize"))
+      temp<-left_join(temp, ccdfData_ND, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize"))
       
       temp$income<-temp$income-12*temp$IncomeDisregard
       
@@ -4959,7 +5224,7 @@ function.CCDFcopay<-function(data
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
-      temp<-left_join(temp, ccdfData_NY, by=c("stateFIPS", "AKorHI", "famsize", "countyortownName"))
+      temp<-left_join(temp, ccdfData_NY, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize", "countyortownName"))
 
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
@@ -5018,7 +5283,7 @@ function.CCDFcopay<-function(data
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
-      temp<-left_join(temp, ccdfData_OH, by=c("stateFIPS", "AKorHI", "famsize"))
+      temp<-left_join(temp, ccdfData_OH, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize"))
       
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
@@ -5098,7 +5363,7 @@ function.CCDFcopay<-function(data
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
-      temp<-left_join(temp, ccdfData_OK, by=c("stateFIPS", "AKorHI", "famsize"))
+      temp<-left_join(temp, ccdfData_OK, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize"))
       
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
@@ -5157,7 +5422,7 @@ function.CCDFcopay<-function(data
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
-      temp<-left_join(temp, ccdfData_OR, by=c("stateFIPS", "AKorHI", "famsize"))
+      temp<-left_join(temp, ccdfData_OR, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize"))
       
       temp$income<-temp$income-12*temp$IncomeDisregard
       
@@ -5317,7 +5582,7 @@ function.CCDFcopay<-function(data
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
-      temp<-left_join(temp, ccdfData_RI, by=c("stateFIPS", "AKorHI", "famsize"))
+      temp<-left_join(temp, ccdfData_RI, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize"))
       
       temp$income<-temp$income-12*temp$IncomeDisregard
       
@@ -5368,7 +5633,7 @@ function.CCDFcopay<-function(data
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
-      temp<-left_join(temp, ccdfData_SC, by=c("stateFIPS", "AKorHI", "famsize"))
+      temp<-left_join(temp, ccdfData_SC, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize"))
       
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
@@ -5423,7 +5688,7 @@ function.CCDFcopay<-function(data
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
-      temp<-left_join(temp, ccdfData_SD, by=c("stateFIPS", "AKorHI", "famsize"))
+      temp<-left_join(temp, ccdfData_SD, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize"))
       
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
@@ -5492,7 +5757,7 @@ function.CCDFcopay<-function(data
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
-      temp<-left_join(temp, ccdfData_TN, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare"))
+      temp<-left_join(temp, ccdfData_TN, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize", "numkidsInCare"))
       
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
@@ -5581,7 +5846,7 @@ function.CCDFcopay<-function(data
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
-      temp<-left_join(temp, ccdfData_TX, by=c("stateFIPS", "AKorHI", "famsize"))
+      temp<-left_join(temp, ccdfData_TX, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize"))
       
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
@@ -5672,7 +5937,7 @@ function.CCDFcopay<-function(data
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
-      temp<-left_join(temp, ccdfData_UT, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare"))
+      temp<-left_join(temp, ccdfData_UT, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize", "numkidsInCare"))
       
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
@@ -5737,220 +6002,219 @@ function.CCDFcopay<-function(data
       
       providercost_VT$stateFIPS <- 50
       
-      
-      #  temp<-left_join(temp, providercost_VT, by=c("stateFIPS"))
+     # if(temp$rule < 2022){
+        temp<-left_join(temp, providercost_VT, by=c("stateFIPS", "ruleYear"))
       
       # Determine Expense based on Age of Children
-      # temp<-temp %>% 
-      #    mutate(sprPerson1=(case_when(agePerson1 %in% c(0)~ftdailyrate.infant,
-      #                                 agePerson1 %in% c(1:2)~ftdailyrate.toddler,
-      #                                 agePerson1 %in% c(3:5)~ftdailyrate.preschool,  
-      #                                 agePerson1 %in% c(6:12)~ftdailyrate.schoolage,
-      #                                 agePerson1 > 12 ~ 0,
-      #                                 TRUE~0)
-      #    )
-      #    )
+       temp<-temp %>% 
+          mutate(sprPerson1=(case_when(agePerson1 %in% c(0)~ftdailyrate.infant,
+                                       agePerson1 %in% c(1:2)~ftdailyrate.toddler,
+                                       agePerson1 %in% c(3:5)~ftdailyrate.preschool,  
+                                       agePerson1 %in% c(6:12)~ftdailyrate.schoolage,
+                                       agePerson1 > 12 ~ 0,
+                                       TRUE~0)
+          )
+          )
+        temp<-temp %>% 
+            mutate(sprPerson2=(case_when(agePerson2 %in% c(0)~ftdailyrate.infant,
+                                         agePerson2 %in% c(1:2)~ftdailyrate.toddler,
+                                         agePerson2 %in% c(3:5)~ftdailyrate.preschool,  
+                                         agePerson2 %in% c(6:12)~ftdailyrate.schoolage,
+                                         agePerson2 > 12 ~ 0,
+                                         TRUE~0)
+            )
+            )
+          temp<-temp %>% 
+            mutate(sprPerson3=(case_when(agePerson3 %in% c(0)~ftdailyrate.infant,
+                                         agePerson3 %in% c(1:2)~ftdailyrate.toddler,
+                                         agePerson3 %in% c(3:5)~ftdailyrate.preschool,  
+                                         agePerson3 %in% c(6:12)~ftdailyrate.schoolage,
+                                         agePerson3 > 12 ~ 0,
+                                         TRUE~0)
+            )
+            )
       
-      #    temp<-temp %>% 
-      #      mutate(sprPerson2=(case_when(agePerson2 %in% c(0)~ftdailyrate.infant,
-      #                                   agePerson2 %in% c(1:2)~ftdailyrate.toddler,
-      #                                   agePerson2 %in% c(3:5)~ftdailyrate.preschool,  
-      #                                   agePerson2 %in% c(6:12)~ftdailyrate.schoolage,
-      #                                   agePerson2 > 12 ~ 0,
-      #                                   TRUE~0)
-      #      )
-      #      )
+         temp<-temp %>% 
+            mutate(sprPerson4=(case_when(agePerson4 %in% c(0)~ftdailyrate.infant,
+                                         agePerson4 %in% c(1:2)~ftdailyrate.toddler,
+                                         agePerson4 %in% c(3:5)~ftdailyrate.preschool,  
+                                         agePerson4 %in% c(6:12)~ftdailyrate.schoolage,
+                                         agePerson4 > 12 ~ 0,
+                                         TRUE~0)
+            )
+            )
       
-      #    temp<-temp %>% 
-      #      mutate(sprPerson3=(case_when(agePerson3 %in% c(0)~ftdailyrate.infant,
-      #                                   agePerson3 %in% c(1:2)~ftdailyrate.toddler,
-      #                                   agePerson3 %in% c(3:5)~ftdailyrate.preschool,  
-      #                                   agePerson3 %in% c(6:12)~ftdailyrate.schoolage,
-      #                                   agePerson3 > 12 ~ 0,
+          temp<-temp %>% 
+            mutate(sprPerson5=(case_when(agePerson5 %in% c(0)~ftdailyrate.infant,
+                                         agePerson5 %in% c(1:2)~ftdailyrate.toddler,
+                                         agePerson5 %in% c(3:5)~ftdailyrate.preschool,  
+                                         agePerson5 %in% c(6:12)~ftdailyrate.schoolage,
+                                         agePerson5 > 12 ~ 0,
+                                         TRUE~0)
+            )
+            )
       
-      #                                   TRUE~0)
-      #      )
-      #      )
+         temp<-temp %>% 
+            mutate(sprPerson6=(case_when(agePerson6 %in% c(0)~ftdailyrate.infant,
+                                         agePerson6 %in% c(1:2)~ftdailyrate.toddler,
+                                         agePerson6 %in% c(3:5)~ftdailyrate.preschool,  
+                                         agePerson6 %in% c(6:12)~ftdailyrate.schoolage,
+                                         agePerson6 > 12 ~ 0,
+                                         TRUE~0)
+            )
+            )
       
-      #   temp<-temp %>% 
-      #      mutate(sprPerson4=(case_when(agePerson4 %in% c(0)~ftdailyrate.infant,
-      #                                   agePerson4 %in% c(1:2)~ftdailyrate.toddler,
-      #                                   agePerson4 %in% c(3:5)~ftdailyrate.preschool,  
-      #                                   agePerson4 %in% c(6:12)~ftdailyrate.schoolage,
-      #                                   agePerson4 > 12 ~ 0,
-      #                                   TRUE~0)
-      #      )
-      #      )
+          temp<-temp %>% 
+            mutate(sprPerson7=(case_when(agePerson7 %in% c(0)~ftdailyrate.infant,
+                                         agePerson7 %in% c(1:2)~ftdailyrate.toddler,
+                                         agePerson7 %in% c(3:5)~ftdailyrate.preschool,  
+                                         agePerson7 %in% c(6:12)~ftdailyrate.schoolage,
+                                         agePerson7 > 12 ~ 0,
+                                         TRUE~0)
+            )
+            )
       
-      #    temp<-temp %>% 
-      #      mutate(sprPerson5=(case_when(agePerson5 %in% c(0)~ftdailyrate.infant,
-      #                                   agePerson5 %in% c(1:2)~ftdailyrate.toddler,
-      #                                   agePerson5 %in% c(3:5)~ftdailyrate.preschool,  
-      #                                   agePerson5 %in% c(6:12)~ftdailyrate.schoolage,
-      #                                   agePerson5 > 12 ~ 0,
-      #                                   TRUE~0)
-      #      )
-      #      )
+          temp<-temp %>% 
+            mutate(sprPerson8=(case_when(agePerson8 %in% c(0)~ftdailyrate.infant,
+                                         agePerson8 %in% c(1:2)~ftdailyrate.toddler,
+                                         agePerson8 %in% c(3:5)~ftdailyrate.preschool,  
+                                         agePerson8 %in% c(6:12)~ftdailyrate.schoolage,
+                                         TRUE~0)
+            )
+            )
       
-      #   temp<-temp %>% 
-      #      mutate(sprPerson6=(case_when(agePerson6 %in% c(0)~ftdailyrate.infant,
-      #                                   agePerson6 %in% c(1:2)~ftdailyrate.toddler,
-      #                                   agePerson6 %in% c(3:5)~ftdailyrate.preschool,  
-      #                                   agePerson6 %in% c(6:12)~ftdailyrate.schoolage,
-      #                                   agePerson6 > 12 ~ 0,
-      #                                   TRUE~0)
-      #      )
-      #      )
+          temp<-temp %>% 
+            mutate(sprPerson9=(case_when(agePerson9 %in% c(0)~ftdailyrate.infant,
+                                         agePerson9 %in% c(1:2)~ftdailyrate.toddler,
+                                         agePerson9 %in% c(3:5)~ftdailyrate.preschool,  
+                                         agePerson9 %in% c(6:12)~ftdailyrate.schoolage,
+                                         TRUE~0)
+            )
+            )
       
-      #    temp<-temp %>% 
-      #      mutate(sprPerson7=(case_when(agePerson7 %in% c(0)~ftdailyrate.infant,
-      #                                   agePerson7 %in% c(1:2)~ftdailyrate.toddler,
-      #                                   agePerson7 %in% c(3:5)~ftdailyrate.preschool,  
-      #                                   agePerson7 %in% c(6:12)~ftdailyrate.schoolage,
-      #                                   agePerson7 > 12 ~ 0,
-      #                                   TRUE~0)
-      #      )
-      #      )
+        temp<-temp %>% 
+          mutate(sprPerson10=(case_when(agePerson10 %in% c(0)~ftdailyrate.infant,
+                                        agePerson10 %in% c(1:2)~ftdailyrate.toddler,
+                                        agePerson10 %in% c(3:5)~ftdailyrate.preschool,  
+                                        agePerson10 %in% c(6:12)~ftdailyrate.schoolage,
+                                        TRUE~0)
+          )
+          )
       
-      #    temp<-temp %>% 
-      #      mutate(sprPerson8=(case_when(agePerson8 %in% c(0)~ftdailyrate.infant,
-      #                                   agePerson8 %in% c(1:2)~ftdailyrate.toddler,
-      #                                   agePerson8 %in% c(3:5)~ftdailyrate.preschool,  
-      #                                   agePerson8 %in% c(6:12)~ftdailyrate.schoolage,
-      #                                   TRUE~0)
-      #      )
-      #      )
+       temp<-temp %>% 
+          mutate(sprPerson11=(case_when(agePerson11 %in% c(0)~ftdailyrate.infant,
+                                        agePerson11 %in% c(1:2)~ftdailyrate.toddler,
+                                        agePerson11 %in% c(3:5)~ftdailyrate.preschool,  
+                                        agePerson11 %in% c(6:12)~ftdailyrate.schoolage,
+                                        TRUE~0)
+          )
+          )
       
-      #    temp<-temp %>% 
-      #      mutate(sprPerson9=(case_when(agePerson9 %in% c(0)~ftdailyrate.infant,
-      #                                   agePerson9 %in% c(1:2)~ftdailyrate.toddler,
-      #                                   agePerson9 %in% c(3:5)~ftdailyrate.preschool,  
-      #                                   agePerson9 %in% c(6:12)~ftdailyrate.schoolage,
-      #                                   TRUE~0)
-      ##      )
-      #      )
+        temp<-temp %>% 
+          mutate(sprPerson12=(case_when(agePerson12 %in% c(0)~ftdailyrate.infant,
+                                        agePerson12 %in% c(1:2)~ftdailyrate.toddler,
+                                        agePerson12 %in% c(3:5)~ftdailyrate.preschool,  
+                                        agePerson12 %in% c(6:12)~ftdailyrate.schoolage,
+                                        TRUE~0)
+          )
+          )
+        
+        temp<-temp %>%
+          mutate(sprTotal=sprPerson1+sprPerson2+sprPerson3+sprPerson4+sprPerson5+sprPerson6+sprPerson7+sprPerson8+sprPerson9+sprPerson10+sprPerson11+sprPerson12)
+       
+         temp<-temp %>% 
+            mutate(annualcost1=(case_when(agePerson1 < 5 ~ sprPerson1*daysofcareneeded0to4,
+                                          agePerson1 > 4 & agePerson1 < 13 ~ sprPerson1*daysofcareneeded5to12,
+                                          agePerson1 > 12 ~ 0,
+                                          TRUE~0)
+            )
+            )
       
-      #  temp<-temp %>% 
-      #    mutate(sprPerson10=(case_when(agePerson10 %in% c(0)~ftdailyrate.infant,
-      #                                  agePerson10 %in% c(1:2)~ftdailyrate.toddler,
-      #                                  agePerson10 %in% c(3:5)~ftdailyrate.preschool,  
-      #                                  agePerson10 %in% c(6:12)~ftdailyrate.schoolage,
-      #                                  TRUE~0)
-      #    )
-      #    )
+          temp<-temp %>% 
+            mutate(annualcost2=(case_when(agePerson2 < 5 ~ sprPerson2*daysofcareneeded0to4,
+                                         agePerson2 > 4 & agePerson2 < 13 ~ sprPerson2*daysofcareneeded5to12,
+                                          agePerson2 > 12 ~ 0,
+                                          TRUE~0)
+           )
+          )
       
-      # temp<-temp %>% 
-      #    mutate(sprPerson11=(case_when(agePerson11 %in% c(0)~ftdailyrate.infant,
-      #                                  agePerson11 %in% c(1:2)~ftdailyrate.toddler,
-      #                                  agePerson11 %in% c(3:5)~ftdailyrate.preschool,  
-      #                                  agePerson11 %in% c(6:12)~ftdailyrate.schoolage,
-      #                                  TRUE~0)
-      #    )
-      #    )
+        temp<-temp %>% 
+          mutate(annualcost3=(case_when(agePerson3 < 5 ~ sprPerson3*daysofcareneeded0to4,
+                                        agePerson3 > 4 & agePerson3 < 13 ~ sprPerson3*daysofcareneeded5to12,
+                                       agePerson3 > 12 ~ 0,
+                                        TRUE~0)
+          )
+          )
       
-      #  temp<-temp %>% 
-      #    mutate(sprPerson12=(case_when(agePerson12 %in% c(0)~ftdailyrate.infant,
-      ##                                  agePerson12 %in% c(1:2)~ftdailyrate.toddler,
-      #                                  agePerson12 %in% c(3:5)~ftdailyrate.preschool,  
-      #                                  agePerson12 %in% c(6:12)~ftdailyrate.schoolage,
-      #                                  TRUE~0)
-      #    )
-      #    )
+        temp<-temp %>% 
+          mutate(annualcost4=(case_when(agePerson4 < 5 ~ sprPerson4*daysofcareneeded0to4,
+                                        agePerson4 > 4 & agePerson4 < 13 ~ sprPerson4*daysofcareneeded5to12,
+                                        agePerson4 > 12 ~ 0,
+                                        TRUE~0)
+          )
+          )
       
-      # sprTotal=sprPerson1+sprPerson2+sprPerson3+sprPerson4+sprPerson5+sprPerson6+sprPerson7
-      #   temp<-temp %>% 
-      #      mutate(annualcost1=(case_when(agePerson1 < 5 ~ sprPerson1*daysofcareneeded0to4,
-      #                                    agePerson1 > 4 & agePerson1 < 13 ~ sprPerson1*daysofcareneeded5to12,
-      #                                    agePerson1 > 12 ~ 0,
-      #                                    TRUE~0)
-      #      )
-      #      )
+        temp<-temp %>% 
+          mutate(annualcost5=(case_when(agePerson5 < 5 ~ sprPerson5*daysofcareneeded0to4,
+                                        agePerson5 > 4 & agePerson5 < 13 ~ sprPerson5*daysofcareneeded5to12,
+                                        agePerson5 > 12 ~ 0,
+                                        TRUE~0)
+          )
+          )
       
-      #    temp<-temp %>% 
-      #      mutate(annualcost2=(case_when(agePerson2 < 5 ~ sprPerson2*daysofcareneeded0to4,
-      #                                   agePerson2 > 4 & agePerson2 < 13 ~ sprPerson2*daysofcareneeded5to12,
-      #                                    agePerson2 > 12 ~ 0,
-      #                                    TRUE~0)
-      #     )
-      #    )
+       temp<-temp %>% 
+          mutate(annualcost6=(case_when(agePerson6 < 5 ~ sprPerson6*daysofcareneeded0to4,
+                                        agePerson6 > 4 & agePerson6 < 13 ~ sprPerson6*daysofcareneeded5to12,
+                                        agePerson6 > 12 ~ 0,
+                                        TRUE~0)
+          )
+          )
       
-      #  temp<-temp %>% 
-      #    mutate(annualcost3=(case_when(agePerson3 < 5 ~ sprPerson3*daysofcareneeded0to4,
-      #                                  agePerson3 > 4 & agePerson3 < 13 ~ sprPerson3*daysofcareneeded5to12,
-      #                                 agePerson3 > 12 ~ 0,
-      #                                  TRUE~0)
-      #    )
-      #    )
+        temp<-temp %>% 
+          mutate(annualcost7=(case_when(agePerson7 < 5 ~ sprPerson7*daysofcareneeded0to4,
+                                        agePerson7 > 4 & agePerson7 < 13 ~ sprPerson7*daysofcareneeded5to12,
+                                        agePerson7 > 12 ~ 0,
+                                        TRUE~0)
+          )
+          )
       
-      #  temp<-temp %>% 
-      #    mutate(annualcost4=(case_when(agePerson4 < 5 ~ sprPerson4*daysofcareneeded0to4,
-      #                                  agePerson4 > 4 & agePerson4 < 13 ~ sprPerson4*daysofcareneeded5to12,
-      #                                  agePerson4 > 12 ~ 0,
-      #                                  TRUE~0)
-      #    )
-      #    )
+          temp<-temp %>% 
+            mutate(annualcost8=(case_when(agePerson8 < 5 ~ sprPerson8*daysofcareneeded0to4,
+                                          agePerson8 > 4 & agePerson8 < 13 ~ sprPerson8*daysofcareneeded5to12,
+                                          TRUE~0)
+            )
+            )
       
-      #  temp<-temp %>% 
-      #    mutate(annualcost5=(case_when(agePerson5 < 5 ~ sprPerson5*daysofcareneeded0to4,
-      #                                  agePerson5 > 4 & agePerson5 < 13 ~ sprPerson5*daysofcareneeded5to12,
-      #                                  agePerson5 > 12 ~ 0,
-      #                                  TRUE~0)
-      #    )
-      #    )
+         temp<-temp %>% 
+            mutate(annualcost9=(case_when(agePerson9 < 5 ~ sprPerson9*daysofcareneeded0to4,
+                                         agePerson9 > 4 & agePerson9 < 13 ~ sprPerson9*daysofcareneeded5to12,
+                                        TRUE~0)
+         )
+        )
       
-      # temp<-temp %>% 
-      #    mutate(annualcost6=(case_when(agePerson6 < 5 ~ sprPerson6*daysofcareneeded0to4,
-      #                                  agePerson6 > 4 & agePerson6 < 13 ~ sprPerson6*daysofcareneeded5to12,
-      #                                  agePerson6 > 12 ~ 0,
-      #                                  TRUE~0)
-      #    )
-      #    )
+        temp<-temp %>% 
+          mutate(annualcost10=(case_when(agePerson10 < 5 ~ sprPerson10*daysofcareneeded0to4,
+                                        agePerson10 > 4 & agePerson10 < 13 ~ sprPerson10*daysofcareneeded5to12,
+                                       TRUE~0)
+        )
+        )
       
-      #  temp<-temp %>% 
-      #    mutate(annualcost7=(case_when(agePerson7 < 5 ~ sprPerson7*daysofcareneeded0to4,
-      #                                  agePerson7 > 4 & agePerson7 < 13 ~ sprPerson7*daysofcareneeded5to12,
-      #                                  agePerson7 > 12 ~ 0,
-      #                                  TRUE~0)
-      #    )
-      #    )
+      temp<-temp %>% 
+              mutate(annualcost11=(case_when(agePerson11 < 5 ~ sprPerson11*daysofcareneeded0to4,
+                                             agePerson11 > 4 & agePerson11 < 13 ~ sprPerson11*daysofcareneeded5to12,
+                                             TRUE~0)
+             )
+              )
       
-      #    temp<-temp %>% 
-      #      mutate(annualcost8=(case_when(agePerson8 < 5 ~ sprPerson8*daysofcareneeded0to4,
-      #                                    agePerson8 > 4 & agePerson8 < 13 ~ sprPerson8*daysofcareneeded5to12,
-      #                                    TRUE~0)
-      #      )
-      #      )
+           temp<-temp %>% 
+              mutate(annualcost12=(case_when(agePerson12 < 5 ~ sprPerson12*daysofcareneeded0to4,
+                                             agePerson12 > 4 & agePerson12 < 13 ~ sprPerson12*daysofcareneeded5to12,
+                                             TRUE~0)
+              )
+              )
       
-      #   temp<-temp %>% 
-      #      mutate(annualcost9=(case_when(agePerson9 < 5 ~ sprPerson9*daysofcareneeded0to4,
-      #                                   agePerson9 > 4 & agePerson9 < 13 ~ sprPerson9*daysofcareneeded5to12,
-      #                                  TRUE~0)
-      #   )
-      #  )
-      
-      #  temp<-temp %>% 
-      #    mutate(annualcost10=(case_when(agePerson10 < 5 ~ sprPerson10*daysofcareneeded0to4,
-      #                                  agePerson10 > 4 & agePerson10 < 13 ~ sprPerson10*daysofcareneeded5to12,
-      #                                 TRUE~0)
-      #  )
-      #  )
-      
-      #temp<-temp %>% 
-      #        mutate(annualcost11=(case_when(agePerson11 < 5 ~ sprPerson11*daysofcareneeded0to4,
-      #                                       agePerson11 > 4 & agePerson11 < 13 ~ sprPerson11*daysofcareneeded5to12,
-      #                                       TRUE~0)
-      #       )
-      #        )
-      
-      #     temp<-temp %>% 
-      #        mutate(annualcost12=(case_when(agePerson12 < 5 ~ sprPerson12*daysofcareneeded0to4,
-      #                                       agePerson12 > 4 & agePerson12 < 13 ~ sprPerson12*daysofcareneeded5to12,
-      #                                       TRUE~0)
-      #        )
-      #        )
-      
-      #     temp$annualCost<-temp$annualcost1+temp$annualcost2+temp$annualcost3+temp$annualcost4+temp$annualcost5+temp$annualcost6+temp$annualcost7+temp$annualcost8+temp$annualcost9+temp$annualcost10+temp$annualcost11+temp$annualcost12
-      
+           temp$annualCost<-temp$annualcost1+temp$annualcost2+temp$annualcost3+temp$annualcost4+temp$annualcost5+temp$annualcost6+temp$annualcost7+temp$annualcost8+temp$annualcost9+temp$annualcost10+temp$annualcost11+temp$annualcost12
+     # }
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
@@ -5969,31 +6233,43 @@ function.CCDFcopay<-function(data
       temp$FTcopay[temp$income>temp$Bin6Max & temp$income<=temp$Bin7Max]<-temp$ShareofCost7[temp$income>temp$Bin6Max & temp$income<=temp$Bin7Max]
       temp$FTcopay[temp$income>temp$Bin7Max & temp$income<=temp$Bin8Max]<-temp$ShareofCost8[temp$income>temp$Bin7Max & temp$income<=temp$Bin8Max]
       temp$FTcopay[temp$income>temp$Bin8Max & temp$income<=temp$Bin9Max]<-temp$ShareofCost9[temp$income>temp$Bin8Max & temp$income<=temp$Bin9Max]
-      # temp$FTcopay[temp$income>temp$Bin9Max & temp$income<=temp$Bin10Max]<-temp$ShareofCost10[temp$income>temp$Bin9Max & temp$income<=temp$Bin10Max]
-      #  temp$FTcopay[temp$income>temp$Bin10Max & temp$income<=temp$Bin11Max]<-temp$ShareofCost11[temp$income>temp$Bin10Max & temp$income<=temp$Bin11Max]
-      #  temp$FTcopay[temp$income>temp$Bin11Max & temp$income<=temp$Bin12Max]<-temp$ShareofCost12[temp$income>temp$Bin11Max & temp$income<=temp$Bin12Max]
-      #  temp$FTcopay[temp$income>temp$Bin12Max & temp$income<=temp$Bin13Max]<-temp$ShareofCost13[temp$income>temp$Bin12Max & temp$income<=temp$Bin13Max]
-      #  temp$FTcopay[temp$income>temp$Bin13Max & temp$income<=temp$Bin14Max]<-temp$ShareofCost14[temp$income>temp$Bin13Max & temp$income<=temp$Bin14Max]
-      #  temp$FTcopay[temp$income>temp$Bin14Max & temp$income<=temp$Bin15Max]<-temp$ShareofCost15[temp$income>temp$Bin14Max & temp$income<=temp$Bin15Max]
-      #  temp$FTcopay[temp$income>temp$Bin15Max & temp$income<=temp$Bin16Max]<-temp$ShareofCost16[temp$income>temp$Bin15Max & temp$income<=temp$Bin16Max]
-      #  temp$FTcopay[temp$income>temp$Bin16Max & temp$income<=temp$Bin17Max]<-temp$ShareofCost17[temp$income>temp$Bin16Max & temp$income<=temp$Bin17Max]
-      #  temp$FTcopay[temp$income>temp$Bin17Max & temp$income<=temp$Bin18Max]<-temp$ShareofCost18[temp$income>temp$Bin17Max & temp$income<=temp$Bin18Max]
-      #  temp$FTcopay[temp$income>temp$Bin18Max & temp$income<=temp$Bin19Max]<-temp$ShareofCost19[temp$income>temp$Bin18Max & temp$income<=temp$Bin19Max]
-      #  temp$FTcopay[temp$income>temp$Bin19Max & temp$income<=temp$Bin20Max]<-temp$ShareofCost20[temp$income>temp$Bin19Max & temp$income<=temp$Bin20Max]
-      #  temp$FTcopay[temp$income>temp$Bin20Max & temp$income<=temp$Bin21Max]<-temp$ShareofCost21[temp$income>temp$Bin20Max & temp$income<=temp$Bin21Max]
-      #  temp$FTcopay[temp$income>temp$Bin21Max & temp$income<=temp$Bin22Max]<-temp$ShareofCost22[temp$income>temp$Bin21Max & temp$income<=temp$Bin22Max]
-      #  temp$FTcopay[temp$income>temp$Bin22Max & temp$income<=temp$Bin23Max]<-temp$ShareofCost23[temp$income>temp$Bin22Max & temp$income<=temp$Bin23Max]
+      
+       temp$FTcopay[temp$income>temp$Bin9Max & temp$income<=temp$Bin10Max]<-temp$ShareofCost10[temp$income>temp$Bin9Max & temp$income<=temp$Bin10Max]
+        temp$FTcopay[temp$income>temp$Bin10Max & temp$income<=temp$Bin11Max]<-temp$ShareofCost11[temp$income>temp$Bin10Max & temp$income<=temp$Bin11Max]
+        temp$FTcopay[temp$income>temp$Bin11Max & temp$income<=temp$Bin12Max]<-temp$ShareofCost12[temp$income>temp$Bin11Max & temp$income<=temp$Bin12Max]
+        temp$FTcopay[temp$income>temp$Bin12Max & temp$income<=temp$Bin13Max]<-temp$ShareofCost13[temp$income>temp$Bin12Max & temp$income<=temp$Bin13Max]
+        temp$FTcopay[temp$income>temp$Bin13Max & temp$income<=temp$Bin14Max]<-temp$ShareofCost14[temp$income>temp$Bin13Max & temp$income<=temp$Bin14Max]
+        temp$FTcopay[temp$income>temp$Bin14Max & temp$income<=temp$Bin15Max]<-temp$ShareofCost15[temp$income>temp$Bin14Max & temp$income<=temp$Bin15Max]
+        temp$FTcopay[temp$income>temp$Bin15Max & temp$income<=temp$Bin16Max]<-temp$ShareofCost16[temp$income>temp$Bin15Max & temp$income<=temp$Bin16Max]
+        temp$FTcopay[temp$income>temp$Bin16Max & temp$income<=temp$Bin17Max]<-temp$ShareofCost17[temp$income>temp$Bin16Max & temp$income<=temp$Bin17Max]
+        temp$FTcopay[temp$income>temp$Bin17Max & temp$income<=temp$Bin18Max]<-temp$ShareofCost18[temp$income>temp$Bin17Max & temp$income<=temp$Bin18Max]
+        temp$FTcopay[temp$income>temp$Bin18Max & temp$income<=temp$Bin19Max]<-temp$ShareofCost19[temp$income>temp$Bin18Max & temp$income<=temp$Bin19Max]
+        temp$FTcopay[temp$income>temp$Bin19Max & temp$income<=temp$Bin20Max]<-temp$ShareofCost20[temp$income>temp$Bin19Max & temp$income<=temp$Bin20Max]
+        temp$FTcopay[temp$income>temp$Bin20Max & temp$income<=temp$Bin21Max]<-temp$ShareofCost21[temp$income>temp$Bin20Max & temp$income<=temp$Bin21Max]
+        temp$FTcopay[temp$income>temp$Bin21Max & temp$income<=temp$Bin22Max]<-temp$ShareofCost22[temp$income>temp$Bin21Max & temp$income<=temp$Bin22Max]
+        temp$FTcopay[temp$income>temp$Bin22Max & temp$income<=temp$Bin23Max]<-temp$ShareofCost23[temp$income>temp$Bin22Max & temp$income<=temp$Bin23Max]
+      
       
       # Apply asset test
       subset<-temp$totalassets > temp$AssetTest
       temp$totcopay[subset]<-NA_real_
       
+     
+      temp$totcopay[temp$ruleYear!=2022] <- temp$annualCost[temp$ruleYear!=2022]*(1-temp$FTcopay[temp$ruleYear!=2022])
+      
+      temp$totcopay[temp$ruleYear!=2022]<-rowMins(cbind(temp$annualCost[temp$ruleYear!=2022]*(1-temp$FTcopay[temp$ruleYear!=2022]),temp$netexp.childcare[temp$ruleYear!=2022]))
+      
+   
       #----------------------------------
       # Step 2: Calculate total copays
       #----------------------------------
       #temp$totcopay <- temp$FTcopay*52
       
-      temp$totcopay<-rowMins(cbind(temp$FTcopay*52,temp$netexp.childcare))
+      temp$totcopay[temp$ruleYear==2022]<-rowMins(cbind(temp$FTcopay[temp$ruleYear==2022]*52,temp$netexp.childcare[temp$ruleYear==2022]))
+      
+        
+      
+    
       
       # Set copay to zero if no children
       temp$totcopay[temp$numkidsincare0to4+temp$numkidsincare5to12==0]<-0
@@ -6029,7 +6305,7 @@ function.CCDFcopay<-function(data
       # Step 1: Assign copays
       #----------------------------------
       
-      temp<-left_join(temp, ccdfData_VA, by=c("stateFIPS", "AKorHI", "famsize", "countyortownName"))
+      temp<-left_join(temp, ccdfData_VA, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize", "countyortownName"))
       
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
@@ -6083,7 +6359,7 @@ function.CCDFcopay<-function(data
       
       temp<-data[data$stateFIPS==53,]
       
-      temp$ruleYear<-2022 # always use the most recent year
+      #temp$ruleYear<-2022 # always use the most recent year
       
       #----------------------------------
       # Step 1: Assign copays
@@ -6091,6 +6367,50 @@ function.CCDFcopay<-function(data
       temp<-left_join(temp, ccdfData_WA, by=c("stateFIPS", "AKorHI", "ruleYear", "famsize"))
       
       #######################################
+      
+      if(2010 %in% unique(temp$ruleYear)){
+        
+        temp_2011<-temp[temp$ruleYear==2010,]
+        
+        # Adjust for the income disregard
+        temp_2011$income<-temp_2011$income-12*temp_2011$IncomeDisregard
+        
+        temp_2011$FTcopay<-NA
+        
+        temp_2011$FTcopay[temp_2011$income>=0 & temp_2011$income<=temp_2011$Bin1Max]<-temp_2011$CopayBin1[temp_2011$income>=0 & temp_2011$income<=temp_2011$Bin1Max]
+        temp_2011$FTcopay[temp_2011$income>temp_2011$Bin1Max & temp_2011$income<=temp_2011$Bin2Max]<-temp_2011$CopayBin2[temp_2011$income>temp_2011$Bin1Max & temp_2011$income<=temp_2011$Bin2Max]
+        temp_2011$FTcopay[temp_2011$income>temp_2011$Bin2Max & temp_2011$income<=temp_2011$Bin4Max]<-temp_2011$CopayBin2[temp_2011$income>temp_2011$Bin2Max & temp_2011$income<=temp_2011$Bin4Max]+0.5*(temp_2011$income[temp_2011$income>temp_2011$Bin2Max & temp_2011$income<=temp_2011$Bin4Max]-temp_2011$Bin2Max[temp_2011$income>temp_2011$Bin2Max & temp_2011$income<=temp_2011$Bin4Max])/12 # Apply sliding fee scale formula
+        
+        
+        # Apply asset test
+        subset<-temp_2011$totalassets > temp_2011$AssetTest
+        temp_2011$totcopay[subset]<-NA_real_
+        
+        #----------------------------------
+        # Step 2: Calculate total copays
+        #----------------------------------
+        
+        # Calculate total copay (12 months needed)
+        temp_2011$totcopay<-temp_2011$FTcopay*12
+        
+        # Set copay to zero if no children
+        temp_2011$totcopay[temp_2011$numkidsincare0to4+temp_2011$numkidsincare5to12==0]<-0
+        
+        temp_2011$totcopay[is.na(temp_2011$FTcopay)]<-NA
+        # Note: code produces NAs for a good reason, because family is ineligible for CCDF
+        # Copay is NOT zero for ineligible, but there are people who pay 0 copay
+        
+        # Adjust overage depending on whether states allow to charge it
+        temp_2011$childcare.overage[temp_2011$OverageOption=="No"]<-0
+        
+        temp$childcare.overage[temp$ruleYear==2010]<-temp_2011$childcare.overage
+        temp$totcopay[temp$ruleYear==2010]<-temp_2011$totcopay
+        
+      }
+      
+      
+      
+      
       # APPLY 2011 RULES
       if(2011 %in% unique(temp$ruleYear)){
         
@@ -6107,7 +6427,7 @@ function.CCDFcopay<-function(data
         
         
         # Apply asset test
-        subset<-temp$totalassets > temp$AssetTest
+        subset<-temp_2011$totalassets > temp_2011$AssetTest
         temp_2011$totcopay[subset]<-NA_real_
         
         #----------------------------------
@@ -6149,7 +6469,7 @@ function.CCDFcopay<-function(data
         
         
         # Apply asset test
-        subset<-temp$totalassets > temp$AssetTest
+        subset<-temp_2012$totalassets > temp_2012$AssetTest
         temp_2012$totcopay[subset]<-NA_real_
         
         #----------------------------------
@@ -6190,7 +6510,7 @@ function.CCDFcopay<-function(data
         temp_2013$FTcopay[temp_2013$income>temp_2013$Bin2Max & temp_2013$income<=temp_2013$Bin4Max]<-temp_2013$CopayBin2[temp_2013$income>temp_2013$Bin2Max & temp_2013$income<=temp_2013$Bin4Max]+0.5*(temp_2013$income[temp_2013$income>temp_2013$Bin2Max & temp_2013$income<=temp_2013$Bin4Max]-temp_2013$Bin2Max[temp_2013$income>temp_2013$Bin2Max & temp_2013$income<=temp_2013$Bin4Max])/12 # Apply sliding fee scale formula
         
         # Apply asset test
-        subset<-temp$totalassets > temp$AssetTest
+        subset<-temp_2013$totalassets > temp_2013$AssetTest
         temp_2013$totcopay[subset]<-NA_real_
         
         #----------------------------------
@@ -6232,7 +6552,7 @@ function.CCDFcopay<-function(data
         
         
         # Apply asset test
-        subset<-temp$totalassets > temp$AssetTest
+        subset<-temp_2014$totalassets > temp_2014$AssetTest
         temp_2014$totcopay[subset]<-NA_real_
         
         #----------------------------------
@@ -6273,7 +6593,7 @@ function.CCDFcopay<-function(data
         temp_2015$FTcopay[temp_2015$income>temp_2015$Bin2Max & temp_2015$income<=temp_2015$Bin4Max]<-temp_2015$CopayBin2[temp_2015$income>temp_2015$Bin2Max & temp_2015$income<=temp_2015$Bin4Max]+0.5*(temp_2015$income[temp_2015$income>temp_2015$Bin2Max & temp_2015$income<=temp_2015$Bin4Max]-temp_2015$Bin2Max[temp_2015$income>temp_2015$Bin2Max & temp_2015$income<=temp_2015$Bin4Max])/12 # Apply sliding fee scale formula
         
         # Apply asset test
-        subset<-temp$totalassets > temp$AssetTest
+        subset<-temp_2015$totalassets > temp_2015$AssetTest
         temp_2015$totcopay[subset]<-NA_real_
         
         #----------------------------------
@@ -6315,7 +6635,7 @@ function.CCDFcopay<-function(data
         
         
         # Apply asset test
-        subset<-temp$totalassets > temp$AssetTest
+        subset<-temp_2016$totalassets > temp_2016$AssetTest
         temp_2016$totcopay[subset]<-NA_real_
         
         #----------------------------------
@@ -6357,7 +6677,7 @@ function.CCDFcopay<-function(data
         
         
         # Apply asset test
-        subset<-temp$totalassets > temp$AssetTest
+        subset<-temp_2017$totalassets > temp_2017$AssetTest
         temp_2017$totcopay[subset]<-NA_real_
         
         #----------------------------------
@@ -6399,7 +6719,7 @@ function.CCDFcopay<-function(data
         
         
         # Apply asset test
-        subset<-temp$totalassets > temp$AssetTest
+        subset<-temp_2018$totalassets > temp_2018$AssetTest
         temp_2018$totcopay[subset]<-NA_real_
         
         #----------------------------------
@@ -6440,7 +6760,7 @@ function.CCDFcopay<-function(data
         temp_2019$FTcopay[temp_2019$income>temp_2019$Bin2Max & temp_2019$income<=temp_2019$Bin4Max]<-temp_2019$CopayBin2[temp_2019$income>temp_2019$Bin2Max & temp_2019$income<=temp_2019$Bin4Max]+0.5*(temp_2019$income[temp_2019$income>temp_2019$Bin2Max & temp_2019$income<=temp_2019$Bin4Max]-temp_2019$Bin2Max[temp_2019$income>temp_2019$Bin2Max & temp_2019$income<=temp_2019$Bin4Max])/12 # Apply sliding fee scale formula
         
         # Apply asset test
-        subset<-temp$totalassets > temp$AssetTest
+        subset<-temp_2019$totalassets > temp_2019$AssetTest
         temp_2019$totcopay[subset]<-NA_real_
         
         #----------------------------------
@@ -6482,7 +6802,7 @@ function.CCDFcopay<-function(data
 
       
       # Apply asset test
-      subset<-temp$totalassets > temp$AssetTest
+      subset<-temp_2020$totalassets > temp_2020$AssetTest
       temp_2020$totcopay[subset]<-NA_real_
       
       #----------------------------------
@@ -6527,7 +6847,7 @@ function.CCDFcopay<-function(data
         temp_2021$FTcopay<-as.numeric(temp_2021$FTcopay)
         
         # Apply asset test
-        subset<-temp$totalassets > temp$AssetTest
+        subset<-temp_2021$totalassets > temp_2021$AssetTest
         temp_2021$totcopay[subset]<-NA_real_
         
         #----------------------------------
@@ -6572,7 +6892,7 @@ function.CCDFcopay<-function(data
         temp_2022$FTcopay<-as.numeric(temp_2022$FTcopay)
         
         # Apply asset test
-        subset<-temp$totalassets > temp$AssetTest
+        subset<-temp_2022$totalassets > temp_2022$AssetTest
         temp_2022$totcopay[subset]<-NA_real_
         
         #----------------------------------
@@ -6615,7 +6935,7 @@ function.CCDFcopay<-function(data
       
       temp<-data[data$stateFIPS==54,]
       
-      temp$ruleYear<-2022 # always use the most recent year
+     # #temp$ruleYear<-2022 # always use the most recent year
       
       #----------------------------------
       # Step 1: Assign copays
@@ -6690,7 +7010,7 @@ function.CCDFcopay<-function(data
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
-      temp<-left_join(temp, ccdfData_WY, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare"))
+      temp<-left_join(temp, ccdfData_WY, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize", "numkidsInCare"))
       
       
       # Adjust for the income disregard
@@ -6756,7 +7076,7 @@ function.CCDFcopay<-function(data
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
-      temp<-left_join(temp, ccdfData_WI, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare"))
+      temp<-left_join(temp, ccdfData_WI, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize", "numkidsInCare"))
       
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
@@ -7372,6 +7692,126 @@ function.aca<-function(data
   
   
 
+
+# Medicare
+function.medicare<-function(data){
+  
+  # for testing - already done in Benefitscalcuator_functions file
+  data%>%mutate(FilingStatus=(case_when(numadults==1 & numkids==0~1
+                                 ,numadults==1 & numkids>0 ~ 3 # Head of the household
+                                 ,numadults>=2~2
+                                 ,TRUE~1)))
+  # for testing
+  data<-data%>%rename("year"=Year)
+  
+  data<-left_join(data, medicareMaritalstatData, by=c("year"))
+  data%>%mutate
+  (data$index_year_filing_status<-case_when(data$index_year_filing_status=="single"~1
+                                            ,data$index_year_filing_status=="head_of_household"~3
+                                            ,data$index_year_filing_status=="joint"~2
+                                            ,data$index_year_filing_status=="married_filing_separate"~2))
+  # if medicare is selected we proabbly have to ask which part they want to model
+  # Part A SSDI eligibility: eligible if currently on or previously received SSDI
+  data$PartAeligble1<-ifelse(data$ssdiPIA1>0 | hadssdi1==1, 1, 0)
+  data$PartAeligble2<-ifelse(data$ssdiPIA2>0 | hadssdi2==1, 1, 0)
+  data$PartAeligble3<-ifelse(data$ssdiPIA3>0 | hadssdi3==1, 1, 0)
+  data$PartAeligble4<-ifelse(data$ssdiPIA4>0 | hadssdi4==1, 1, 0)
+  data$PartAeligble5<-ifelse(data$ssdiPIA5>0 | hadssdi5==1, 1, 0)
+  data$PartAeligble6<-ifelse(data$ssdiPIA6>0 | hadssdi6==1, 1, 0)
+  # SSDI recipients recevie 'premium-free part A'
+  data$medicareQuartersPaid<-35 # temporary - question about quarters they have paid medicare taxes (or our calculation of this numnber) is only asked if disability checkbox is selected
+
+  data$PartApremium1<-ifelse(PartAeligble1==1 & data$ssdiRecdMnth1>0, 0, 
+                                 ifelse(data$medicareQuartersPaid < data$medicare_quarters_paid_maxbin1, data$part_a_premium_bin1,
+                                        ifelse(data$medicareQuartersPaid < data$medicare_quarters_paid_maxbin2, data$part_a_premium_bin2, 
+                                               )))
+  
+  data$PartApremium2<-ifelse(PartAeligble1==1 & data$ssdiRecdMnth2>0, 0,
+                                 ifelse(data$medicareQuartersPaid < data$medicare_quarters_paid_maxbin1, data$part_a_premium_bin1,
+                                        ifelse(data$medicareQuartersPaid < data$medicare_quarters_paid_maxbin2, data$part_a_premium_bin2, 
+                                        )))
+  
+  data$PartApremium3<-ifelse(PartAeligble1==3 & data$ssdiRecdMnth3>0, 0, 
+                                 ifelse(data$medicareQuartersPaid < data$medicare_quarters_paid_maxbin1, data$part_a_premium_bin1,
+                                        ifelse(data$medicareQuartersPaid < data$medicare_quarters_paid_maxbin2, data$part_a_premium_bin2, 
+                                        )))
+  
+  data$PartApremium4<-ifelse(PartAeligble4==1 & data$ssdiRecdMnth4>0, 0,
+                                 ifelse(data$medicareQuartersPaid < data$medicare_quarters_paid_maxbin1, data$part_a_premium_bin1,
+                                        ifelse(data$medicareQuartersPaid < data$medicare_quarters_paid_maxbin2, data$part_a_premium_bin2, 
+                                        )))
+  
+  data$PartApremium5<-ifelse(PartAeligble5==1 & data$ssdiRecdMnth5>0, 0,
+                                 ifelse(data$medicareQuartersPaid < data$medicare_quarters_paid_maxbin1, data$part_a_premium_bin1,
+                                        ifelse(data$medicareQuartersPaid < data$medicare_quarters_paid_maxbin2, data$part_a_premium_bin2, 
+                                        )))
+  
+  data$PartApremium6<-ifelse(PartAeligble6==1 & data$ssdiRecdMnth6>0, 0,
+                                 ifelse(data$medicareQuartersPaid < data$medicare_quarters_paid_maxbin1, data$part_a_premium_bin1,
+                                        ifelse(data$medicareQuartersPaid < data$medicare_quarters_paid_maxbin2, data$part_a_premium_bin2, 
+                                        )))
+  
+  # People who are eligible for Medicare Part A become eligible for Medicare Part B - may need to add income>incomebin1 & income<incomebin2
+  # Should we ask about filing status and income in 2020 for each person or assume it's the same as now (and only person1&2 can be married)
+  single<-data$index_year_finling_status==1
+  data$PartBpremium1[single]<-case_when(data$PartAeligble1[single]==1 & data$income1[single]<=data$part_b_premium_incomebin1[single] ~ data$part_b_premium_bin1[single]
+                                   , data$PartAeligble1[single]==1 & data$income1[single]<=data$part_b_premium_incomebin2[single] ~ data$part_b_premium_bin2[single]
+                                   , data$PartAeligble1[single]==1 & data$income1[single]<=data$part_b_premium_incomebin3[single] ~ data$part_b_premium_bin3[single]
+                                   , data$PartAeligble1[single]==1 & data$income1[single]<=data$part_b_premium_incomebin4[single] ~ data$part_b_premium_bin4[single]
+                                   , data$PartAeligble1[single]==1 & data$income1[single]<=data$part_b_premium_incomebin5[single] ~ data$part_b_premium_bin5[single]
+                                   , data$PartAeligble1[single]==1 & data$income1[single]>data$part_b_premium_incomebin5[single] ~ data$part_b_premium_bin6[single])
+  
+  data$PartBpremium2[single]<-case_when(data$PartAeligble1[single]==1 & data$income2[single]<=data$part_b_premium_incomebin1[single] ~ data$part_b_premium_bin1[single]
+                                    , data$PartAeligble1[single]==1 & data$income2[single]<=data$part_b_premium_incomebin2[single] ~ data$part_b_premium_bin2[single]
+                                    , data$PartAeligble1[single]==1 & data$income2[single]<=data$part_b_premium_incomebin3[single] ~ data$part_b_premium_bin3[single]
+                                    , data$PartAeligble1[single]==1 & data$income2[single]<=data$part_b_premium_incomebin4[single] ~ data$part_b_premium_bin4[single]
+                                    , data$PartAeligble1[single]==1 & data$income2[single]<=data$part_b_premium_incomebin5[single] ~ data$part_b_premium_bin5[single]
+                                    , data$PartAeligble1[single]==1 & data$income2[single]>data$part_b_premium_incomebin5[single] ~ data$part_b_premium_bin6[single])
+  
+  data$PartBpremium3[single]<-case_when(data$PartAeligble3[single]==1 & data$income3[single]<=data$part_b_premium_incomebin1[single] ~ data$part_b_premium_bin1[single]
+                                    , data$PartAeligble3[single]==1 & data$income3[single]<=data$part_b_premium_incomebin2[single] ~ data$part_b_premium_bin2[single]
+                                    , data$PartAeligble3[single]==1 & data$income3[single]<=data$part_b_premium_incomebin3[single] ~ data$part_b_premium_bin3[single]
+                                    , data$PartAeligble3[single]==1 & data$income3[single]<=data$part_b_premium_incomebin4[single] ~ data$part_b_premium_bin4[single]
+                                    , data$PartAeligble3[single]==1 & data$income3[single]<=data$part_b_premium_incomebin5[single] ~ data$part_b_premium_bin5[single]
+                                    , data$PartAeligble3[single]==1 & data$income3[single]>data$part_b_premium_incomebin5[single] ~ data$part_b_premium_bin6[single])
+  
+  data$PartBpremium4[single]<-case_when(data$PartAeligble4[single]==1 & data$income4[single]<=data$part_b_premium_incomebin1[single] ~ data$part_b_premium_bin1[single]
+                                    , data$PartAeligble4[single]==1 & data$income4[single]<=data$part_b_premium_incomebin2[single] ~ data$part_b_premium_bin2[single]
+                                    , data$PartAeligble4[single]==1 & data$income4[single]<=data$part_b_premium_incomebin3[single] ~ data$part_b_premium_bin3[single]
+                                    , data$PartAeligble4[single]==1 & data$income4[single]<=data$part_b_premium_incomebin4[single] ~ data$part_b_premium_bin4[single]
+                                    , data$PartAeligble4[single]==1 & data$income4[single]<=data$part_b_premium_incomebin5[single] ~ data$part_b_premium_bin5[single]
+                                    , data$PartAeligble4[single]==1 & data$income4[single]>data$part_b_premium_incomebin5[single] ~ data$part_b_premium_bin6[single])
+  
+  data$PartBpremium5[single]<-case_when(data$PartAeligble5[single]==1 & data$income5[single]<=data$part_b_premium_incomebin1[single] ~ data$part_b_premium_bin1[single]
+                                    , data$PartAeligble5[single]==1 & data$income5[single]<=data$part_b_premium_incomebin2[single] ~ data$part_b_premium_bin2[single]
+                                    , data$PartAeligble5[single]==1 & data$income5[single]<=data$part_b_premium_incomebin3[single] ~ data$part_b_premium_bin3[single]
+                                    , data$PartAeligble5[single]==1 & data$income5[single]<=data$part_b_premium_incomebin4[single] ~ data$part_b_premium_bin4[single]
+                                    , data$PartAeligble5[single]==1 & data$income5[single]<=data$part_b_premium_incomebin5[single] ~ data$part_b_premium_bin5[single]
+                                    , data$PartAeligble5[single]==1 & data$income5[single]>data$part_b_premium_incomebin5[single] ~ data$part_b_premium_bin6[single])
+
+  data$PartBpremium6[single]<-case_when(data$PartAeligble6[single]==1 & data$income6[single]<=data$part_b_premium_incomebin1[single] ~ data$part_b_premium_bin1[single]
+                                    , data$PartAeligble6[single]==1 & data$income6[single]<=data$part_b_premium_incomebin2[single] ~ data$part_b_premium_bin2[single]
+                                    , data$PartAeligble6[single]==1 & data$income6[single]<=data$part_b_premium_incomebin3[single] ~ data$part_b_premium_bin3[single]
+                                    , data$PartAeligble6[single]==1 & data$income6[single]<=data$part_b_premium_incomebin4[single] ~ data$part_b_premium_bin4[single]
+                                    , data$PartAeligble6[single]==1 & data$income6[single]<=data$part_b_premium_incomebin5[single] ~ data$part_b_premium_bin5[single]
+                                    , data$PartAeligble6[single]==1 & data$income6[single]>data$part_b_premium_incomebin5[single] ~ data$part_b_premium_bin6[single])
+  filejointly<-data$index_year_finling_status==2
+  data$PartBpremium1[filejointly]<-case_when(data$PartAeligble1[filejointly]==1 & data$income1[filejointly]<=data$part_b_premium_incomebin1[filejointly] ~ data$part_b_premium_bin1[filejointly]
+                                    , data$PartAeligble1[filejointly]==1 & data$income1[filejointly]<=data$part_b_premium_incomebin2[filejointly] ~ data$part_b_premium_bin2[filejointly]
+                                    , data$PartAeligble1[filejointly]==1 & data$income1[filejointly]<=data$part_b_premium_incomebin3[filejointly] ~ data$part_b_premium_bin3[filejointly]
+                                    , data$PartAeligble1[filejointly]==1 & data$income1[filejointly]<=data$part_b_premium_incomebin4[filejointly] ~ data$part_b_premium_bin4[filejointly]
+                                    , data$PartAeligble1[filejointly]==1 & data$income1[filejointly]<=data$part_b_premium_incomebin5[filejointly] ~ data$part_b_premium_bin5[filejointly]
+                                    , data$PartAeligble1[filejointly]==1 & data$income1[filejointly]>data$part_b_premium_incomebin5[filejointly] ~ data$part_b_premium_bin6[filejointly])
+
+  data$PartBpremium2[filejointly]<-case_when(data$PartAeligble1[filejointly]==1 & data$income2[filejointly]<=data$part_b_premium_incomebin1[filejointly] ~ data$part_b_premium_bin1[filejointly]
+                                    , data$PartAeligble1[filejointly]==1 & data$income2[filejointly]<=data$part_b_premium_incomebin2[filejointly] ~ data$part_b_premium_bin2[filejointly]
+                                    , data$PartAeligble1[filejointly]==1 & data$income2[filejointly]<=data$part_b_premium_incomebin3[filejointly] ~ data$part_b_premium_bin3[filejointly]
+                                    , data$PartAeligble1[filejointly]==1 & data$income2[filejointly]<=data$part_b_premium_incomebin4[filejointly] ~ data$part_b_premium_bin4[filejointly]
+                                    , data$PartAeligble1[filejointly]==1 & data$income2[filejointly]<=data$part_b_premium_incomebin5[filejointly] ~ data$part_b_premium_bin5[filejointly]
+                                    , data$PartAeligble1[filejointly]==1 & data$income2[filejointly]>data$part_b_premium_incomebin5[filejointly] ~ data$part_b_premium_bin6[filejointly])
+
+}
+
 # Value of School Meals ----
 
 function.schoolmeals<-function(data){
@@ -7388,8 +7828,17 @@ function.schoolmeals<-function(data){
     data$copay[data$income.countable>data$IncomeBin1Max & data$income.countable<=data$IncomeBin2Max]<-data$CopayBin2[data$income.countable>data$IncomeBin1Max & data$income.countable<=data$IncomeBin2Max]
     data$copay<-data$copay*parameters.defaults$numberofSchoolDays[1] #Annualize
     
-    #categorical elibiblity: note need to add TANF, child ssi too 
-    data$copay[data$value.snap>0| data$value.headstart>0 | data$value.ssi>0 |data$value.tanf>0]<-data$CopayBin1[data$value.snap>0| data$value.headstart>0 | data$value.ssi>0 |data$value.tanf>0]
+    #categorical elibiblity: 
+    
+    #Step2: Determine categorical eligibility
+    data$categorically.eligible<-0
+    data$categorically.eligible[data$value.snap>0]<-1
+    data$categorically.eligible[data$value.tanf>0]<-1
+    data$categorically.eligible[data$value.HeadStart>0]<-1
+    data$categorically.eligible[data$value.earlyHeadStart>0]<-1
+    data$categorically.eligible[data$value.ssi>0]<-1
+    
+    data$copay[data$categorically.eligible==1]<-0
     
     data$value.schoolmeals<-data$exp.schoolMeals-data$copay
       
@@ -7402,7 +7851,10 @@ function.schoolmeals<-function(data){
     return(data$value.schoolmeals)
   }
   
+function.summerschoolmeals<-function(data){
   
+  data<-left_join(data)
+}
   
   
 # TAXES AND TAX CREDITS----
@@ -8855,7 +9307,7 @@ function.fedcdctc<-function(data
     data$value.fedcdctc[subset1]<-data$MaxCredit[subset1]*rowMins(cbind(rowMins(cbind(data$qualifyingExpenses[subset1],data$MaxExpense[subset1])),data$income.base.AGI[subset1]))
     
     subset2<-data$income.base.AGI > data$IncomeBin1Max # Receive Phase-Out Credit bounded by the minimum credit from below
-    data$value.fedcdctc[subset2]<-(rowMaxs(cbind(data$MaxCredit[subset2]-data$PhaseOutRate[subset2],data$MinCredit[subset2]))*(data$income.base.AGI[subset2]-data$IncomeBin1Max[subset2]))*rowMins(cbind(rowMins(cbind(data$qualifyingExpenses[subset2],data$MaxExpense[subset2])),data$income.base.AGI[subset2]))
+    data$value.fedcdctc[subset2]<-(rowMaxs(cbind((data$MaxCredit[subset2]-data$PhaseOutRate[subset2]*(data$income.base.AGI[subset2]-data$IncomeBin1Max[subset2])),data$MinCredit[subset2])))*rowMins(cbind(rowMins(cbind(data$qualifyingExpenses[subset2],data$MaxExpense[subset2])),data$income.base.AGI[subset2]))
     
     # Adjust if CDCTC is non-refundable
     subset<-data$Refundable=="No"
@@ -8920,7 +9372,20 @@ function.statecdctc<-function(data
     data$value.statecdctc[subset6]<-rowMaxs(cbind(data$PercentOfFederalBin6[subset6]*data$federalcdctc[subset6], data$PercentOfExpensesBin6[subset6]*data$qualifyingExpenses[subset6]))
     
     subset7<- data$income.base>data$IncomeBin6Max & data$income.base<=data$IncomeBin7Max
-    data$value.statecdctc[subset7]<-rowMaxs(cbind(data$PercentOfFederalBin7[subset7]*data$federalcdctc[subset7], data$PercentOfExpensesBin6[subset7]*data$qualifyingExpenses[subset7]))
+    data$value.statecdctc[subset7]<-rowMaxs(cbind(data$PercentOfFederalBin7[subset7]*data$federalcdctc[subset7], data$PercentOfExpensesBin7[subset7]*data$qualifyingExpenses[subset7]))
+    
+    subset8<- data$income.base>data$IncomeBin7Max & data$income.base<=data$IncomeBin8Max
+    data$value.statecdctc[subset8]<-rowMaxs(cbind(data$PercentOfFederalBin8[subset8]*data$federalcdctc[subset8], data$PercentOfExpensesBin8[subset8]*data$qualifyingExpenses[subset8]))
+    
+    subset9<- data$income.base>data$IncomeBin8Max & data$income.base<=data$IncomeBin9Max
+    data$value.statecdctc[subset9]<-rowMaxs(cbind(data$PercentOfFederalBin9[subset9]*data$federalcdctc[subset9], data$PercentOfExpensesBin9[subset9]*data$qualifyingExpenses[subset9]))
+    
+    subset10<- data$income.base>data$IncomeBin9Max & data$income.base<=data$IncomeBin10Max
+    data$value.statecdctc[subset10]<-rowMaxs(cbind(data$PercentOfFederalBin10[subset10]*data$federalcdctc[subset10], data$PercentOfExpensesBin10[subset10]*data$qualifyingExpenses[subset10]))
+    
+    subset11<- data$income.base>data$IncomeBin10Max & data$income.base<=data$IncomeBin11Max
+    data$value.statecdctc[subset11]<-rowMaxs(cbind(data$PercentOfFederalBin11[subset11]*data$federalcdctc[subset11], data$PercentOfExpensesBin11[subset11]*data$qualifyingExpenses[subset11]))
+    
     
     # Adjust for refundability
     subset<-data$Refundable=="No"
@@ -8930,59 +9395,13 @@ function.statecdctc<-function(data
     # State-specific rules
     
     #-------------------------------------
-    #1. Colorado (stateFIPS==8)
-    #-------------------------------------
-    if(8 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-      temp<-data[data$stateFIPS==8,]
-      
-      subset1<- temp$income.base<=temp$IncomeBin1Max
-      temp$value.statecdctc[subset1]<-rowMaxs(cbind(temp$PercentOfFederalBin1[subset1]*temp$federalcdctc[subset1], temp$PercentOfExpensesBin1[subset1]*temp$qualifyingExpenses[subset1]))
-      
-      subset2<- temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max
-      temp$value.statecdctc[subset2]<-rowMaxs(cbind(temp$PercentOfFederalBin2[subset2]*temp$federalcdctc[subset2], temp$PercentOfExpensesBin2[subset2]*temp$qualifyingExpenses[subset2]))
-      
-      subset3<- temp$income.base>temp$IncomeBin2Max & temp$income.base<=temp$IncomeBin3Max
-      temp$value.statecdctc[subset3]<-rowMaxs(cbind(temp$PercentOfFederalBin3[subset3]*temp$federalcdctc[subset3], temp$PercentOfExpensesBin3[subset3]*temp$qualifyingExpenses[subset3]))
-      
-      subset4<- temp$income.base>temp$IncomeBin3Max & temp$income.base<=temp$IncomeBin4Max
-      temp$value.statecdctc[subset4]<-rowMaxs(cbind(temp$PercentOfFederalBin4[subset4]*temp$federalcdctc[subset4], temp$PercentOfExpensesBin4[subset4]*temp$qualifyingExpenses[subset4]))
-      
-      subset5<- temp$income.base>temp$IncomeBin4Max & temp$income.base<=temp$IncomeBin5Max
-      temp$value.statecdctc[subset5]<-rowMaxs(cbind(temp$PercentOfFederalBin5[subset5]*temp$federalcdctc[subset5], temp$PercentOfExpensesBin5[subset5]*temp$qualifyingExpenses[subset5]))
-      
-      subset6<- temp$income.base>temp$IncomeBin5Max & temp$income.base<=temp$IncomeBin6Max
-      temp$value.statecdctc[subset6]<-rowMaxs(cbind(temp$PercentOfFederalBin6[subset6]*temp$federalcdctc[subset6], temp$PercentOfExpensesBin6[subset6]*temp$qualifyingExpenses[subset6]))
-      
-      subset7<- temp$income.base>temp$IncomeBin6Max & temp$income.base<=temp$IncomeBin7Max
-      temp$value.statecdctc[subset7]<-rowMaxs(cbind(temp$PercentOfFederalBin7[subset7]*temp$federalcdctc[subset7], temp$PercentOfExpensesBin6[subset7]*temp$qualifyingExpenses[subset7]))
-      
-      # Adjust for refundability
-      subset<-temp$Refundable=="No"
-      temp$value.statecdctc[subset]<-rowMins(cbind(temp$value.statecdctc[subset],temp$stateincometax[subset]))
-      
-      
-      # Adjust for the Low-Income Child Care Expenses Credit
-      subset<-temp$value.statecdctc==0 & temp$qualifyingExpenses>0 & temp$NumberOfKidsUnder13<=2
-      temp$value.statecdctc[subset]<-rowMaxs(cbind(0.25*temp$qualifyingExpenses[subset],500*temp$NumberOfKidsUnder13[subset]))
-      
-      subset<-temp$value.statecdctc==0 & temp$qualifyingExpenses>0 & temp$NumberOfKidsUnder13>3
-      temp$value.statecdctc[subset]<-rowMaxs(cbind(0.25*temp$qualifyingExpenses[subset],1000))
-      
-      
-      # Replace back
-      data[data$stateFIPS==8,]<-temp
-    }
-    
-    
-    
-    #-------------------------------------
     # District of Columbia (stateFIPS==11)
     #-------------------------------------
     if(11 %in% unique(data$stateFIPS)){ # make sure that state is in the list
       
       temp<-data[data$stateFIPS==11,]
       
-      # DC has an additional "Keep Child Care Affordable Tax Credit" (also known as Early Learning Credit - ELC)
+      # SPECIAL RULE:  DC has an additional "Keep Child Care Affordable Tax Credit" (also known as Early Learning Credit - ELC)
       
       # Initialize (per each kid)
       temp$value.statecdctc.elc.kid1<-0
@@ -9055,57 +9474,15 @@ function.statecdctc<-function(data
       # Replace back
       data$value.statecdctc[data$stateFIPS==11]<-temp$value.statecdctc
     }
-    
-    
-    #-------------------------------------
-    #2. Hawaii (stateFIPS==15)
-    #-------------------------------------
-    if(15 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-      temp<-data[data$stateFIPS==15,]
-      
-      # Adjust for maximum expenses
-      subset<-temp$NumberOfKidsUnder13==1
-      temp$qualifyingExpenses[subset]<-rowMins(cbind(temp$qualifyingExpenses[subset],2400))
-      
-      subset<-temp$NumberOfKidsUnder13>1
-      temp$qualifyingExpenses[subset]<-rowMins(cbind(temp$qualifyingExpenses[subset],4800))
-      
-      subset1<- temp$income.base<=temp$IncomeBin1Max
-      temp$value.statecdctc[subset1]<-rowMaxs(cbind(temp$PercentOfFederalBin1[subset1]*temp$federalcdctc[subset1], temp$PercentOfExpensesBin1[subset1]*temp$qualifyingExpenses[subset1]))
-      
-      subset2<- temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max
-      temp$value.statecdctc[subset2]<-rowMaxs(cbind(temp$PercentOfFederalBin2[subset2]*temp$federalcdctc[subset2], (temp$PercentOfExpensesBin1[subset2]-temp$PhaseOutRate[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]))*temp$qualifyingExpenses[subset2]))
-      
-      subset3<- temp$income.base>temp$IncomeBin2Max & temp$income.base<=temp$IncomeBin3Max
-      temp$value.statecdctc[subset3]<-rowMaxs(cbind(temp$PercentOfFederalBin3[subset3]*temp$federalcdctc[subset3], temp$PercentOfExpensesBin3[subset3]*temp$qualifyingExpenses[subset3]))
-      
-      subset4<- temp$income.base>temp$IncomeBin3Max & temp$income.base<=temp$IncomeBin4Max
-      temp$value.statecdctc[subset4]<-rowMaxs(cbind(temp$PercentOfFederalBin4[subset4]*temp$federalcdctc[subset4], temp$PercentOfExpensesBin4[subset4]*temp$qualifyingExpenses[subset4]))
-      
-      subset5<- temp$income.base>temp$IncomeBin4Max & temp$income.base<=temp$IncomeBin5Max
-      temp$value.statecdctc[subset5]<-rowMaxs(cbind(temp$PercentOfFederalBin5[subset5]*temp$federalcdctc[subset5], temp$PercentOfExpensesBin5[subset5]*temp$qualifyingExpenses[subset5]))
-      
-      subset6<- temp$income.base>temp$IncomeBin5Max & temp$income.base<=temp$IncomeBin6Max
-      temp$value.statecdctc[subset6]<-rowMaxs(cbind(temp$PercentOfFederalBin6[subset6]*temp$federalcdctc[subset6], temp$PercentOfExpensesBin6[subset6]*temp$qualifyingExpenses[subset6]))
-      
-      subset7<- temp$income.base>temp$IncomeBin6Max & temp$income.base<=temp$IncomeBin7Max
-      temp$value.statecdctc[subset7]<-rowMaxs(cbind(temp$PercentOfFederalBin7[subset7]*temp$federalcdctc[subset7], temp$PercentOfExpensesBin6[subset7]*temp$qualifyingExpenses[subset7]))
-      
-      # Adjust for refundability
-      subset<-temp$Refundable=="No"
-      temp$value.statecdctc[subset]<-rowMins(cbind(temp$value.statecdctc[subset],temp$stateincometax[subset]))
-      
-      # Replace back
-      data[data$stateFIPS==15,]<-temp
-    }
-    
-    
+
     
     #-------------------------------------
-    #3. Louisiana (stateFIPS==22)
+    #2. Louisiana (stateFIPS==22)
     #-------------------------------------
     if(22 %in% unique(data$stateFIPS)){ # make sure that state is in the list
       temp<-data[data$stateFIPS==22,]
+      
+      # SPECIAL RULE: In Louisiana, the tax credit is refundable if the federal AGI is $25,000 or less.
       
       subset1<- temp$income.base<=temp$IncomeBin1Max
       temp$value.statecdctc[subset1]<-rowMaxs(cbind(temp$PercentOfFederalBin1[subset1]*temp$federalcdctc[subset1], temp$PercentOfExpensesBin1[subset1]*temp$qualifyingExpenses[subset1]))
@@ -9127,6 +9504,18 @@ function.statecdctc<-function(data
       
       subset7<- temp$income.base>temp$IncomeBin6Max & temp$income.base<=temp$IncomeBin7Max
       temp$value.statecdctc[subset7]<-rowMaxs(cbind(temp$PercentOfFederalBin7[subset7]*temp$federalcdctc[subset7], temp$PercentOfExpensesBin6[subset7]*temp$qualifyingExpenses[subset7]))
+      
+      subset8<- data$income.base>data$IncomeBin7Max & data$income.base<=data$IncomeBin8Max
+      data$value.statecdctc[subset8]<-rowMaxs(cbind(data$PercentOfFederalBin8[subset8]*data$federalcdctc[subset8], data$PercentOfExpensesBin8[subset8]*data$qualifyingExpenses[subset8]))
+      
+      subset9<- data$income.base>data$IncomeBin8Max & data$income.base<=data$IncomeBin9Max
+      data$value.statecdctc[subset9]<-rowMaxs(cbind(data$PercentOfFederalBin9[subset9]*data$federalcdctc[subset9], data$PercentOfExpensesBin9[subset9]*data$qualifyingExpenses[subset9]))
+      
+      subset10<- data$income.base>data$IncomeBin9Max & data$income.base<=data$IncomeBin10Max
+      data$value.statecdctc[subset10]<-rowMaxs(cbind(data$PercentOfFederalBin10[subset10]*data$federalcdctc[subset10], data$PercentOfExpensesBin10[subset10]*data$qualifyingExpenses[subset10]))
+      
+      subset11<- data$income.base>data$IncomeBin10Max & data$income.base<=data$IncomeBin11Max
+      data$value.statecdctc[subset11]<-rowMaxs(cbind(data$PercentOfFederalBin11[subset11]*data$federalcdctc[subset11], data$PercentOfExpensesBin11[subset11]*data$qualifyingExpenses[subset11]))
       
       # Adjust for refundability
       subset<-temp$income.base>25000
@@ -9137,13 +9526,13 @@ function.statecdctc<-function(data
     }
     
     
-    
-    
     #-------------------------------------
-    #4. Maine (stateFIPS==23)
+    #3. Maine (stateFIPS==23)
     #-------------------------------------
     if(23 %in% unique(data$stateFIPS)){ # make sure that state is in the list
       temp<-data[data$stateFIPS==23,]
+      
+      # SPECIAL RULE: In Maine, the tax credit is refundable up to $500.
       
       subset1<- temp$income.base<=temp$IncomeBin1Max
       temp$value.statecdctc[subset1]<-rowMaxs(cbind(temp$PercentOfFederalBin1[subset1]*temp$federalcdctc[subset1], temp$PercentOfExpensesBin1[subset1]*temp$qualifyingExpenses[subset1]))
@@ -9165,6 +9554,18 @@ function.statecdctc<-function(data
       
       subset7<- temp$income.base>temp$IncomeBin6Max & temp$income.base<=temp$IncomeBin7Max
       temp$value.statecdctc[subset7]<-rowMaxs(cbind(temp$PercentOfFederalBin7[subset7]*temp$federalcdctc[subset7], temp$PercentOfExpensesBin6[subset7]*temp$qualifyingExpenses[subset7]))
+      
+      subset8<- data$income.base>data$IncomeBin7Max & data$income.base<=data$IncomeBin8Max
+      data$value.statecdctc[subset8]<-rowMaxs(cbind(data$PercentOfFederalBin8[subset8]*data$federalcdctc[subset8], data$PercentOfExpensesBin8[subset8]*data$qualifyingExpenses[subset8]))
+      
+      subset9<- data$income.base>data$IncomeBin8Max & data$income.base<=data$IncomeBin9Max
+      data$value.statecdctc[subset9]<-rowMaxs(cbind(data$PercentOfFederalBin9[subset9]*data$federalcdctc[subset9], data$PercentOfExpensesBin9[subset9]*data$qualifyingExpenses[subset9]))
+      
+      subset10<- data$income.base>data$IncomeBin9Max & data$income.base<=data$IncomeBin10Max
+      data$value.statecdctc[subset10]<-rowMaxs(cbind(data$PercentOfFederalBin10[subset10]*data$federalcdctc[subset10], data$PercentOfExpensesBin10[subset10]*data$qualifyingExpenses[subset10]))
+      
+      subset11<- data$income.base>data$IncomeBin10Max & data$income.base<=data$IncomeBin11Max
+      data$value.statecdctc[subset11]<-rowMaxs(cbind(data$PercentOfFederalBin11[subset11]*data$federalcdctc[subset11], data$PercentOfExpensesBin11[subset11]*data$qualifyingExpenses[subset11]))
       
       # Adjust for refundability
       subset<-temp$value.statecdctc>500
@@ -9176,92 +9577,12 @@ function.statecdctc<-function(data
     
     
     #-------------------------------------
-    #5. Maryland (stateFIPS==24)
-    #-------------------------------------
-    if(24 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-      temp<-data[data$stateFIPS==24,]
-      
-      subset<-temp$FilingStatus==2
-      temp$IncomeBin1Max[subset]<-75000
-      temp$IncomeBin2Max[subset]<-110000
-      temp$IncomeBin3Max[subset]<-125000
-      temp$IncomeBin4Max[subset]<-141000
-      
-      subset1<- temp$income.base<=temp$IncomeBin1Max
-      temp$value.statecdctc[subset1]<-rowMaxs(cbind(temp$PercentOfFederalBin1[subset1]*temp$federalcdctc[subset1], temp$PercentOfExpensesBin1[subset1]*temp$qualifyingExpenses[subset1]))
-      
-      subset2<- temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max
-      temp$value.statecdctc[subset2]<-rowMaxs(cbind((temp$PercentOfFederalBin2[subset2]-temp$PhaseOutRate[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]))*temp$federalcdctc[subset2], temp$PercentOfExpensesBin2[subset2]*temp$qualifyingExpenses[subset2]))
-      
-      subset3<- temp$income.base>temp$IncomeBin2Max & temp$income.base<=temp$IncomeBin3Max
-      temp$value.statecdctc[subset3]<-rowMaxs(cbind(temp$PercentOfFederalBin3[subset3]*temp$federalcdctc[subset3], temp$PercentOfExpensesBin3[subset3]*temp$qualifyingExpenses[subset3]))
-      
-      subset4<- temp$income.base>temp$IncomeBin3Max & temp$income.base<=temp$IncomeBin4Max
-      temp$value.statecdctc[subset4]<-rowMaxs(cbind(temp$PercentOfFederalBin4[subset4]*temp$federalcdctc[subset4], temp$PercentOfExpensesBin4[subset4]*temp$qualifyingExpenses[subset4]))
-      
-      subset5<- temp$income.base>temp$IncomeBin4Max & temp$income.base<=temp$IncomeBin5Max
-      temp$value.statecdctc[subset5]<-rowMaxs(cbind(temp$PercentOfFederalBin5[subset5]*temp$federalcdctc[subset5], temp$PercentOfExpensesBin5[subset5]*temp$qualifyingExpenses[subset5]))
-      
-      subset6<- temp$income.base>temp$IncomeBin5Max & temp$income.base<=temp$IncomeBin6Max
-      temp$value.statecdctc[subset6]<-rowMaxs(cbind(temp$PercentOfFederalBin6[subset6]*temp$federalcdctc[subset6], temp$PercentOfExpensesBin6[subset6]*temp$qualifyingExpenses[subset6]))
-      
-      subset7<- temp$income.base>temp$IncomeBin6Max & temp$income.base<=temp$IncomeBin7Max
-      temp$value.statecdctc[subset7]<-rowMaxs(cbind(temp$PercentOfFederalBin7[subset7]*temp$federalcdctc[subset7], temp$PercentOfExpensesBin6[subset7]*temp$qualifyingExpenses[subset7]))
-      
-      # Adjust for refundability
-      subset<-temp$income.base>temp$IncomeBin1Max
-      temp$value.statecdctc[subset]<-rowMins(cbind(temp$value.statecdctc[subset],temp$stateincometax[subset]))
-      
-      # Replace back
-      data[data$stateFIPS==24,]<-temp
-    }
-    
-    
-    #-------------------------------------
-    #6. Minnesota (stateFIPS==27)
-    #-------------------------------------
-    if(27 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-      
-      temp<-data[data$stateFIPS==27,]
-      
-      subset1<- temp$income.base<=temp$IncomeBin1Max
-      temp$value.statecdctc[subset1]<-rowMaxs(cbind(temp$PercentOfFederalBin1[subset1]*temp$federalcdctc[subset1], temp$PercentOfExpensesBin1[subset1]*temp$qualifyingExpenses[subset1]))
-      
-      subset2<- temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max
-      temp$value.statecdctc[subset2]<-rowMaxs(cbind((temp$PercentOfFederalBin2[subset2]-temp$PhaseOutRate[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]))*temp$federalcdctc[subset2], temp$PercentOfExpensesBin2[subset2]*temp$qualifyingExpenses[subset2]))
-      
-      subset3<- temp$income.base>temp$IncomeBin2Max & temp$income.base<=temp$IncomeBin3Max
-      temp$value.statecdctc[subset3]<-rowMaxs(cbind(temp$PercentOfFederalBin3[subset3]*temp$federalcdctc[subset3], temp$PercentOfExpensesBin3[subset3]*temp$qualifyingExpenses[subset3]))
-      
-      subset4<- temp$income.base>temp$IncomeBin3Max & temp$income.base<=temp$IncomeBin4Max
-      temp$value.statecdctc[subset4]<-rowMaxs(cbind(temp$PercentOfFederalBin4[subset4]*temp$federalcdctc[subset4], temp$PercentOfExpensesBin4[subset4]*temp$qualifyingExpenses[subset4]))
-      
-      subset5<- temp$income.base>temp$IncomeBin4Max & temp$income.base<=temp$IncomeBin5Max
-      temp$value.statecdctc[subset5]<-rowMaxs(cbind(temp$PercentOfFederalBin5[subset5]*temp$federalcdctc[subset5], temp$PercentOfExpensesBin5[subset5]*temp$qualifyingExpenses[subset5]))
-      
-      subset6<- temp$income.base>temp$IncomeBin5Max & temp$income.base<=temp$IncomeBin6Max
-      temp$value.statecdctc[subset6]<-rowMaxs(cbind(temp$PercentOfFederalBin6[subset6]*temp$federalcdctc[subset6], temp$PercentOfExpensesBin6[subset6]*temp$qualifyingExpenses[subset6]))
-      
-      subset7<- temp$income.base>temp$IncomeBin6Max & temp$income.base<=temp$IncomeBin7Max
-      temp$value.statecdctc[subset7]<-rowMaxs(cbind(temp$PercentOfFederalBin7[subset7]*temp$federalcdctc[subset7], temp$PercentOfExpensesBin6[subset7]*temp$qualifyingExpenses[subset7]))
-      
-      # Only state with maximum credit
-      temp$value.statecdctc<-rowMins(cbind(temp$value.statecdctc,1400))
-      
-      # Adjust for refundability
-      subset<-temp$Refundable=="No"
-      temp$value.statecdctc[subset]<-rowMins(cbind(temp$value.statecdctc[subset],temp$stateincometax[subset]))
-      
-      # Replace back
-      data[data$stateFIPS==27,]<-temp
-    }
-    
-    
-    #-------------------------------------
-    #7. Nebraska (stateFIPS==31)
+    #4. Nebraska (stateFIPS==31)
     #-------------------------------------
     if(31 %in% unique(data$stateFIPS)){ # make sure that state is in the list
       temp<-data[data$stateFIPS==31,]
+      
+      # SPECIAL RULE: The Nebraska tax credit is refundable for families with income below $29,000.
       
       subset1<- temp$income.base<=temp$IncomeBin1Max
       temp$value.statecdctc[subset1]<-rowMaxs(cbind(temp$PercentOfFederalBin1[subset1]*temp$federalcdctc[subset1], temp$PercentOfExpensesBin1[subset1]*temp$qualifyingExpenses[subset1]))
@@ -9284,146 +9605,25 @@ function.statecdctc<-function(data
       subset7<- temp$income.base>temp$IncomeBin6Max & temp$income.base<=temp$IncomeBin7Max
       temp$value.statecdctc[subset7]<-rowMaxs(cbind(temp$PercentOfFederalBin7[subset7]*temp$federalcdctc[subset7], temp$PercentOfExpensesBin6[subset7]*temp$qualifyingExpenses[subset7]))
       
+      subset8<- data$income.base>data$IncomeBin7Max & data$income.base<=data$IncomeBin8Max
+      data$value.statecdctc[subset8]<-rowMaxs(cbind(data$PercentOfFederalBin8[subset8]*data$federalcdctc[subset8], data$PercentOfExpensesBin8[subset8]*data$qualifyingExpenses[subset8]))
+      
+      subset9<- data$income.base>data$IncomeBin8Max & data$income.base<=data$IncomeBin9Max
+      data$value.statecdctc[subset9]<-rowMaxs(cbind(data$PercentOfFederalBin9[subset9]*data$federalcdctc[subset9], data$PercentOfExpensesBin9[subset9]*data$qualifyingExpenses[subset9]))
+      
+      subset10<- data$income.base>data$IncomeBin9Max & data$income.base<=data$IncomeBin10Max
+      data$value.statecdctc[subset10]<-rowMaxs(cbind(data$PercentOfFederalBin10[subset10]*data$federalcdctc[subset10], data$PercentOfExpensesBin10[subset10]*data$qualifyingExpenses[subset10]))
+      
+      subset11<- data$income.base>data$IncomeBin10Max & data$income.base<=data$IncomeBin11Max
+      data$value.statecdctc[subset11]<-rowMaxs(cbind(data$PercentOfFederalBin11[subset11]*data$federalcdctc[subset11], data$PercentOfExpensesBin11[subset11]*data$qualifyingExpenses[subset11]))
+      
       # Adjust for refundability
-      subset<-temp$income.base>temp$IncomeBin2Max
+      subset<-temp$income.base>temp$IncomeBin8Max
       temp$value.statecdctc[subset]<-rowMins(cbind(temp$value.statecdctc[subset],temp$stateincometax[subset]))
       
       # Replace back
       data[data$stateFIPS==31,]<-temp
     }
-    
-    
-    
-    #-------------------------------------
-    #8. New Mexico (stateFIPS==35)
-    #-------------------------------------
-    if(35 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-      temp<-data[data$stateFIPS==35,]
-      
-      subset1<- temp$income.base<=temp$IncomeBin1Max
-      temp$value.statecdctc[subset1]<-rowMaxs(cbind(temp$PercentOfFederalBin1[subset1]*temp$federalcdctc[subset1], temp$PercentOfExpensesBin1[subset1]*temp$qualifyingExpenses[subset1]))
-      
-      subset2<- temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max
-      temp$value.statecdctc[subset2]<-rowMaxs(cbind(temp$PercentOfFederalBin2[subset2]*temp$federalcdctc[subset2], temp$PercentOfExpensesBin2[subset2]*temp$qualifyingExpenses[subset2]))
-      
-      subset3<- temp$income.base>temp$IncomeBin2Max & temp$income.base<=temp$IncomeBin3Max
-      temp$value.statecdctc[subset3]<-rowMaxs(cbind(temp$PercentOfFederalBin3[subset3]*temp$federalcdctc[subset3], temp$PercentOfExpensesBin3[subset3]*temp$qualifyingExpenses[subset3]))
-      
-      subset4<- temp$income.base>temp$IncomeBin3Max & temp$income.base<=temp$IncomeBin4Max
-      temp$value.statecdctc[subset4]<-rowMaxs(cbind(temp$PercentOfFederalBin4[subset4]*temp$federalcdctc[subset4], temp$PercentOfExpensesBin4[subset4]*temp$qualifyingExpenses[subset4]))
-      
-      subset5<- temp$income.base>temp$IncomeBin4Max & temp$income.base<=temp$IncomeBin5Max
-      temp$value.statecdctc[subset5]<-rowMaxs(cbind(temp$PercentOfFederalBin5[subset5]*temp$federalcdctc[subset5], temp$PercentOfExpensesBin5[subset5]*temp$qualifyingExpenses[subset5]))
-      
-      subset6<- temp$income.base>temp$IncomeBin5Max & temp$income.base<=temp$IncomeBin6Max
-      temp$value.statecdctc[subset6]<-rowMaxs(cbind(temp$PercentOfFederalBin6[subset6]*temp$federalcdctc[subset6], temp$PercentOfExpensesBin6[subset6]*temp$qualifyingExpenses[subset6]))
-      
-      subset7<- temp$income.base>temp$IncomeBin6Max & temp$income.base<=temp$IncomeBin7Max
-      temp$value.statecdctc[subset7]<-rowMaxs(cbind(temp$PercentOfFederalBin7[subset7]*temp$federalcdctc[subset7], temp$PercentOfExpensesBin6[subset7]*temp$qualifyingExpenses[subset7]))
-      
-      # Adjust for refundability
-      subset<-temp$Refundable=="No"
-      temp$value.statecdctc[subset]<-rowMins(cbind(temp$value.statecdctc[subset],temp$stateincometax[subset]))
-      
-      
-      # Adjust for maximum values
-      subset<-temp$NumberOfKidsUnder13<=2
-      temp$value.statecdctc[subset]<-rowMaxs(cbind(temp$value.statecdctc[subset],480*temp$NumberOfKidsUnder13[subset]))
-      
-      subset<-temp$NumberOfKidsUnder13>3
-      temp$value.statecdctc[subset]<-rowMaxs(cbind(temp$value.statecdctc[subset],1200))
-      
-      
-      # Replace back
-      data[data$stateFIPS==35,]<-temp
-    }
-    
-    
-    
-    #-------------------------------------
-    #9. New York (stateFIPS==36)
-    #-------------------------------------
-    if(36 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-      temp<-data[data$stateFIPS==36,]
-      
-      subset1<- temp$income.base<=temp$IncomeBin1Max
-      temp$value.statecdctc[subset1]<-rowMaxs(cbind(temp$PercentOfFederalBin1[subset1]*temp$federalcdctc[subset1], temp$PercentOfExpensesBin1[subset1]*temp$qualifyingExpenses[subset1]))
-      
-      subset2<- temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max
-      temp$value.statecdctc[subset2]<-rowMaxs(cbind(temp$PercentOfFederalBin2[subset2]*temp$federalcdctc[subset2], temp$PercentOfExpensesBin2[subset2]*temp$qualifyingExpenses[subset2]))
-      
-      subset3<- temp$income.base>temp$IncomeBin2Max & temp$income.base<=temp$IncomeBin3Max
-      temp$value.statecdctc[subset3]<-rowMaxs(cbind((temp$PercentOfFederalBin2[subset3]-temp$PhaseOutRate[subset3]*(temp$income.base[subset3]-temp$IncomeBin2Max[subset3]))*temp$federalcdctc[subset3], temp$PercentOfExpensesBin3[subset3]*temp$qualifyingExpenses[subset3]))
-      
-      subset4<- temp$income.base>temp$IncomeBin3Max & temp$income.base<=temp$IncomeBin4Max
-      temp$value.statecdctc[subset4]<-rowMaxs(cbind(temp$PercentOfFederalBin4[subset4]*temp$federalcdctc[subset4], temp$PercentOfExpensesBin4[subset4]*temp$qualifyingExpenses[subset4]))
-      
-      subset5<- temp$income.base>temp$IncomeBin4Max & temp$income.base<=temp$IncomeBin5Max
-      temp$value.statecdctc[subset5]<-rowMaxs(cbind(temp$PercentOfFederalBin5[subset5]*temp$federalcdctc[subset5], temp$PercentOfExpensesBin5[subset5]*temp$qualifyingExpenses[subset5]))
-      
-      subset6<- temp$income.base>temp$IncomeBin5Max & temp$income.base<=temp$IncomeBin6Max
-      temp$value.statecdctc[subset6]<-rowMaxs(cbind(temp$PercentOfFederalBin6[subset6]*temp$federalcdctc[subset6], temp$PercentOfExpensesBin6[subset6]*temp$qualifyingExpenses[subset6]))
-      
-      subset7<- temp$income.base>temp$IncomeBin6Max & temp$income.base<=temp$IncomeBin7Max
-      temp$value.statecdctc[subset7]<-rowMaxs(cbind(temp$PercentOfFederalBin7[subset7]*temp$federalcdctc[subset7], temp$PercentOfExpensesBin6[subset7]*temp$qualifyingExpenses[subset7]))
-      
-      # Adjust for refundability
-      subset<-temp$Refundable=="No"
-      temp$value.statecdctc[subset]<-rowMins(cbind(temp$value.statecdctc[subset],temp$stateincometax[subset]))
-      
-      # Replace back
-      data[data$stateFIPS==36,]<-temp
-    }
-    
-    
-    
-    #-------------------------------------
-    #10. South Carolina (stateFIPS==45)
-    #-------------------------------------
-    if(45 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-      temp<-data[data$stateFIPS==45,]
-      
-      subset1<- temp$income.base<=temp$IncomeBin1Max
-      temp$value.statecdctc[subset1]<-rowMaxs(cbind(temp$PercentOfFederalBin1[subset1]*temp$federalcdctc[subset1], temp$PercentOfExpensesBin1[subset1]*temp$qualifyingExpenses[subset1]))
-      
-      subset2<- temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max
-      temp$value.statecdctc[subset2]<-rowMaxs(cbind(temp$PercentOfFederalBin2[subset2]*temp$federalcdctc[subset2], temp$PercentOfExpensesBin2[subset2]*temp$qualifyingExpenses[subset2]))
-      
-      subset3<- temp$income.base>temp$IncomeBin2Max & temp$income.base<=temp$IncomeBin3Max
-      temp$value.statecdctc[subset3]<-rowMaxs(cbind(temp$PercentOfFederalBin3[subset3]*temp$federalcdctc[subset3], temp$PercentOfExpensesBin3[subset3]*temp$qualifyingExpenses[subset3]))
-      
-      subset4<- temp$income.base>temp$IncomeBin3Max & temp$income.base<=temp$IncomeBin4Max
-      temp$value.statecdctc[subset4]<-rowMaxs(cbind(temp$PercentOfFederalBin4[subset4]*temp$federalcdctc[subset4], temp$PercentOfExpensesBin4[subset4]*temp$qualifyingExpenses[subset4]))
-      
-      subset5<- temp$income.base>temp$IncomeBin4Max & temp$income.base<=temp$IncomeBin5Max
-      temp$value.statecdctc[subset5]<-rowMaxs(cbind(temp$PercentOfFederalBin5[subset5]*temp$federalcdctc[subset5], temp$PercentOfExpensesBin5[subset5]*temp$qualifyingExpenses[subset5]))
-      
-      subset6<- temp$income.base>temp$IncomeBin5Max & temp$income.base<=temp$IncomeBin6Max
-      temp$value.statecdctc[subset6]<-rowMaxs(cbind(temp$PercentOfFederalBin6[subset6]*temp$federalcdctc[subset6], temp$PercentOfExpensesBin6[subset6]*temp$qualifyingExpenses[subset6]))
-      
-      subset7<- temp$income.base>temp$IncomeBin6Max & temp$income.base<=temp$IncomeBin7Max
-      temp$value.statecdctc[subset7]<-rowMaxs(cbind(temp$PercentOfFederalBin7[subset7]*temp$federalcdctc[subset7], temp$PercentOfExpensesBin6[subset7]*temp$qualifyingExpenses[subset7]))
-      
-      # Adjust for refundability
-      subset<-temp$Refundable=="No"
-      temp$value.statecdctc[subset]<-rowMins(cbind(temp$value.statecdctc[subset],temp$stateincometax[subset]))
-      
-      
-      # Adjust for maximum values
-      subset<-temp$NumberOfKidsUnder13<=2
-      temp$value.statecdctc[subset]<-rowMaxs(cbind(temp$value.statecdctc[subset],210*temp$NumberOfKidsUnder13[subset]))
-      
-      subset<-temp$NumberOfKidsUnder13>3
-      temp$value.statecdctc[subset]<-rowMaxs(cbind(temp$value.statecdctc[subset],420))
-      
-      # Spouses filing separately are ineligible for CDCTC
-      subset<-temp$FilingStatus==4
-      temp$value.statecdctc[subset]<-0
-      
-      # Replace back
-      data[data$stateFIPS==45,]<-temp
-    }
-    
     
     
     data$value.statecdctc<-round(data$value.statecdctc,0)
@@ -9444,7 +9644,7 @@ function.ficatax<-function(data
     
     colnames(data)[colnames(data)==employmentincomevar]<-"income.base"
     
-    data<-left_join(data, ficataxData, by=c("FilingStatus"))
+    data<-left_join(data, ficataxData, by=c("ruleYear","FilingStatus"))
     
     data$tax.ss<-rowMins(cbind(data$income.base,data$SocialSecurityTaxBase))*data$SocialSecurityTaxRate
   

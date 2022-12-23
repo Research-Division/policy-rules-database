@@ -88,11 +88,8 @@ function.createData<-function(inputs){
   
   #make location two variables
   data<- data %>%
-    separate(locations, c("countyortownName","stateAbbrev"), sep=", ") %>%
+    separate(locations, c("countyortownName","stateAbbrev"), sep=", ") 
     
-    #not sure this is needed...
-    left_join(table.statemap, by="stateAbbrev")     # Assign state FIPS (can remove this step simply by asking to provide FIPS)
-  
   # Additional post-processing
   data<-data %>% 
     mutate(income_tm12 = income)  # create lag of income for tax credits calculations 
@@ -117,6 +114,9 @@ function.createData<-function(inputs){
 
 # Produce initial transformations of the inputs to create core variables that are used across the functions
 function.InitialTransformations<-function(data){
+  
+  data<- data %>%
+  left_join(table.countypop,by=c("countyortownName","stateAbbrev")) #!!!ET changed this 12/21/22!! 
   
   # Calculate number of adults and kids
   data$numadults=rowSums(cbind(data$agePerson1, data$agePerson2, data$agePerson3, data$agePerson4, data$agePerson5, data$agePerson6, data$agePerson7, data$agePerson8, data$agePerson9, data$agePerson10, data$agePerson11, data$agePerson12)>=19,na.rm=TRUE) 
@@ -418,7 +418,7 @@ return(data)
 
 #------------------------------------------------------------------------
 #------------------------------------------------------------------------
-## ASSIGN ALICE EXPENSES (LA, TX and MD DATA ONLY)
+## ASSIGN ALICE EXPENSES (LA, TX and MD DATA ONLY) /*update later*/
 #------------------------------------------------------------------------
 #------------------------------------------------------------------------
 BenefitsCalculator.ALICEExpenses<-function(data){
@@ -1259,7 +1259,7 @@ BenefitsCalculator.Healthcare<-function(data, APPLY_HEALTHCARE=FALSE, APPLY_MEDI
                                                       ,data$exp.healthcare.healthexchange.person11,data$exp.healthcare.healthexchange.person12), na.rm = TRUE)
     
     
-    # Determine what healhcare sources are used
+    # Determine what healhcare sources are used !! add medicare here too!
     data<-data %>% 
       # Generate out-of-pocket premium
       mutate(premium.outofpocket = exp.healthcare.healthexchange) %>% 
@@ -2066,17 +2066,30 @@ if(APPLY_TANF==FALSE){
   data$value.tanf[data$tanf_takeup==0]<-0
   
 }  
-  
 
   # # SSDI
   if (APPLY_SSDI==FALSE){
     data$value.ssdi<-0
+    
+    # # When SSI is TRUE 'hadssdi' is created in benefits_function.R instead of here    
+    # data$hadssdi1<-ifelse(data$disability1==1 & !is.na(data$disability1) & data$prev_ssdi==1
+    #                      ,1 ,0)
+    # data$hadssdi2<-ifelse(data$disability2==1 & !is.na(data$disability2) & data$prev_ssdi==1
+    #                      ,1 ,0)
+    # data$hadssdi3<-ifelse(data$disability3==1 & !is.na(data$disability3) & data$prev_ssdi==1
+    #                      ,1 ,0)
+    # data$hadssdi4<-ifelse(data$disability4==1 & !is.na(data$disability4) & data$prev_ssdi==1
+    #                      ,1 ,0)
+    # data$hadssdi5<-ifelse(data$disability5==1 & !is.na(data$disability5) & data$prev_ssdi==1
+    #                      ,1 ,0)
+    # data$hadssdi6<-ifelse(data$disability6==1 & !is.na(data$disability6) & data$prev_ssdi==1
+    #                      ,1 ,0)
+    
   }else if(APPLY_SSDI==TRUE){
     value.ssdi<-function.ssdiBenefit(data)
-    
     data$value.ssdi<-NULL
     data <- data %>%
-    cbind(value.ssdi)
+      cbind(value.ssdi)
 
   }
   
@@ -2098,7 +2111,6 @@ if(APPLY_TANF==FALSE){
     data$value.ssiChild4<-0
     data$value.ssiChild5<-0
     data$value.ssiChild6<-0
-
     # When SSI is TRUE 'hadssi' is created in benefits_function.R instead of here    
     data$hadssi1<-ifelse(data$disability1==1 & !is.na(data$disability1) & data$prev_ssi==1
                          ,1 ,0)
@@ -2125,8 +2137,6 @@ if(APPLY_TANF==FALSE){
     data$hadssi12<-ifelse(data$disability12==1 & !is.na(data$disability12) & data$prev_ssi==1
                          ,1 ,0)
     
-    
-    
   }else if(APPLY_SSI==TRUE){
     
     value.ssi<-function.ssiBenefit(data)
@@ -2147,14 +2157,17 @@ if(APPLY_TANF==FALSE){
 ## FOOD and Housing (Housing Vouchers (Section 8, RAP), SNAP, SLP, WIC)
 #------------------------------------------------------------------------
 #------------------------------------------------------------------------  
-BenefitsCalculator.FoodandHousing<-function(data, APPLY_SECTION8=FALSE, APPLY_LIHEAP=FALSE, APPLY_SNAP=FALSE, APPLY_SLP=FALSE, APPLY_WIC=FALSE, APPLY_RAP=FALSE, APPLY_FRSP=FALSE){
-  
+BenefitsCalculator.FoodandHousing<-function(data, APPLY_SECTION8=FALSE, APPLY_LIHEAP=FALSE, APPLY_SNAP=FALSE, APPLY_SLP=FALSE, APPLY_WIC=FALSE, APPLY_RAP=FALSE, APPLY_FRSP=FALSE, frsp_share = 0.4){
+
+#some programs rely on liheap, but liheap is run last
+  data$value.liheap<-0
  
   # Section 8
   if(APPLY_SECTION8==FALSE & APPLY_RAP==FALSE & APPLY_FRSP==FALSE){
     data$value.section8<-0
     data$netexp.rentormortgage<-data$exp.rentormortgage
     data$netexp.housing<-data$exp.housing
+    data$netexp.utilities<-data$exp.utilities
     }
   else if(APPLY_SECTION8==TRUE & APPLY_RAP==FALSE & APPLY_FRSP==FALSE){
     
@@ -2184,17 +2197,9 @@ BenefitsCalculator.FoodandHousing<-function(data, APPLY_SECTION8=FALSE, APPLY_LI
     
   }else if(APPLY_SECTION8==FALSE & APPLY_RAP==TRUE & APPLY_FRSP==FALSE){
     
-    data$value.section8<-function.RAPBenefit(data=data
-                                             , homeownershipvar = "ownorrent"
-                                             , statefipsvar = "stateFIPS"
-                                             , countyortownnamevar = "countyortownName"
-                                             , numadultsvar = "numadults"
-                                             , numkidsvar = "numkids"
-                                             , incomevar = "income"
-                                             , netchildcareexpensevar = "netexp.childcare"
-                                             , housingexpensevar="exp.rentormortgage"
-                                             , utilityexpensevar="exp.utilities")
+    data$value.section8<-function.RAPBenefit(data=data)
     
+    data<-data[!is.na(data$value.section8),]
     #-------------------------------------
     # Adjust for take-up
     #-------------------------------------
@@ -2219,7 +2224,7 @@ BenefitsCalculator.FoodandHousing<-function(data, APPLY_SECTION8=FALSE, APPLY_LI
   }else if(APPLY_SECTION8==FALSE & APPLY_RAP==FALSE & APPLY_FRSP==TRUE){
     
     data$value.section8<-function.FRSPBenefit(data
-                                              , shareOfRent = 0.4)  # User input - varies from 40 to 60%
+                                              , shareOfRent = frsp_share)  # User input - varies from 40 to 60%
     
     #-------------------------------------
     # Adjust for take-up
@@ -2295,7 +2300,7 @@ BenefitsCalculator.FoodandHousing<-function(data, APPLY_SECTION8=FALSE, APPLY_LI
   }else if(APPLY_LIHEAP==FALSE & APPLY_SECTION8==TRUE){
       data$netexp.utilities<-data$netexp.utilities
       data$value.liheap<-0
-  }else{
+  }else {
     data$value.liheap<-function.liheapBenefit(data)
     data$netexp.utilities<-data$netexp.utilities-data$value.liheap
   }
@@ -2325,6 +2330,8 @@ BenefitsCalculator.TaxesandTaxCredits<-function(data, APPLY_EITC=FALSE, APPLY_CT
     data$tax.income.fed<-0
     data$tax.federal<-0
     data$tax.FICA<-0
+    data$tax.federal_tm12<-0
+    data$tax.income.state_tm12<-0
   }else if(APPLY_TAXES==TRUE){
   
 #--------------------------------------
@@ -2552,7 +2559,11 @@ data<-data %>%
             ,AfterTaxIncome=(income+income.gift+income.investment+income.child_support)-(tax.income.fed+tax.income.state+tax.FICA+tax.sales)
          
             )
-            #ELIAS WHEN WE HAVE TANF LETS MAKE A VARIABLE AfterTaxIncomePlusTANF here 
+
+            # Bound take-home pay below by 0 - just in case
+            data$AfterTaxIncome<-rowMaxs(cbind(data$AfterTaxIncome,0))
+            data$income.aftertax.noTC<-rowMaxs(cbind(data$income.aftertax.noTC,0))
+            
 
 return(data)  
 }
@@ -2588,7 +2599,11 @@ function.createVars.CLIFF<-function(data){
             ,AfterTaxIncome=(income+income.gift+income.investment+income.child_support)-(tax.income.fed+tax.income.state+tax.FICA+tax.sales)
             
     )
-  #ELIAS WHEN WE HAVE TANF LETS MAKE A VARIABLE AfterTaxIncomePlusTANF here 
+  
+  # Bound take-home pay below by 0 - just in case
+  data$AfterTaxIncome<-rowMaxs(cbind(data$AfterTaxIncome,0))
+  data$income.aftertax.noTC<-rowMaxs(cbind(data$income.aftertax.noTC,0))
+  
   
   return(data)  
 }
