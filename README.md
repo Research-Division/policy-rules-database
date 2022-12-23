@@ -107,3 +107,8 @@ To test changes/run PRD you can do the following:
 
 applyBenefitsCalculator.R program saves the resulted output into this folder
 
+
+## How to Use the Unit Test
+
+TBD
+
