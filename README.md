@@ -110,5 +110,18 @@ applyBenefitsCalculator.R program saves the resulted output into this folder
 
 ## How to Use the Unit Test
 
-TBD
+These steps should be carried out only once:
+
+1. Execute the following command library(here)
+2. Create an object with the path where the files are downloaded.
+
+proj_dir <-"/Users/....."
+
+3. Execute the following command setwd(proj_dir)
+4. Execute the following command set_here()
+5. Open the file run_test.R directly from the folder where it is saved.
+
+To test the functions:
+
+1. Run the script named run_test.R
 
