@@ -21,4 +21,5 @@ set_here()
 
 To test the functions:
 
-1. Run the script named run_test.R
+1. Run the script named ApllyBenefitsCalculator.R
+2. Run the script named run_test.R
