@@ -110,6 +110,8 @@ applyBenefitsCalculator.R program saves the resulted output into this folder
 
 ## How to Use the Unit Test
 
+A unit test is a way of testing the smallest piece of code that can be logically isolated in a system.
+
 These steps should be carried out only once:
 
 1. Execute the following command library(here)
