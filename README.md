@@ -121,9 +121,11 @@ proj_dir <-"/Users/....."
 
 3. Execute the following command setwd(proj_dir)
 4. Execute the following command set_here()
-5. Open the file run_test.R directly from the folder where it is saved.
+5. Close your R session
 
 To test the functions:
 
-1. Run the script named run_test.R
+Check the Readme file inside the folder tests
+
+
 
