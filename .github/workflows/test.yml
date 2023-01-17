@@ -16,4 +16,5 @@ jobs:
       - name: Run tests
         run: |
           cd tests
+          Rscript -e "install.packages(c('testthat', 'here'))"
           Rscript -e "source('run_tests.R')"
