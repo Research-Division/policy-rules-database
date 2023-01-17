@@ -15,4 +15,5 @@ jobs:
           Rscript -e "source('BenefitsCalculator_Unittest.R')"
       - name: Run tests
         run: |
+          cd tests
           Rscript -e "source('run_tests.R')"
