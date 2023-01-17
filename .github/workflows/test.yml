@@ -1,0 +1,17 @@
+name: Test Source Code
+
+on: [push, pull_request]
+
+jobs:
+  tests:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v1
+      - uses: r-lib/actions/setup-r@v1
+      - uses: r-lib/actions/setup-pandoc@v1
+      - name: Setup for tests
+        run: Rscript -e "ssource('BenefitsCalculator_Unittest.R')"
+      - name: Run tests
+        run: |
+          cd tests
+          Rscript -e "source('run_tests.R')"
