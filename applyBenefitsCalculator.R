@@ -2,7 +2,7 @@
 # Ellie & Elias Benefits Calculator----
 # This program reads-in input data and runs Benefits Calculator
 
-# PREAMBLE----
+# PREAMBLE-----
 
 
 rm(list=ls())
