@@ -1,16 +1,12 @@
 ############################################## 
 ############################################## 
-# Ellie & Elias Benefits Calculator
+# Benefits Calculator
 ############################################## 
 ############################################## 
 # This program provides calculations for:
-# - Default Expenses
+# - Minimum Household Budget using United Way ALICE calculated expenses
 # - Public Assistance
 # - Taxes and Tax Credits 
-
-#Elias, see if you can figure out how to add fica.employer & fica.employee . We will use the fica.employer only for charts that are taxpayer perspective.
-
-#set some switches 0 that will be questions soon in the planner or elsewhere
 
 if (!exists("FATES")) FATES=FALSE
 if (!exists("APPLY_FRSP")) APPLY_FRSP=FALSE
@@ -50,6 +46,7 @@ function.createData<-function(inputs){
                     , agePerson10 = as.numeric(inputs$agePerson10)
                     , agePerson11 = as.numeric(inputs$agePerson11)
                     , agePerson12 = as.numeric(inputs$agePerson12)
+                    , married = as.numeric(inputs$married)
                     , disability1 = inputs$disability1
                     , disability2 = inputs$disability2
                     , disability3 = inputs$disability3
@@ -68,13 +65,13 @@ function.createData<-function(inputs){
                     , blind4 = inputs$blind4
                     , blind5 = inputs$blind5
                     , blind6 = inputs$blind6
-                    , ssdiPIA1 = inputs$ssdiPIA1 # only adults receive ssdi
+                    , ssdiPIA1 = inputs$ssdiPIA1 # Only adults with a work history may receive SSDI
                     , ssdiPIA2 = inputs$ssdiPIA2
                     , ssdiPIA3 = inputs$ssdiPIA3
                     , ssdiPIA4 = inputs$ssdiPIA4
                     , ssdiPIA5 = inputs$ssdiPIA5
                     , ssdiPIA6 = inputs$ssdiPIA6
-                    , prev_ssi = 0 # Whether anyone in the house ever received SSI before
+                    , prev_ssi = 0 # Has anyone in the home ever received SSI - important for Medicaid disability provision
                     , empl_healthcare = inputs$empl_healthcare
                     , ownorrent = inputs$ownorrent
                     , assets.cash = inputs$assets.cash
@@ -96,13 +93,13 @@ function.createData<-function(inputs){
   
   
   # Create core variables
-  data<-function.InitialTransformations(data)
+  data<-function.InitialTransformations(data) 
   
-  # Create a couple of extra vars (not in initial transformations b/c differs by dashboard)
+  # Create extra vars (not in initial transformations b/c differs by CLIFF tools)
   data<- data %>% 
-    mutate(FilingStatus=(case_when(numadults==1 & numkids==0~1
-                                   ,numadults==1 & numkids>0 ~ 3 # Head of the household
-                                   ,numadults>=2~2
+    mutate(FilingStatus=(case_when(married==0 & numkids==0 ~ 1 # Single 
+                                   ,married==0 & numkids>0 ~ 3 # Head of Household
+                                   ,married==1 ~ 2 # Married Filing Jointly
                                    ,TRUE~1)),
            uninsured = case_when( empl_healthcare==0 ~ 1
                                   ,empl_healthcare==1 ~ 0
@@ -116,15 +113,16 @@ function.createData<-function(inputs){
 function.InitialTransformations<-function(data){
   
   data<- data %>%
-  left_join(table.countypop,by=c("countyortownName","stateAbbrev")) #!!!ET changed this 12/21/22!! 
-  
+  left_join(table.countypop,by=c("countyortownName","stateAbbrev")) %>%
+  left_join(table.msamap, by=c("stateAbbrev", "countyortownName"))
+
   # Calculate number of adults and kids
   data$numadults=rowSums(cbind(data$agePerson1, data$agePerson2, data$agePerson3, data$agePerson4, data$agePerson5, data$agePerson6, data$agePerson7, data$agePerson8, data$agePerson9, data$agePerson10, data$agePerson11, data$agePerson12)>=19,na.rm=TRUE) 
-  data$numkids=rowSums(cbind(data$agePerson1, data$agePerson2, data$agePerson3, data$agePerson4, data$agePerson5, data$agePerson6, data$agePerson7, data$agePerson8, data$agePerson9, data$agePerson10, data$agePerson11, data$agePerson12)<=18,na.rm=TRUE) # Need to think about hte assumption on who is "kid". For example EITC defines it under age 19 & USDA adult category starts at 19
+  data$numkids=rowSums(cbind(data$agePerson1, data$agePerson2, data$agePerson3, data$agePerson4, data$agePerson5, data$agePerson6, data$agePerson7, data$agePerson8, data$agePerson9, data$agePerson10, data$agePerson11, data$agePerson12)<=18,na.rm=TRUE) # We assume kids are < 19. EITC defines it under age 19 & USDA adult category starts at 19
   data$numkidsunder13=rowSums(cbind(data$agePerson1, data$agePerson2, data$agePerson3, data$agePerson4, data$agePerson5, data$agePerson6, data$agePerson7, data$agePerson8, data$agePerson9, data$agePerson10, data$agePerson11, data$agePerson12)<=12,na.rm=TRUE)
   data$ageofYoungestChild=rowMins(cbind(data$agePerson1, data$agePerson2, data$agePerson3, data$agePerson4, data$agePerson5, data$agePerson6, data$agePerson7, data$agePerson8, data$agePerson9, data$agePerson10, data$agePerson11, data$agePerson12),na.rm=TRUE)
   
-  # By default - allocate total family income EQUALLY to each adult family member (income1-income12)
+  # By default - Disability programs determine the value of the benefit on an individual level. We allocate total family income EQUALLY to each adult family member (income1-income6)
   # Default Assumption 1: Equal allocation of income
   # Default Assumption 2: All adults are working 
   data$income1[!is.na(data$agePerson1) & data$agePerson1>=19]<-data$income[!is.na(data$agePerson1) & data$agePerson1>=19]/data$numadults[!is.na(data$agePerson1) & data$agePerson1>=19]
@@ -149,276 +147,9 @@ function.InitialTransformations<-function(data){
   
 }
 
-
 #------------------------------------------------------------------------
 #------------------------------------------------------------------------
-## ASSIGN DEFAULT EXPENSES
-#------------------------------------------------------------------------
-#------------------------------------------------------------------------
-BenefitsCalculator.DefaultExpenses<-function(data){
-  
-# Variables required to calculate each expense is specified in the function
-# Function will not run unless all inputs are specified
-
-## CHILDCARE EXPENSE
-#the last argument (schoolagesummercare) defaults to part-time. override to full-time for experiments where we can estimate CCDF copay ourselves for summer time
-
-#person1
-data$childcare.exp.person1<-function.childcareExp.UW(data
-                                                    , ageofPersonvar="agePerson1"
-                                                    , currentyr=2021
-                                                    , schoolagesummercare = "PT")
-#replace with childaware data if missing from UW dataset
-data$childcare.exp.person1<-ifelse(is.na(data$childcare.exp.person1),function.childcareExp.childaware(data=data
-                                                    , ageofPersonvar="agePerson1"
-                                                    , currentyr=2021),data$childcare.exp.person1)
-
-
-
-#person2
-data$childcare.exp.person2<-function.childcareExp.UW(data
-                                                    , ageofPersonvar="agePerson2"
-                                                    , currentyr=2021
-                                                    , schoolagesummercare = "PT")
-data$childcare.exp.person2<-ifelse(is.na(data$childcare.exp.person2),function.childcareExp.childaware(data=data
-                                                     , ageofPersonvar="agePerson2"
-                                                     , currentyr=2021),data$childcare.exp.person2)
-
-#person3
-data$childcare.exp.person3<-function.childcareExp.UW(data
-                                                    , ageofPersonvar="agePerson3"
-                                                    , currentyr=2021
-                                                    , schoolagesummercare = "PT")
-data$childcare.exp.person3<-ifelse(is.na(data$childcare.exp.person3),function.childcareExp.childaware(data=data
-                                                    , ageofPersonvar="agePerson3"
-                                                    , currentyr=2021),data$childcare.exp.person3)
-
-#person4
-data$childcare.exp.person4<-function.childcareExp.UW(data
-                                                    , ageofPersonvar="agePerson4"
-                                                    , currentyr=2021
-                                                    , schoolagesummercare = "PT")
-data$childcare.exp.person4<-ifelse(is.na(data$childcare.exp.person4),function.childcareExp.childaware(data=data
-                                                    , ageofPersonvar="agePerson4"
-                                                    , currentyr=2021),data$childcare.exp.person4)
-
-#person5
-data$childcare.exp.person5<-function.childcareExp.UW(data
-                                                     , ageofPersonvar="agePerson5"
-                                                     , currentyr=2021
-                                                     , schoolagesummercare = "PT")
-data$childcare.exp.person5<-ifelse(is.na(data$childcare.exp.person5),function.childcareExp.childaware(data=data
-                                                     , ageofPersonvar="agePerson5"
-                                                     , currentyr=2021),data$childcare.exp.person5)
-
-
-#person6
-data$childcare.exp.person6<-function.childcareExp.UW(data
-                                                     , ageofPersonvar="agePerson6"
-                                                     , currentyr=2021
-                                                     , schoolagesummercare = "PT")
-data$childcare.exp.person6<-ifelse(is.na(data$childcare.exp.person6),function.childcareExp.childaware(data=data
-                                                     , ageofPersonvar="agePerson6"
-                                                     , currentyr=2021),data$childcare.exp.person6)
-
-
-
-#person7
-data$childcare.exp.person7<-function.childcareExp.UW(data
-                                                     , ageofPersonvar="agePerson7"
-                                                     , currentyr=2021
-                                                     , schoolagesummercare = "PT")
-data$childcare.exp.person7<-ifelse(is.na(data$childcare.exp.person7),function.childcareExp.childaware(data=data
-                                                    , ageofPersonvar="agePerson7"
-                                                    , currentyr=2021),data$childcare.exp.person7)
-
-#person8
-data$childcare.exp.person8<-function.childcareExp.UW(data
-                                                     , ageofPersonvar="agePerson8"
-                                                     , currentyr=2021
-                                                     , schoolagesummercare = "PT")
-data$childcare.exp.person8<-ifelse(is.na(data$childcare.exp.person8),function.childcareExp.childaware(data=data
-                                                    , ageofPersonvar="agePerson8"
-                                                    , currentyr=2021),data$childcare.exp.person8)
-
-#person9
-data$childcare.exp.person9<-function.childcareExp.UW(data
-                                                     , ageofPersonvar="agePerson9"
-                                                     , currentyr=2021
-                                                     , schoolagesummercare = "PT")
-data$childcare.exp.person9<-ifelse(is.na(data$childcare.exp.person9),function.childcareExp.childaware(data=data
-                                                    , ageofPersonvar="agePerson9"
-                                                    , currentyr=2021),data$childcare.exp.person9)
-
-#person10
-data$childcare.exp.person10<-function.childcareExp.UW(data
-                                                     , ageofPersonvar="agePerson10"
-                                                     , currentyr=2021
-                                                     , schoolagesummercare = "PT")
-data$childcare.exp.person10<-ifelse(is.na(data$childcare.exp.person10),function.childcareExp.childaware(data=data
-                                                    , ageofPersonvar="agePerson10"
-                                                    , currentyr=2021),data$childcare.exp.person10)
-#person11
-data$childcare.exp.person11<-function.childcareExp.UW(data
-                                                     , ageofPersonvar="agePerson11"
-                                                     , currentyr=2021
-                                                     , schoolagesummercare = "PT")
-data$childcare.exp.person11<-ifelse(is.na(data$childcare.exp.person11),function.childcareExp.childaware(data=data
-                                                    , ageofPersonvar="agePerson11"
-                                                    , currentyr=2021),data$childcare.exp.person11)
-#person12
-data$childcare.exp.person12<-function.childcareExp.UW(data
-                                                     , ageofPersonvar="agePerson12"
-                                                     , currentyr=2021
-                                                     , schoolagesummercare = "PT")
-data$childcare.exp.person12<-ifelse(is.na(data$childcare.exp.person12),function.childcareExp.childaware(data=data
-                                                    , ageofPersonvar="agePerson12"
-                                                    , currentyr=2021),data$childcare.exp.person12)
-
-
-
-# Total
-data<-data %>% 
-  mutate(exp.childcare = childcare.exp.person1+childcare.exp.person2+childcare.exp.person3+childcare.exp.person4+childcare.exp.person5+childcare.exp.person6+childcare.exp.person7+childcare.exp.person8+childcare.exp.person9+childcare.exp.person10+childcare.exp.person11+childcare.exp.person12)
-
-
-# ## TRANSPORTATION EXPENSE
-# data$exp.transportation<-function.transpExp.UW(data
-#                                                , statefipsvar = "stateFIPS"
-#                                                , countyortownnamevar = "countyortownName"
-#                                                , numadultsvar = "numadults"
-#                                                , numkidsvar = "numkids"
-#                                                , currentyr=2021)
-# #replace with imputed values if missing from UW dataset
-# data$exp.transportation<-ifelse(is.na(data$exp.transportation),function.transpExp.imputed(data, statefipsvar = "stateFIPS"
-#                                                                                           , countyortownnamevar = "countyortownName"
-#                                                                                           , numadultsvar = "numadults"
-#                                                                                           , numkidsvar = "numkids"
-#                                                                                           , currentyr=2021),data$exp.transportation)
-
-## TRANSPORTATION EXPENSE
-data$exp.transportation<-function.transpExp.EEE(data
-                                               , currentyr=2021)
-
-
-## FOOD EXPENSE
-#data$exp.food<-function.foodExp.UW(data
-#                                   , statefipsvar = "stateFIPS"
-#                                   , countyortownnamevar = "countyortownName"
-#                                   , numadultsvar = "numadults"
-#                                   , numkidsvar = "numkids"
-#                                   , currentyr=2021)
-#replace with USDA value if missing from UW dataset
-data$exp.food<-function.foodExp.USDA(data
-                                     , currentyr=2021)
-
-## MISCALLENEOUS (OTHER) EXPENSE
-data$exp.misc<-function.miscExp.UW(data
-                                   , currentyr=2021)
-#replace with imputed values if missing from UW dataset
-data$exp.misc<-ifelse(is.na(data$exp.misc),function.miscExp.imputed(data
-                                                                    , currentyr=2021), data$exp.misc)
-
-## UTILITY EXPENSE 
-data$exp.utilities<-function.utilityExp.CEX(data
-                                            , currentyr=2021)
-
-## HOUSING EXPENSE
-data$exp.rentormortgage<-function.housingExp.HUD(data
-                                                 , currentyr=2021)
-
-## HEALTHCARE EXPENSE
-#data$exp.healthcare<-function.healthcareExp.UW(data
-#                                               , statefipsvar = "stateFIPS"
-#                                               , countyortownnamevar = "countyortownName"
-#                                               , numadultsvar = "numadults"
-#                                               , numkidsvar = "numkids"
-#                                               , currentyr=2021)
-#replace with MEPS data if missing in UW (! These are Employer Healthcare Premiums)
-data$exp.healthcare<-function.healthcareExp.MEPS(data
-                                                 , famsizevar = "famsize"
-                                                 , currentyr=2021)
-
-# For Self-Sufficiency Target
-data$exp.healthcare.SS<-data$exp.healthcare 
-
-## COSTS OF SCHOOL MEAL
-data$exp.schoolMeals<-function.schoolmealsExp(data, currentyr=2021)
-
-#ALICE uses this as an expense, need it here so program won't crash
-data$exp.tech<-0
-
-#ALICE charts need housing , so make this here to so programs don't crash
-data$exp.housing<-data$exp.rentormortgage+data$exp.utilities
-
-## SPECIAL EXPENSES FOR PEOPLE WITH DISABILITIES
-data$exp.special.disability.person1<-function.specialExp(data
-                                                         , ageofPersonvar="agePerson1"
-                                                         , disabilityStatus="disability1"
-                                                         , currentyr=2021)
-
-data$exp.special.disability.person2<-function.specialExp(data
-                                                         , ageofPersonvar="agePerson2"
-                                                         , disabilityStatus="disability2"
-                                                         , currentyr=2021)
-
-data$exp.special.disability.person3<-function.specialExp(data
-                                                         , ageofPersonvar="agePerson3"
-                                                         , disabilityStatus="disability3"
-                                                         , currentyr=2021)
-
-data$exp.special.disability.person4<-function.specialExp(data
-                                                         , ageofPersonvar="agePerson4"
-                                                         , disabilityStatus="disability4"
-                                                         , currentyr=2021)
-
-data$exp.special.disability.person5<-function.specialExp(data
-                                                         , ageofPersonvar="agePerson5"
-                                                         , disabilityStatus="disability5"
-                                                         , currentyr=2021)
-
-data$exp.special.disability.person6<-function.specialExp(data
-                                                         , ageofPersonvar="agePerson6"
-                                                         , disabilityStatus="disability6"
-                                                         , currentyr=2021)
-
-data$exp.special.disability.person7<-function.specialExp(data
-                                                         , ageofPersonvar="agePerson7"
-                                                         , disabilityStatus="disability7"
-                                                         , currentyr=2021)
-data$exp.special.disability.person8<-function.specialExp(data
-                                                         , ageofPersonvar="agePerson8"
-                                                         , disabilityStatus="disability8"
-                                                         , currentyr=2021)
-data$exp.special.disability.person9<-function.specialExp(data
-                                                         , ageofPersonvar="agePerson9"
-                                                         , disabilityStatus="disability9"
-                                                         , currentyr=2021)
-data$exp.special.disability.person10<-function.specialExp(data
-                                                         , ageofPersonvar="agePerson10"
-                                                         , disabilityStatus="disability10"
-                                                         , currentyr=2021)
-data$exp.special.disability.person11<-function.specialExp(data
-                                                         , ageofPersonvar="agePerson11"
-                                                         , disabilityStatus="disability11"
-                                                         , currentyr=2021)
-data$exp.special.disability.person12<-function.specialExp(data
-                                                         , ageofPersonvar="agePerson12"
-                                                         , disabilityStatus="disability12"
-                                                         , currentyr=2021)
-data<-data %>% 
-  mutate(exp.special.disability = exp.special.disability.person1+exp.special.disability.person2+exp.special.disability.person3+exp.special.disability.person4+exp.special.disability.person5+exp.special.disability.person6+exp.special.disability.person7+exp.special.disability.person8+exp.special.disability.person9+exp.special.disability.person10+exp.special.disability.person11+exp.special.disability.person12)
-
-
-
-return(data)
-  
-}
-
-
-#------------------------------------------------------------------------
-#------------------------------------------------------------------------
-## ASSIGN ALICE EXPENSES (LA, TX and MD DATA ONLY) /*update later*/
+## ASSIGN ALICE EXPENSES 
 #------------------------------------------------------------------------
 #------------------------------------------------------------------------
 BenefitsCalculator.ALICEExpenses<-function(data){
@@ -431,178 +162,104 @@ BenefitsCalculator.ALICEExpenses<-function(data){
   
   #person1
   data$childcare.exp.person1<-function.childcareExp.ALICE(data
-                                                       , ageofPersonvar="agePerson1"
-                                                       , currentyr=2021
-                                                       , schoolagesummercare = "PT")
+                                                       , schoolagesummercare = "PT")[,1]
   
   #person2
   data$childcare.exp.person2<-function.childcareExp.ALICE(data
-                                                       , ageofPersonvar="agePerson2"
-                                                       , currentyr=2021
-                                                       , schoolagesummercare = "PT")
-  
+                                                       , schoolagesummercare = "PT")[,2]
+
   #person3
   data$childcare.exp.person3<-function.childcareExp.ALICE(data
-                                                       , ageofPersonvar="agePerson3"
-                                                       , currentyr=2021
-                                                       , schoolagesummercare = "PT")
-  
+                                                       , schoolagesummercare = "PT")[,3]
+
   #person4
   data$childcare.exp.person4<-function.childcareExp.ALICE(data
-                                                       , ageofPersonvar="agePerson4"
-                                                       , currentyr=2021
-                                                       , schoolagesummercare = "PT")
-  
+                                                       , schoolagesummercare = "PT")[,4]
+
   #person5
   data$childcare.exp.person5<-function.childcareExp.ALICE(data
-                                                       , ageofPersonvar="agePerson5"
-                                                       , currentyr=2021
-                                                       , schoolagesummercare = "PT")
- 
+                                                       , schoolagesummercare = "PT")[,5]
+
   #person6
   data$childcare.exp.person6<-function.childcareExp.ALICE(data
-                                                       , ageofPersonvar="agePerson6"
-                                                       , currentyr=2021
-                                                       , schoolagesummercare = "PT")
- 
+                                                       , schoolagesummercare = "PT")[,6]
+
   #person7
   data$childcare.exp.person7<-function.childcareExp.ALICE(data
-                                                       , ageofPersonvar="agePerson7"
-                                                       , currentyr=2021
-                                                       , schoolagesummercare = "PT")
+                                                       , schoolagesummercare = "PT")[,7]
   #person8
   data$childcare.exp.person8<-function.childcareExp.ALICE(data
-                                                       , ageofPersonvar="agePerson8"
-                                                       , currentyr=2021
-                                                       , schoolagesummercare = "PT")
+                                                       , schoolagesummercare = "PT")[,8]
   #person9
   data$childcare.exp.person9<-function.childcareExp.ALICE(data
-                                                       , ageofPersonvar="agePerson9"
-                                                       , currentyr=2021
-                                                       , schoolagesummercare = "PT")
+                                                       , schoolagesummercare = "PT")[,9]
   #person10
   data$childcare.exp.person10<-function.childcareExp.ALICE(data
-                                                        , ageofPersonvar="agePerson10"
-                                                        , currentyr=2021
-                                                        , schoolagesummercare = "PT")
+                                                        , schoolagesummercare = "PT")[,10]
   #person11
   data$childcare.exp.person11<-function.childcareExp.ALICE(data
-                                                        , ageofPersonvar="agePerson11"
-                                                        , currentyr=2021
-                                                        , schoolagesummercare = "PT")
+                                                        , schoolagesummercare = "PT")[,11]
   #person12
   data$childcare.exp.person12<-function.childcareExp.ALICE(data
-                                                        , ageofPersonvar="agePerson12"
-                                                        , currentyr=2021
-                                                        , schoolagesummercare = "PT")
-  
-  # Total
-  data<-data %>% 
-    mutate(exp.childcare = childcare.exp.person1+childcare.exp.person2+childcare.exp.person3+childcare.exp.person4+childcare.exp.person5+childcare.exp.person6+childcare.exp.person7+childcare.exp.person8+childcare.exp.person9+childcare.exp.person10+childcare.exp.person11+childcare.exp.person12)
-  
-  
+                                                        , schoolagesummercare = "PT")[,12]
+
+  # Total cost of child care
+  data<-data %>%
+    mutate(exp.childcare = childcare.exp.person1+childcare.exp.person2+childcare.exp.person3+childcare.exp.person4+childcare.exp.person5+childcare.exp.person6+childcare.exp.person7+childcare.exp.person8+childcare.exp.person9+childcare.exp.person10+childcare.exp.person11+childcare.exp.person12) 
+
   ## TRANSPORTATION EXPENSE
-  data$exp.transportation<-function.transpExp.ALICE(data
-                                                 , currentyr=2021)
+  data$exp.transportation<-function.transpExp.ALICE(data)
   
   # FOOD EXPENSE
-  data$exp.food<-function.foodExp.ALICE(data
-                                    , currentyr=2021)
+  data$exp.basicfood<-function.foodExp.ALICE(data)
   
+  # COST OF SCHOOL MEALS
+  data$exp.schoolMeals<-function.schoolmealsExp(data)
   
-  ## MISCALLENEOUS (OTHER) EXPENSE
-  data$exp.misc<-function.miscExp.ALICE(data
-                                     , currentyr=2021)
-  ## tech EXPENSE
-  data$exp.tech<-function.techExp.ALICE(data
-                                        , currentyr=2021)
+  # WIC
+  data$exp.wic<-function.wicExp(data)
   
-  ## UTILITY EXPENSE 
-  data$exp.utilities<-function.utilityExp.CEX(data
-                                              , currentyr=2021)
+  # For CLIFF, aggregate exp.food from fam food cost, WIC value, and school meals value so that food cost is always at least as much as food benefits
+  if (budget.ALICE=="survival" | budget.ALICE=="stability"){
+  data$exp.food<-data$exp.basicfood
+  data<-data%>%select(-c(exp.basicfood))
+  }else if(budget.ALICE=="survivalforcliff"){
+  data$exp.food<-data$exp.basicfood + data$exp.schoolMeals + data$exp.wic
+  data<-data%>%select(-c(exp.basicfood))
+  }
+  
+  ## TECH EXPENSE
+  data$exp.tech<-function.techExp.ALICE(data)
   
   ## HOUSING EXPENSE
-  #### NOTE IN ALICE DATA THIS IS HOUSING (RENT+UTIL) NOT RENT ONLY
-  data$exp.housing<-function.housingExp.ALICE(data
-                                                   , currentyr=2021)
-  
-  #NEET TO TAKE UTILities OUT OF HOUSING EXP SO SECTION 8 IS CORRECT AND SO TOTALS AT THE END DON'T DOUBLE COUNT UTILITITES.
-  #FOR GRAPHS & tables THAT SHOW ALICE HOUSING EXP, NEED TO MANUALLY ADD THIS BACK IN
-  data$exp.rentormortgage<-data$exp.housing-data$exp.utilities
-  
+  #### NOTE: Output for the function is two objects: rent and utilities expense
+  exp.housing<-function.housingExp.ALICE(data) 
+  data<-data%>%
+    cbind(exp.housing)
+  data$exp.rentormortgage<-data$exp.rent
+  data$exp.housing<-data$exp.rent + data$exp.utilities
 
-  # HEALTHCARE EXPENSE
-  data$exp.healthcare<-function.healthcareExp.ALICE(data
-                                                , currentyr=2021)
+  # HEALTHCARE EXPENSE - returns multiple outputs as object, append each element (output) as column to the data
+  # -- exp.healthcare.employer & premium.employer may be recalculated in the healthcare benefits section
+  exp.healthcare<-function.healthcareExp.ALICE(data
+                                                , famsizevar = "famsize")
+  data<-data%>%
+    cbind(exp.healthcare)
  
   # For Self-Sufficiency Target
-  data$exp.healthcare.SS<-data$exp.healthcare 
-  
-  ## COSTS OF SCHOOL MEAL
-  data$exp.schoolMeals<-function.schoolmealsExp(data, currentyr=2021)
+  data$exp.healthcare.SS<-data$ALICE.expense.healthcare.family 
   
   
-  ## SPECIAL EXPENSES FOR PEOPLE WITH DISABILITIES
-  data$exp.special.disability.person1<-function.specialExp(data
-                                                           , ageofPersonvar="agePerson1"
-                                                           , disabilityStatus="disability1"
-                                                           , currentyr=2021)
+  # MISCALLENEOUS (OTHER) EXPENSE. This is calculated at the end 10% of all budget items (Food,housing,Health Care,Transportation,Tech,Child care)
+  data$exp.misc<- round(.1 * rowMaxs(cbind((data$ALICE.expense.healthcare.family+
+                                data$exp.utilities+
+                                data$exp.rentormortgage+
+                                data$exp.tech+
+                                data$exp.food+
+                                data$exp.transportation+
+                                data$exp.childcare), na.rm=TRUE)),0)
   
-  data$exp.special.disability.person2<-function.specialExp(data
-                                                           , ageofPersonvar="agePerson2"
-                                                           , disabilityStatus="disability2"
-                                                           , currentyr=2021)
-  
-  data$exp.special.disability.person3<-function.specialExp(data
-                                                           , ageofPersonvar="agePerson3"
-                                                           , disabilityStatus="disability3"
-                                                           , currentyr=2021)
-  
-  data$exp.special.disability.person4<-function.specialExp(data
-                                                           , ageofPersonvar="agePerson4"
-                                                           , disabilityStatus="disability4"
-                                                           , currentyr=2021)
-  
-  data$exp.special.disability.person5<-function.specialExp(data
-                                                           , ageofPersonvar="agePerson5"
-                                                           , disabilityStatus="disability5"
-                                                           , currentyr=2021)
-  
-  data$exp.special.disability.person6<-function.specialExp(data
-                                                           , ageofPersonvar="agePerson6"
-                                                           , disabilityStatus="disability6"
-                                                           , currentyr=2021)
-  
-  data$exp.special.disability.person7<-function.specialExp(data
-                                                           , ageofPersonvar="agePerson7"
-                                                           , disabilityStatus="disability7"
-                                                           , currentyr=2021)
-  data$exp.special.disability.person8<-function.specialExp(data
-                                                           , ageofPersonvar="agePerson8"
-                                                           , disabilityStatus="disability8"
-                                                           , currentyr=2021)
-  data$exp.special.disability.person9<-function.specialExp(data
-                                                           , ageofPersonvar="agePerson9"
-                                                           , disabilityStatus="disability9"
-                                                           , currentyr=2021)
-  data$exp.special.disability.person10<-function.specialExp(data
-                                                            , ageofPersonvar="agePerson10"
-                                                            , disabilityStatus="disability10"
-                                                            , currentyr=2021)
-  data$exp.special.disability.person11<-function.specialExp(data
-                                                            , ageofPersonvar="agePerson11"
-                                                            , disabilityStatus="disability11"
-                                                            , currentyr=2021)
-  data$exp.special.disability.person12<-function.specialExp(data
-                                                            , ageofPersonvar="agePerson12"
-                                                            , disabilityStatus="disability12"
-                                                            , currentyr=2021)
-  data<-data %>% 
-    mutate(exp.special.disability = exp.special.disability.person1+exp.special.disability.person2+exp.special.disability.person3+exp.special.disability.person4+exp.special.disability.person5+exp.special.disability.person6+exp.special.disability.person7+exp.special.disability.person8+exp.special.disability.person9+exp.special.disability.person10+exp.special.disability.person11+exp.special.disability.person12)
-  
-  
-  
-  
+ 
   return(data)
   
 }
@@ -909,7 +566,7 @@ data <- data %>%
 data<-data %>% 
   mutate(netexp.childcare = exp.childcare-value.HeadStart-value.earlyHeadStart)
 
-} #end head start & early  head start function
+} #end Head Start & Early Head Start function
     
   
 ##############
@@ -1087,25 +744,24 @@ data<-data %>%
         mutate(value.PreK = value.PreKperson1+value.PreKperson2+value.PreKperson3+value.PreKperson4++value.PreKperson5++value.PreKperson6++value.PreKperson7+value.PreKperson8+value.PreKperson9+value.PreKperson10+value.PreKperson11+value.PreKperson12)
       
             #Calculate childcare cost net of preK & headstart
-      data<-data %>% 
+      data=data %>% 
         mutate(netexp.childcare = exp.childcare-value.PreK-value.HeadStart-value.earlyHeadStart,
-               netexp.childcareperson1<-childcare.exp.person1- value.PreKperson1-value.HeadStartperson1-value.earlyHeadStartperson1,
-                netexp.childcareperson2<-childcare.exp.person2- value.PreKperson2-value.HeadStartperson2-value.earlyHeadStartperson2,
-                netexp.childcareperson3<-childcare.exp.person3- value.PreKperson3-value.HeadStartperson3-value.earlyHeadStartperson3,
-                netexp.childcareperson4<-childcare.exp.person4- value.PreKperson4-value.HeadStartperson4-value.earlyHeadStartperson4,
-                netexp.childcareperson5<-childcare.exp.person5- value.PreKperson5-value.HeadStartperson5-value.earlyHeadStartperson5,
-                netexp.childcareperson6<-childcare.exp.person6- value.PreKperson6-value.HeadStartperson6-value.earlyHeadStartperson6,
-                netexp.childcareperson7<-childcare.exp.person7- value.PreKperson7-value.HeadStartperson7-value.earlyHeadStartperson7,
-               netexp.childcareperson8<-childcare.exp.person8- value.PreKperson8-value.HeadStartperson8-value.earlyHeadStartperson8,
-               netexp.childcareperson9<-childcare.exp.person9- value.PreKperson9-value.HeadStartperson9-value.earlyHeadStartperson9,
-               netexp.childcareperson10<-childcare.exp.person10- value.PreKperson10-value.HeadStartperson10-value.earlyHeadStartperson10,
-               netexp.childcareperson11<-childcare.exp.person11- value.PreKperson11-value.HeadStartperson11-value.earlyHeadStartperson11,
-               netexp.childcareperson12<-childcare.exp.person12- value.PreKperson12-value.HeadStartperson12-value.earlyHeadStartperson12
+               netexp.childcareperson1=childcare.exp.person1- value.PreKperson1-value.HeadStartperson1-value.earlyHeadStartperson1,
+                netexp.childcareperson2=childcare.exp.person2- value.PreKperson2-value.HeadStartperson2-value.earlyHeadStartperson2,
+                netexp.childcareperson3=childcare.exp.person3- value.PreKperson3-value.HeadStartperson3-value.earlyHeadStartperson3,
+                netexp.childcareperson4=childcare.exp.person4- value.PreKperson4-value.HeadStartperson4-value.earlyHeadStartperson4,
+                netexp.childcareperson5=childcare.exp.person5- value.PreKperson5-value.HeadStartperson5-value.earlyHeadStartperson5,
+                netexp.childcareperson6=childcare.exp.person6- value.PreKperson6-value.HeadStartperson6-value.earlyHeadStartperson6,
+                netexp.childcareperson7=childcare.exp.person7- value.PreKperson7-value.HeadStartperson7-value.earlyHeadStartperson7,
+               netexp.childcareperson8=childcare.exp.person8- value.PreKperson8-value.HeadStartperson8-value.earlyHeadStartperson8,
+               netexp.childcareperson9=childcare.exp.person9- value.PreKperson9-value.HeadStartperson9-value.earlyHeadStartperson9,
+               netexp.childcareperson10=childcare.exp.person10- value.PreKperson10-value.HeadStartperson10-value.earlyHeadStartperson10,
+               netexp.childcareperson11=childcare.exp.person11- value.PreKperson11-value.HeadStartperson11-value.earlyHeadStartperson11,
+               netexp.childcareperson12=childcare.exp.person12- value.PreKperson12-value.HeadStartperson12-value.earlyHeadStartperson12
                 )
     } #end PREK=true function
 
-######
-#sum number of school age kids & recalculate school meals cost based on this
+# Sum the number of school age kids & recalculate school meals cost based on this
 #####
     
     data$numkidsinschool=rowSums(cbind(data$value.PreKperson1, data$value.PreKperson2, data$value.PreKperson3, data$value.PreKperson4, data$value.PreKperson5, data$value.PreKperson6, data$value.PreKperson7, data$value.PreKperson8, data$value.PreKperson9, data$value.PreKperson10, data$value.PreKperson11, data$value.PreKperson12)>0 | (cbind(data$agePerson1, data$agePerson2, data$agePerson3, data$agePerson4, data$agePerson5, data$agePerson6, data$agePerson7, data$agePerson8, data$agePerson9, data$agePerson10, data$agePerson11, data$agePerson12)>=5 & cbind(data$agePerson1, data$agePerson2, data$agePerson3, data$agePerson4, data$agePerson5, data$agePerson6, data$agePerson7, data$agePerson8, data$agePerson9, data$agePerson10, data$agePerson11, data$agePerson12)<=17),na.rm=TRUE)
@@ -1115,10 +771,10 @@ data<-data %>%
     
     
 ################################################
-#calcualte overage costs for the whole family
+# Calculate overage costs for the whole family
 ##################################################
-    #WE decided against using overage because we don't have data on how common this is.
-    # comment out for now, bc in future we find data on this 
+    # We decided against using overage because we don't have data on how common this is.
+    # Set to zero for now, bc in future we find data on this 
 data$childcare.overage<-0
 
 if(APPLY_CCDF==FALSE){
@@ -1146,7 +802,6 @@ if(APPLY_CCDF==FALSE){
       mutate(netexp.childcare = exp.childcare-value.HeadStart-value.earlyHeadStart-value.PreK- value.CCDF)
     
   }
-
 
 
 if(APPLY_FATES==FALSE){
@@ -1182,7 +837,7 @@ if(APPLY_FATES==FALSE){
 #------------------------------------------------------------------------
 #------------------------------------------------------------------------
 # Health Insurance Costs Minimization Algorithm
-# 1. Medicaid/CHIP is the cheapest option - everyone who is eligible enrolles 
+# 1. Medicaid/CHIP is the cheapest option - everyone who is eligible enrolls 
 # 2. For those who are not on Medicaid/CHIP - calculate premiums for: 
 #     i) employer plan
 #     ii) health exchange
@@ -1201,23 +856,21 @@ BenefitsCalculator.Healthcare<-function(data, APPLY_HEALTHCARE=FALSE, APPLY_MEDI
     
     ###############################
     # Assign employer healthcare if available
-    data$famsize.foremployerhealthcare<-data$famsize
     
-    # Total costs of employer health insurance
-    data$exp.healthcare.employer<-function.healthcareExp.MEPS(data
-                                                              , famsizevar = "famsize.foremployerhealthcare")
-    # Employee premium
-    data$premium.employerhealthcare<-function.EmployerHealthcare(data
-                                                                 , famsizevar = "famsize.foremployerhealthcare")
+    data$exp.healthcare.employer<-function.healthcareExp.ALICE(data
+                                                               , famsizevar = "famsize")[,2]
+   
+    data$premium.employer<-function.healthcareExp.ALICE(data
+                                                        , famsizevar = "famsize")[,3] # employee premium
     
-    data$exp.healthcare.SS <- data$premium.employerhealthcare
+    data$exp.healthcare.SS <- data$ALICE.expense.healthcare.family
     
     # If option of healthcare through employer is not available, then set everything to NA
     data<-data %>% 
       mutate(exp.healthcare.employer = case_when(empl_healthcare==0 ~ NA_real_, TRUE~exp.healthcare.employer)
-             ,premium.employerhealthcare = case_when(empl_healthcare==0 ~ NA_real_, TRUE~premium.employerhealthcare)) %>% 
+             ,premium.employer = case_when(empl_healthcare==0 ~ NA_real_, TRUE~premium.employer)) %>% 
       # Value of the employer healthcare
-      mutate(value.employerhealthcare = exp.healthcare.employer - premium.employerhealthcare)
+      mutate(value.employerhealthcare = exp.healthcare.employer - premium.employer)
     data$value.employerhealthcare[is.na(data$value.employerhealthcare)]<-0
     
     
@@ -1259,14 +912,14 @@ BenefitsCalculator.Healthcare<-function(data, APPLY_HEALTHCARE=FALSE, APPLY_MEDI
                                                       ,data$exp.healthcare.healthexchange.person11,data$exp.healthcare.healthexchange.person12), na.rm = TRUE)
     
     
-    # Determine what healhcare sources are used !! add medicare here too!
+    # Determine what health care sources are used !! add medicare here too!
     data<-data %>% 
       # Generate out-of-pocket premium
       mutate(premium.outofpocket = exp.healthcare.healthexchange) %>% 
       # Employer healthcare is available and Health Exchange is available, then compare two plans
-      mutate(healthcare.source = case_when( (!is.na(premium.employerhealthcare) & premium.employerhealthcare <= premium.outofpocket) ~ "Employer" # If Health Exchange more expensive than Employer plan
-                                            ,(!is.na(premium.employerhealthcare) & premium.employerhealthcare > premium.outofpocket) ~ "Out-of-pocket" # If Health Exchange is cheaper than Employer plan
-                                            ,(is.na(premium.employerhealthcare)) ~ "Out-of-pocket" # If both unavailable
+      mutate(healthcare.source = case_when( (!is.na(premium.employer) & premium.employer <= premium.outofpocket) ~ "Employer" # If Health Exchange more expensive than Employer plan
+                                            ,(!is.na(premium.employer) & premium.employer > premium.outofpocket) ~ "Out-of-pocket" # If Health Exchange is cheaper than Employer plan
+                                            ,(is.na(premium.employer)) ~ "Out-of-pocket" # If both unavailable
                                             , TRUE ~ NA_character_) 
       )
     
@@ -1285,7 +938,7 @@ BenefitsCalculator.Healthcare<-function(data, APPLY_HEALTHCARE=FALSE, APPLY_MEDI
   }else{
     #Healthcare: must do this for each family member separately... unless they are on a family plan
     
-    #if not on family plan (@ employer or through health exchange):
+    #if not on family plan then assign the employer plan or through health exchange:
     
     # Initialize Source of Healthcare for Each Person
     data<-data %>% 
@@ -1404,7 +1057,7 @@ BenefitsCalculator.Healthcare<-function(data, APPLY_HEALTHCARE=FALSE, APPLY_MEDI
                                                                                                 ,premium.medicaid.person9,premium.medicaid.person10
                                                                                                 ,premium.medicaid.person11,premium.medicaid.person12), na.rm=TRUE)
                                           , TRUE ~ 0)
-             # This will ensure that premium is zero if noone in the family is on medicaid and rowMaxs can't be taken
+             # This will ensure that premium is zero if no one in the family is on Medicaid and rowMaxs can't be taken
              ,premium.medicaid = case_when(is.infinite(premium.medicaid) ~ 0, TRUE ~ premium.medicaid))
     
     # Adjust Medicaid expenses to be NA if person is not on Medicaid
@@ -1541,7 +1194,7 @@ BenefitsCalculator.Healthcare<-function(data, APPLY_HEALTHCARE=FALSE, APPLY_MEDI
                                                                                                       ,premium.medicaid.adult.person9,premium.medicaid.adult.person10
                                                                                                       ,premium.medicaid.adult.person11,premium.medicaid.adult.person12), na.rm=TRUE)
                                                 , TRUE ~ 0)
-             # This will ensure that premium is zero if noone in the family is on medicaid and rowMaxs can't be taken
+             # This will ensure that premium is zero if no one in the family is on medicaid and rowMaxs can't be taken
              ,premium.medicaid.adult = case_when(is.infinite(premium.medicaid.adult) ~ 0, TRUE ~ premium.medicaid.adult))
     
     
@@ -1663,7 +1316,6 @@ BenefitsCalculator.Healthcare<-function(data, APPLY_HEALTHCARE=FALSE, APPLY_MEDI
       
     }
     
-    
     # Adjust for Medicaid take-up
       
     # Is take-up variable specified?
@@ -1715,7 +1367,6 @@ BenefitsCalculator.Healthcare<-function(data, APPLY_HEALTHCARE=FALSE, APPLY_MEDI
                ,exp.healthcare.medicaid.adult.person12 = NA_real_) 
     
     
-      
       # Is take-up variable specified?
       if(is.null(data$medicaid_child_takeup)){
         data$medicaid_child_takeup<-1
@@ -1768,7 +1419,6 @@ BenefitsCalculator.Healthcare<-function(data, APPLY_HEALTHCARE=FALSE, APPLY_MEDI
       
     
     
-    
     # Total Family's Medicaid value taking into account that premium sometimes is paid per family/per person
     data<-data %>% 
       mutate(value.medicaid.adult=rowSums(cbind(value.medicaid.adult.person1,value.medicaid.adult.person2,value.medicaid.adult.person3
@@ -1802,10 +1452,7 @@ BenefitsCalculator.Healthcare<-function(data, APPLY_HEALTHCARE=FALSE, APPLY_MEDI
       
       mutate(exp.healthcare.medicaid=rowSums(cbind(exp.healthcare.medicaid.adult,exp.healthcare.medicaid.child), na.rm = TRUE))
       
-      
-      
-    
-    
+
     ######################
     # OPTIMIZATION STEP 1: Those who are eligible for Medicaid take it
     ######################
@@ -1899,8 +1546,7 @@ BenefitsCalculator.Healthcare<-function(data, APPLY_HEALTHCARE=FALSE, APPLY_MEDI
     #data$exp.healthcare.healthexchange[data$ruleYear<2014]<-0
     
     # Premium for the whole family
-    data$premium.aca<-function.aca(data
-                                   , currentyr = 2021)
+    data$premium.aca<-function.aca(data)
     
     if(APPLY_ACA==FALSE){
       data$premium.aca<-NA_real_
@@ -1943,33 +1589,33 @@ BenefitsCalculator.Healthcare<-function(data, APPLY_HEALTHCARE=FALSE, APPLY_MEDI
 
     data$famsize.onMedicaid<-data$numadults.onMedicaid+data$nukids.onMedicaid
     
-    # How many family memebrs (potentially) subscribe for the employer plan? Everyone who is not on Medicaid
+    # How many family members (potentially) subscribe for the employer plan? Everyone who is not on Medicaid
     data$famsize.foremployerhealthcare<-data$famsize-data$famsize.onMedicaid
     
-    # Total costs of employer health insurance
-    data$exp.healthcare.employer<-function.healthcareExp.MEPS(data
-                                                              , famsizevar = "famsize")
-    # Employee premium
-    data$premium.employerhealthcare<-function.EmployerHealthcare(data
-                                                                 , famsizevar = "famsize")
-    
-    data$exp.healthcare.SS <- data$premium.employerhealthcare
+    # Total costs of employer health insurance  
+    data$exp.healthcare.employer<-function.healthcareExp.ALICE(data
+                                                               , famsizevar = "famsize")[,2]
+    # Total costs of employee premium from the employer plan health insurance
+    data$premium.employer<-function.healthcareExp.ALICE(data
+                                                        , famsizevar = "famsize")[,3] # employee premium
+  
+    data$exp.healthcare.SS <- data$ALICE.expense.healthcare.family 
     data$exp.healthcare.employer <- NULL
-    data$premium.employerhealthcare <- NULL
+    data$premium.employer <- NULL 
     
-    data$exp.healthcare.employer<-function.healthcareExp.MEPS(data
-                                                              , famsizevar = "famsize.foremployerhealthcare")
+    data$exp.healthcare.employer<-function.healthcareExp.ALICE(data
+                                                              , famsizevar = "famsize.foremployerhealthcare")[,2]
     # Employee premium
-    data$premium.employerhealthcare<-function.EmployerHealthcare(data
-                                                                 , famsizevar = "famsize.foremployerhealthcare")
+    data$premium.employer<-function.healthcareExp.ALICE(data
+                                                        , famsizevar = "famsize.foremployerhealthcare")[,3]
     
     
     # If option of healthcare through employer is not available, then set everything to NA
     data<-data %>% 
       mutate(exp.healthcare.employer = case_when(empl_healthcare==0 ~ NA_real_, TRUE~exp.healthcare.employer)
-             ,premium.employerhealthcare = case_when(empl_healthcare==0 ~ NA_real_, TRUE~premium.employerhealthcare)) %>% 
+             ,premium.employer = case_when(empl_healthcare==0 ~ NA_real_, TRUE~premium.employer)) %>% 
       # Value of the employer healthcare
-      mutate(value.employerhealthcare = exp.healthcare.employer - premium.employerhealthcare)
+      mutate(value.employerhealthcare = exp.healthcare.employer - premium.employer)
     data$value.employerhealthcare[is.na(data$value.employerhealthcare)]<-0
     
     ######################
@@ -1981,12 +1627,12 @@ BenefitsCalculator.Healthcare<-function(data, APPLY_HEALTHCARE=FALSE, APPLY_MEDI
       # Generate out-of-pocket premium
       mutate(premium.outofpocket = exp.healthcare.healthexchange) %>% 
       # Employer healthcare is available and Health Exchange is available, then compare two plans
-      mutate(healthcare.source = case_when((!is.na(premium.employerhealthcare) & !is.na(premium.aca) & premium.employerhealthcare > premium.aca) ~ "Marketplace"
-                                           ,(!is.na(premium.employerhealthcare) & !is.na(premium.aca) & premium.employerhealthcare <= premium.aca) ~ "Employer"
-                                           ,(is.na(premium.employerhealthcare) & !is.na(premium.aca)) ~ "Marketplace" # If Employer Healthcare is unavailable
-                                           ,(!is.na(premium.employerhealthcare) & is.na(premium.aca) & premium.employerhealthcare <= premium.outofpocket) ~ "Employer" # If ACA subsidy is unavailable and Health Exchange more expensive than Employer plan
-                                           ,(!is.na(premium.employerhealthcare) & is.na(premium.aca) & premium.employerhealthcare > premium.outofpocket) ~ "Out-of-pocket" # If ACA subsidy is unavailable and Health Exchange is cheaper than Employer plan
-                                           ,(is.na(premium.employerhealthcare) & is.na(premium.aca)) ~ "Out-of-pocket" # If both unavailable
+      mutate(healthcare.source = case_when((!is.na(premium.employer) & !is.na(premium.aca) & premium.employer > premium.aca) ~ "Marketplace"
+                                           ,(!is.na(premium.employer) & !is.na(premium.aca) & premium.employer <= premium.aca) ~ "Employer"
+                                           ,(is.na(premium.employer) & !is.na(premium.aca)) ~ "Marketplace" # If Employer Healthcare is unavailable
+                                           ,(!is.na(premium.employer) & is.na(premium.aca) & premium.employer <= premium.outofpocket) ~ "Employer" # If ACA subsidy is unavailable and Health Exchange more expensive than Employer plan
+                                           ,(!is.na(premium.employer) & is.na(premium.aca) & premium.employer > premium.outofpocket) ~ "Out-of-pocket" # If ACA subsidy is unavailable and Health Exchange is cheaper than Employer plan
+                                           ,(is.na(premium.employer) & is.na(premium.aca)) ~ "Out-of-pocket" # If both unavailable
                                            , TRUE ~ NA_character_) 
       )
     
@@ -2029,13 +1675,13 @@ BenefitsCalculator.Healthcare<-function(data, APPLY_HEALTHCARE=FALSE, APPLY_MEDI
     
     # Set values of certain premiums to zero depending on a choice of healthcare source
     data$premium.aca[data$healthcare.source != "Marketplace" & data$healthcare.source != "Marketplace & Medicaid/CHIP"]<-NA
-    data$premium.employerhealthcare[data$healthcare.source != "Employer" & data$healthcare.source != "Employer & Medicaid/CHIP"]<-NA
+    data$premium.employer[data$healthcare.source != "Employer" & data$healthcare.source != "Employer & Medicaid/CHIP"]<-NA
     data$premium.outofpocket[data$healthcare.source != "Out-of-pocket" & data$healthcare.source != "Out-of-pocket & Medicaid/CHIP"]<-NA
     
     data<-data %>% 
       mutate(netexp.healthcare = exp.healthcare-value.aca-value.medicaid-value.employerhealthcare) # Total out-of-pocket costs
     
-    #View(data[,c("income", "healthcare.source", "netexp.healthcare", "exp.healthcare.employer", "exp.healthcare.healthexchange", "exp.healthcare.medicaid", "value.aca", "value.medicaid", "value.medicaid.adult", "value.medicaid.child", "value.employerhealthcare", "premium.aca", "premium.employerhealthcare", "premium.outofpocket", "empl_healthcare")])
+    #View(data[,c("income", "healthcare.source", "netexp.healthcare", "exp.healthcare.employer", "exp.healthcare.healthexchange", "exp.healthcare.medicaid", "value.aca", "value.medicaid", "value.medicaid.adult", "value.medicaid.child", "value.employerhealthcare", "premium.aca", "premium.employer", "premium.outofpocket", "empl_healthcare")])
     
   }
   
@@ -2049,23 +1695,8 @@ BenefitsCalculator.Healthcare<-function(data, APPLY_HEALTHCARE=FALSE, APPLY_MEDI
 #------------------------------------------------------------------------
 #------------------------------------------------------------------------
 BenefitsCalculator.OtherBenefits<-function(data, APPLY_TANF, APPLY_SSDI, APPLY_SSI){
-                                            
-# TANF   
-if(APPLY_TANF==FALSE){
-  data$value.tanf<-0
-}else if(APPLY_TANF==TRUE){
-  data$value.tanf<-function.tanfBenefit(data)
-  
-  #-------------------------------------
-  # Adjust for take-up
-  #-------------------------------------
-  # Is take-up variable specified?
-  if(is.null(data$tanf_takeup)){
-    data$tanf_takeup<-1
-  }   
-  data$value.tanf[data$tanf_takeup==0]<-0
-  
-}  
+     
+  # Do ssdi before tanf because ssdi counts as unearned income for tanf calculation                                       
 
   # # SSDI
   if (APPLY_SSDI==FALSE){
@@ -2092,6 +1723,23 @@ if(APPLY_TANF==FALSE){
       cbind(value.ssdi)
 
   }
+  
+  
+  if(APPLY_TANF==FALSE){
+    data$value.tanf<-0
+  }else if(APPLY_TANF==TRUE){
+    data$value.tanf<-function.tanfBenefit(data)
+    
+    #-------------------------------------
+    # Adjust for take-up
+    #-------------------------------------
+    # Is take-up variable specified?
+    if(is.null(data$tanf_takeup)){
+      data$tanf_takeup<-1
+    }   
+    data$value.tanf[data$tanf_takeup==0]<-0
+    
+  }  
   
   # SSI
   if(APPLY_SSI==FALSE){
@@ -2168,12 +1816,12 @@ BenefitsCalculator.FoodandHousing<-function(data, APPLY_SECTION8=FALSE, APPLY_LI
     data$netexp.rentormortgage<-data$exp.rentormortgage
     data$netexp.housing<-data$exp.housing
     data$netexp.utilities<-data$exp.utilities
-    }
-  else if(APPLY_SECTION8==TRUE & APPLY_RAP==FALSE & APPLY_FRSP==FALSE){
+    }else { if(APPLY_SECTION8==TRUE & APPLY_RAP==FALSE & APPLY_FRSP==FALSE){
     
     data$value.section8<-function.section8Benefit(data=data)
     
-    data<-data[!is.na(data$value.section8),]
+    #data<-data[!is.na(data$value.section8),]
+    data$value.section8[is.na(data$value.section8)] <- 0
     #-------------------------------------
     # Adjust for take-up
     #-------------------------------------
@@ -2195,7 +1843,7 @@ BenefitsCalculator.FoodandHousing<-function(data, APPLY_SECTION8=FALSE, APPLY_LI
 
     data$netexp.housing<-data$netexp.rentormortgage+data$netexp.utilities
     
-  }else if(APPLY_SECTION8==FALSE & APPLY_RAP==TRUE & APPLY_FRSP==FALSE){
+  }else{ if(APPLY_SECTION8==FALSE & APPLY_RAP==TRUE & APPLY_FRSP==FALSE){
     
     data$value.section8<-function.RAPBenefit(data=data)
     
@@ -2221,7 +1869,7 @@ BenefitsCalculator.FoodandHousing<-function(data, APPLY_SECTION8=FALSE, APPLY_LI
     
     data$netexp.housing<-data$netexp.rentormortgage+data$netexp.utilities
     
-  }else if(APPLY_SECTION8==FALSE & APPLY_RAP==FALSE & APPLY_FRSP==TRUE){
+  }else { if(APPLY_SECTION8==FALSE & APPLY_RAP==FALSE & APPLY_FRSP==TRUE){
     
     data$value.section8<-function.FRSPBenefit(data
                                               , shareOfRent = frsp_share)  # User input - varies from 40 to 60%
@@ -2249,12 +1897,12 @@ BenefitsCalculator.FoodandHousing<-function(data, APPLY_SECTION8=FALSE, APPLY_LI
     
   }
   
-  
+  }}}
   # SNAP
   if(APPLY_SNAP==FALSE){
     data$value.snap<-0
     data$netexp.food<-data$exp.food
-  }else if(APPLY_SNAP==TRUE){
+  }else { if(APPLY_SNAP==TRUE){
     
     data$value.snap<-function.snapBenefit(data)
 
@@ -2268,42 +1916,42 @@ BenefitsCalculator.FoodandHousing<-function(data, APPLY_SECTION8=FALSE, APPLY_LI
     data$value.snap[data$snap_takeup==0]<-0
     
     data$netexp.food<-rowMaxs(cbind(data$exp.food-data$value.snap,0))
-  }
+  }}
   
   
   if(APPLY_SLP==FALSE){
     data$value.schoolmeals<-0
-  }else if(APPLY_SLP==TRUE){   
+  }else{ if(APPLY_SLP==TRUE){   
     # School Lunches
     data$value.schoolmeals<-function.schoolmeals(data)
     
     data$netexp.food<-rowMaxs(cbind(data$netexp.food-data$value.schoolmeals,0))
     
-  }
+  }}
   
   
   if(APPLY_WIC==FALSE){ # Note: WIC - must go after medicaid, snap &  TANF 
     data$value.wic<-0
-  }else if(APPLY_WIC==TRUE){
+  }else{ if(APPLY_WIC==TRUE){
 
     data$value.wic<-function.wicBenefit(data)
 
     
   data$netexp.food<-rowMaxs(cbind(data$netexp.food-data$value.wic,0))
   
-  }  
+  }}  
   
   # LIHEAP - only workign for CT right now. 
   if(APPLY_LIHEAP==FALSE & APPLY_SECTION8==FALSE){
     data$netexp.utilities<-data$exp.utilities
     data$value.liheap<-0
-  }else if(APPLY_LIHEAP==FALSE & APPLY_SECTION8==TRUE){
+  }else{ if(APPLY_LIHEAP==FALSE & APPLY_SECTION8==TRUE){
       data$netexp.utilities<-data$netexp.utilities
       data$value.liheap<-0
   }else {
     data$value.liheap<-function.liheapBenefit(data)
     data$netexp.utilities<-data$netexp.utilities-data$value.liheap
-  }
+  }}
   
   
 
@@ -2332,11 +1980,14 @@ BenefitsCalculator.TaxesandTaxCredits<-function(data, APPLY_EITC=FALSE, APPLY_CT
     data$tax.FICA<-0
     data$tax.federal_tm12<-0
     data$tax.income.state_tm12<-0
+    data$tax.income.local_tm12<-0
   }else if(APPLY_TAXES==TRUE){
   
 #--------------------------------------
 # Current Year Taxes (for take-home pay)    
 #Federal Income Tax
+    
+    data$TaxableamtofSSDI<-0
 data$tax.income.fed<-function.fedinctax(data
                                         , incomevar = "income")
                                         
@@ -2352,6 +2003,8 @@ data$tax.federal<-data$tax.income.fed+data$tax.FICA # Input into the Federal Tax
 
 #--------------------------------------
 # Past Year Taxes (for Tax Credits)
+#--------------------------------------
+
 #Federal Income Tax
 data$tax.income.fed_tm12<-function.fedinctax(data
                                         , incomevar = "income_tm12")
@@ -2366,12 +2019,11 @@ data$tax.federal_tm12<-data$tax.income.fed_tm12+data$tax.FICA_tm12 # Input into 
 }
 # Adjust for possible non-filers (kids for example)
 
-# EITC
+# Federal EITC
 if(APPLY_EITC==FALSE){
 data$value.eitc.fed<-0
 }else if(APPLY_EITC==TRUE){
 
-# Federal EITC
 data$value.eitc.fed<-function.fedeitc(data
                                       , incomevar = "income_tm12"
                                       , investmentincomevar ="income.investment"
@@ -2403,40 +2055,53 @@ if(APPLY_CDCTC==FALSE){
                                           , totalfederaltaxvar ="tax.federal_tm12")
   
 }
-
+  
 data$value.taxcredits.fed<-data$value.eitc.fed+data$value.ctc.fed+data$value.cdctc.fed
 
 
+#------------------------------------------
+# State & Local Taxes and State Tax Credits
+#------------------------------------------
 
-
-#-------------------------------
-# State Taxes and Tax Credits
-
-# fed INCOME TAXES
 if(APPLY_TAXES==FALSE){
   data$tax.income.state<-0
+  data$tax.income.local<-0
  }else if(APPLY_TAXES==TRUE){
 
 #--------------------------------------------------- 
 # Current Year State Income Tax (for take-home pay)    
 
-#State Income Tax
+#Current year - state 
 data$tax.income.state<-function.stateinctax(data
                                             , incomevar = "income"
                                             , fedincometaxvar = "tax.income.fed"
                                             , fedtaxcreditsvar = "value.taxcredits.fed")
 data$tax.income.state[is.na(data$tax.income.state)]<-0
 
+#-----------------------------------------------------
+# Current Year- local 
 
+data$tax.income.local<-function.localinctax(data
+                                            ,incomevar = "income")
+data$tax.income.local[is.na(data$tax.income.local)]<-0
+
+ 
 #--------------------------------------------------- 
-# Past Year State Income Tax (tax credits)    
+# Past Year 
 
-#State Income Tax
+#past year - state
 data$tax.income.state_tm12<-function.stateinctax(data
                                             , incomevar = "income_tm12"
                                             , fedincometaxvar = "tax.income.fed"
                                             , fedtaxcreditsvar = "value.taxcredits.fed")
 data$tax.income.state_tm12[is.na(data$tax.income.state_tm12)]<-0
+
+
+data$tax.income.local_tm12<-function.localinctax(data
+                                            ,incomevar = "income_tm12")
+data$tax.income.local_tm12[is.na(data$tax.income.local)]<-0
+
+
 
 }
 
@@ -2457,7 +2122,7 @@ data$value.eitc.state[is.na(data$value.eitc.state)]<-0
 
 }
 
-# State EITC
+# State CTC
 if(APPLY_CTC==FALSE){
   data$value.ctc.state<-0
 }else if(APPLY_CTC==TRUE){
@@ -2483,12 +2148,6 @@ if(APPLY_CDCTC==FALSE){
                                               , federalcdctcvar = "value.cdctc.fed")
   data$value.cdctc.state[is.na(data$value.cdctc.state)]<-0
 }
-
-#State Sales Tax
-data$tax.sales<-function.statesalestax(data
-                                       , taxableexpensesvar = "exp.misc"
-                                       , foodexpensesvar = "exp.food")
-
 
 
 #----------------------------------------
@@ -2533,20 +2192,21 @@ return(data)
 function.createVars<-function(data){
   
 data<-data %>% 
-    mutate( income.aftertax.noTC = income +income.gift+income.investment+income.child_support - tax.income.fed - tax.income.state - tax.FICA
+    mutate( income.aftertax.noTC = income +income.gift+income.investment+income.child_support - tax.income.fed - tax.income.state -tax.income.local - tax.FICA
+            # uses exp.healthcare.SS: healthcare expense based on costs of employer sponsored health insurance; plotted in expenses bar chart in CLIFF Dashboard and Planner
             ,SelfSufficiency = exp.childcare+exp.healthcare.SS+exp.food+exp.rentormortgage+exp.transportation+exp.misc+exp.utilities+exp.tech
          
               ,total.transfers = value.CCDF+value.HeadStart+value.earlyHeadStart+value.PreK+
               value.liheap+value.section8+value.snap+value.wic+value.schoolmeals+value.tanf+
               value.aca+value.medicaid+value.ssi+value.ssdi+
               value.cdctc.fed+value.cdctc.state+value.eitc.fed+value.eitc.state+value.ctc.fed+value.ctc.state+value.FATES
-            , total.taxes = tax.income.fed+tax.income.state+tax.FICA+tax.sales
+            , total.taxes = tax.income.fed+tax.income.state+tax.income.local + tax.FICA
+            # uses exp.healthcare: healthcare expense based on source of healthcare the person is on (Medicaid,ACA,etc.); used in NetResources
             ,total.expenses = exp.childcare+exp.healthcare+exp.food+exp.rentormortgage+
               exp.transportation+exp.misc+exp.utilities+exp.tech
             ,total.expenses.SS = exp.childcare+exp.healthcare.SS+exp.food+exp.rentormortgage+
               exp.transportation+exp.misc+exp.utilities +exp.tech
-            ,total.expenses.salestax= total.expenses+tax.sales
-            
+
             # Total values of tax credits
             ,value.cdctc=value.cdctc.fed+value.cdctc.state
             ,value.ctc=value.ctc.fed+value.ctc.state
@@ -2556,7 +2216,7 @@ data<-data %>%
             ,NetResources.FATES = income+income.gift+income.investment+income.child_support+value.employerhealthcare+total.transfers-total.taxes-total.expenses +value.FATES
             
             #,netexp.housing=netexp.rentormortgage+netexp.utilities
-            ,AfterTaxIncome=(income+income.gift+income.investment+income.child_support)-(tax.income.fed+tax.income.state+tax.FICA+tax.sales)
+            ,AfterTaxIncome=(income+income.gift+income.investment+income.child_support)-(tax.income.fed+tax.income.state+tax.income.local+tax.FICA)
          
             )
 
@@ -2573,18 +2233,17 @@ return(data)
 function.createVars.CLIFF<-function(data){
   
   data<-data %>% 
-    mutate( income.aftertax.noTC = income+income.gift+income.investment+income.child_support - tax.income.fed - tax.income.state - tax.FICA
+    mutate( income.aftertax.noTC = income+income.gift+income.investment+income.child_support - tax.income.fed - tax.income.state -tax.income.local - tax.FICA
             
             # Totals
             ,total.transfers = value.CCDF+value.HeadStart+value.earlyHeadStart+value.PreK+
               value.liheap+value.section8+value.tanf+value.snap+value.schoolmeals+value.wic+
               value.aca+value.medicaid+value.ssi+value.ssdi+
               value.cdctc.fed+value.cdctc.state+value.eitc.fed+value.eitc.state+value.ctc.fed+value.ctc.state 
-            ,total.taxes = tax.income.fed+tax.income.state+tax.FICA+tax.sales
+            ,total.taxes = tax.income.fed+tax.income.state+tax.income.local+tax.FICA
             ,total.expenses = exp.childcare+exp.healthcare+exp.food+exp.rentormortgage+
               exp.transportation+exp.misc+exp.utilities+exp.tech
-            ,total.expenses.salestax= total.expenses+tax.sales
-            
+
             # Total values of tax credits
             ,value.cdctc=value.cdctc.fed+value.cdctc.state
             ,value.ctc=value.ctc.fed+value.ctc.state
@@ -2596,7 +2255,7 @@ function.createVars.CLIFF<-function(data){
             ,NetResources = income+income.gift+income.investment+income.child_support+value.employerhealthcare+total.transfers+value.assistance.other-value.tuition.net-total.taxes-total.expenses-studentLoanRepayment-value.loans
             
             #,netexp.housing=netexp.rentormortgage+netexp.utilities
-            ,AfterTaxIncome=(income+income.gift+income.investment+income.child_support)-(tax.income.fed+tax.income.state+tax.FICA+tax.sales)
+            ,AfterTaxIncome=(income+income.gift+income.investment+income.child_support)-(tax.income.fed+tax.income.state+tax.income.local+tax.FICA)
             
     )
   

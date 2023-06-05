@@ -3,1291 +3,4729 @@
 #-------------------------------------------------------------
 
 
-# PUBLIC BENEFITS----
 
+# PUBLIC BENEFITS----
+ 
 ## Temporary Assistance for Needy Families (TANF)----
 
-function.tanfBenefit<-function(data){
-  
-  data$tanfValue<-0
-  
-  
-   # USUAL TANF PROCESS
-   # 1. SEGMENT DATA FOR SPECIFIC STATE (I.E. TEMP <- DATA[DATA$STATEFIPS = X,])\
-   # 2. LEFT_JOIN WITH TANF DATA BY STATE FIPS & FAM SIZE (MAY NEED TO EXTEND THIS TO NUM KIDS)\
-   # 3. ADD GIFT INCOME TO INCOME 
-
-   # 4. NEED TO DETERMINE APPLICANT VERSUS RECIPIENT (I.E. SOMEONE APPLYING FOR TANF VS. SOMEONE ALREADY ON TANF, AKIN TO
-        #CCDF WHERE THERE IS INITIAL ELIG. VS. CONT. ELIG.)
-  # 4.5. SUBTRACT ANY ADULT RECEIVING SSI FROM THE FAMILY SIZE. I.E. A FAMILY OF 4 WITH ONE ADULT RECEIVING SSI = FAMILY OF 3.
-   # 5. CALCULATE NET INCOME - LOOK AT "LIST OF DEDUCTIONS FOR QUALIFICATION" AND "IncomeDisregardDescription" FOR REFERENCE TO HOW TO CALCULATE 
-   # 6. ALSO LOOK AT "INCOME DISREGARD DESCRIPTION" FOR DETAILS ON DEDUCTIONS MADE FOR NET INCOME CALCULATION VS. BENEFIT CALCULATION
-   # 7. SEE IF NET INCOME IS LESS THAN THE STANDARD OF NEED (StandardOfNeed)
-   # 8. IF NET INCOME IS LESS THAN THE STANDARD OF NEED, CALCULATE THE BENEFIT AMOUNT. USUALLY, THIS IS THE MAXIMUM BENEFIT MINUS THE NET INCOME, THOUGH IT VARIES BY STATE
-   # 9. LOOK AT "LIST OF DEDUCTIONS FOR QUALIFICATIONS" AND "LIST OF DEDUCTIONS FOR BENEFIT ALLOTMENT" TO SEE THE DIFFERENCE BETWEEN CALCULATING THE NET INCOME AND CALCULATING BENEFIT ALLOTMENT
-   # 10. IF THE AMOUNT CALCULATED FOR THE BENEFIT ALLOTMENT IS GREATER THAN THE MAXIMUM BENEFIT, THEN BENEFIT = 0. 
-   # NOTE: MOST STATES REQUIRES A $10 MINIMUM BENEFIT. THE EXCEPTION IS NORTH CAROLINA, WHICH REQUIRES A $25 MINIMUM BENEFIT.
-   # 11. ONCE YOU'VE PASSED THE STANDARD OF NEED TEST AND THE BENEFIT ALLOTMENT > 0, CHECK THE CHILDLESS_TANF_POLICY AND THE TWO PARENTS POLICY AND THE GROSS INCOME TEST
-  # 12. IF CHILDLESS = "NO' AND THE FAMILY OBSERVED HAS NO CHILDREN, THEN THEY'RE DISQUALIFIED FROM TANF
-  # 13. IF TWO PARENTS = "NO" AND THE FAMILY HAS TWO PARENTS IN THE HOUSEHOLD, THEN THEY'RE DISQUALIFIED
-  # 14. IF THE GROSS EARNED INCOME IS GREATER THAN THE GROSSINCOMETEST AMOUNT FOR FAMILY SIZE X, THEN BENEFIT = 0
-  
-  
-  
-  
-  # Alabama----
-  
-  if(1 %in% unique(data$stateFIPS)){ # make sure that state is in the list
+ 
+ 
+ # childcare deduction states:
+ # ARIZONA
+ # GEORGIA
+ # NEW HAMPSHIRE
+ # maaaaaaybe IOWA
+ # 
+ 
+ # incapacitated deduction states:
+ # HAWAII
+ 
+ function.tanfBenefit<-function(data){
    
-    
-    # step 1 
-    temp<-data[data$stateFIPS==1,]
-    
-    # step 2
-    temp<-left_join(temp, tanfData, by=c("stateFIPS", "famsize"))
-    
-    # Step 3: add gift income
-    temp$income=temp$income+temp$income.gift 
-    
-    # add gift income 
-    temp$net.income<-rowMaxs(cbind(temp$income - temp$EarnedIncomeDisregard*temp$income,0)) # earned income deduction
-    #temp$net.income<-rowMaxs(cbind(temp$net.income-0.2*temp$netexp.childcare,0)) # childcare deduction
-    
-    # Step II: Calculate value of the benefit
-    temp$tanfValue<-0
-    subset<-temp$totalassets<temp$AssetTest
-    temp$tanfValue[subset]<-rowMaxs(cbind(temp$Value[subset] - temp$net.income[subset],0))
-    
-    # Apply gross income test (if applicable)
-    temp$tanfValue[temp$income>temp$grossIncomeTest]<-0
-    temp$tanfValue[temp$net.income>temp$StandardofNeed]<-0
-    
-    # TANF is not available for two married adults
-    temp$tanfValue[temp$FilingStatus==2 & temp$twoAdults_tanf_policy=="No"]<-0
-    
-    # In some states TANF is not available for childless adults
-    temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
-    
-    
-    #### TIME SERIES CODE
-    
-    
-    if(nrow(data)>1){
-      if(data$Year[1] != data$Year[2]){
-        
-        abc <- 1
-        
-        temp_1 <- temp[temp$careerpathID == 2,]
-        temp_2 <- temp[temp$careerpathID == 1,]
-        
-        if(nrow(temp_1)>0){
-          temp_1$count_tanf <- 0
-          temp_1$row_tanf <- 0
-          temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
-          for(i in 1:length(temp_1$tanfValue)){
-            temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
-          }
-          temp_1$tanfValue[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
-          #   temp_1$tanfValue[2] <- 0.75*temp_1$tanfValue[2]
-        }
-        
-        if(nrow(temp_2)>0){
-          temp_2$count_tanf <- 0
-          temp_2$row_tanf <- 0
-          temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
-          for(i in 1:length(temp_2$tanfValue)){
-            temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
-          }
-          temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
-          #   temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
-        }
-        
-        temp <- rbind(temp_1, temp_2)
-        
-      }else{
-        abc <- 0
-      }
-    }
-    
-    data$tanfValue[data$stateFIPS==1]<-temp$tanfValue*12
-    
-    
-  }
-  
-  ##############
-  # ARKANSAS
-  ##############
-  if(5 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-    
-    temp<-data[data$stateFIPS==5,]
-    temp<-left_join(temp, tanfData, by=c("stateFIPS", "famsize"))
-    
-    
-    # Step I: Calculate net income
-    temp$income=temp$income+temp$income.gift # add gift income 
-    # temp$net.income<-rowMaxs(cbind(temp$income-(temp$EarnedIncomeDisregard*temp$income)-0.6*(temp$income-(temp$EarnedIncomeDisregard*temp$income)),0)) # earned income deduction
-    #temp$net.income<-rowMaxs(cbind(temp$net.income-0.2*temp$netexp.childcare,0)) # childcare deduction
-    
-    
-    
-    
-    
-    # Step II: Calculate value of the benefit
-    temp$tanfValue<-0
-    subset<-temp$totalassets<temp$AssetTest
-    temp$tanfValue[subset]<-rowMaxs(cbind(12*temp$Value[subset],0))
-    
-    temp$tanfValue[temp$net.income>(223*12)] <- 0
-    
-    # Apply gross income test (if applicable)
-    temp$tanfValue[temp$income>(temp$grossIncomeTest) & min(temp$Year) != temp$Year]<-temp$tanfValue[temp$income>(temp$grossIncomeTest) & min(temp$Year) != temp$Year]*0.5
-    
-    # TANF is not available for two married adults
-    temp$tanfValue[temp$FilingStatus==2 & temp$twoAdults_tanf_policy=="No"]<-0
-    
-    # In some states TANF is not available for childless adults
-    temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
-    
-    if(nrow(data)>1){
-      if(data$Year[1] != data$Year[2]){
-        
-        abc <- 1
-        
-        temp_1 <- temp[temp$careerpathID == 2,]
-        temp_2 <- temp[temp$careerpathID == 1,]
-        
-        if(nrow(temp_1)>0){
-          temp_1$count_tanf <- 0
-          temp_1$row_tanf <- 0
-          temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
-          for(i in 1:length(temp_1$tanfValue)){
-            temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
-          }
-          temp_1$tanfValue[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
-          #temp_1$tanfValue[2] <- 0.75*temp_1$tanfValue[2]
-        }
-        
-        if(nrow(temp_2)>0){
-          temp_2$count_tanf <- 0
-          temp_2$row_tanf <- 0
-          temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
-          for(i in 1:length(temp_2$tanfValue)){
-            temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
-          }
-          temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
-          # temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
-        }
-        
-        temp <- rbind(temp_1, temp_2)
-        
-      }else{
-        abc <- 0
-      }
-    }
-    
-    data$tanfValue[data$stateFIPS==5]<-temp$tanfValue
-    
-    
-  }
-  # California----
-  
-  if(6 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-    
-    temp<-data[data$stateFIPS==6,]
-    
-    temp<-left_join(temp, tanfData, by=c("stateFIPS", "famsize"))
-    
-    # Step I: Calculate net income
-    
-    temp$income=temp$income+temp$income.gift # add gift income
-    
-    temp$numworkingadults <- 1
-    
-    #  for(i in 1:length(temp$income)){
-    #    if(temp$income[i] > 0 & temp$income.otherfamily[i] == 0){
-    #      temp$numworkingadults[i] <- 1
-    #    }else if(temp$income[i] > 0 & temp$income.otherfamily[i] > 0){
-    #      temp$numworkingadults[i] <- 2
-    #    }
-    #  }
-    
-    
-    temp$net.income<-rowMaxs(cbind(temp$income-((90*temp$numworkingadults*12)+(12*550)+temp$EarnedIncomeDisregard*(temp$income-(90*temp$numworkingadults*12)-(12*550))),0)) # earned income deduction
-    
-    # Step II: Calculate value of the benefit
-    temp$tanfValue<-0
-    subset<-temp$totalassets<temp$AssetTest
-    temp$tanfValue[subset]<-rowMaxs(cbind(12*temp$Value[subset] - temp$net.income[subset],0))
-    
-    # Apply gross income test (if applicable)
-    temp$tanfValue[temp$income-(90*12)>temp$grossIncomeTest]<-0
-    
-    # TANF is not available for two married adults
-    temp$tanfValue[temp$FilingStatus==2 & temp$twoAdults_tanf_policy=="No"]<-0
-    
-    # In some states TANF is not available for childless adults
-    temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
-    
-    if(nrow(data)>1){
-      if(data$Year[1] != data$Year[2]){
-        
-        abc <- 1
-        
-        temp_1 <- temp[temp$careerpathID == 2,]
-        temp_2 <- temp[temp$careerpathID == 1,]
-        
-        if(nrow(temp_1)>0){
-          temp_1$count_tanf <- 0
-          temp_1$row_tanf <- 0
-          temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
-          for(i in 1:length(temp_1$tanfValue)){
-            temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
-          }
-          temp_1$tanfValue[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
-          #  temp_1$tanfValue[2] <- 0.75*temp_1$tanfValue[2]
-        }
-        
-        if(nrow(temp_2)>0){
-          temp_2$count_tanf <- 0
-          temp_2$row_tanf <- 0
-          temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
-          for(i in 1:length(temp_2$tanfValue)){
-            temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
-          }
-          temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
-          #   temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
-        }
-        
-        temp <- rbind(temp_1, temp_2)
-        
-      }else{
-        abc <- 0
-      }
-    }
-    
-    
-    # Merge back
-    data$tanfValue[data$stateFIPS==6]<-temp$tanfValue
-    
-    
-  }
-  
-  
-  # Colorado----
-  
-  if(8 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-    
-    temp<-data[data$stateFIPS==8,]
-    
-    temp<-left_join(temp, tanfData, by=c("stateFIPS", "famsize"))
-    
-    # Step I: Calculate net income
-    
-    temp$income=temp$income+temp$income.gift # add gift income
-    
-    temp$net.income<-rowMaxs(cbind(temp$income-temp$EarnedIncomeDisregard*temp$income,0)) # earned income deduction
-    
-    # Step II: Calculate value of the benefit
-    temp$tanfValue<-0
-    subset<-temp$totalassets<temp$AssetTest
-    temp$tanfValue[subset]<-rowMaxs(cbind(12*temp$Value[subset] - temp$net.income[subset],0))
-    
-    # Apply gross income test (if applicable)
-    temp$tanfValue[temp$income>temp$grossIncomeTest]<-0
-    
-    # TANF is not available for two married adults
-    temp$tanfValue[temp$FilingStatus==2 & temp$twoAdults_tanf_policy=="No"]<-0
-    
-    # In some states TANF is not available for childless adults
-    temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
-    
-    if(nrow(data)>1){
-      if(data$Year[1] != data$Year[2]){
-        
-        abc <- 1
-        
-        temp_1 <- temp[temp$careerpathID == 2,]
-        temp_2 <- temp[temp$careerpathID == 1,]
-        
-        if(nrow(temp_1)>0){
-          temp_1$count_tanf <- 0
-          temp_1$row_tanf <- 0
-          temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
-          for(i in 1:length(temp_1$tanfValue)){
-            temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
-          }
-          temp_1$tanfValue[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
-          #  temp_1$tanfValue[2] <- 0.75*temp_1$tanfValue[2]
-        }
-        
-        if(nrow(temp_2)>0){
-          temp_2$count_tanf <- 0
-          temp_2$row_tanf <- 0
-          temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
-          for(i in 1:length(temp_2$tanfValue)){
-            temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
-          }
-          temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
-          #    temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
-        }
-        
-        temp <- rbind(temp_1, temp_2)
-        
-      }else{
-        abc <- 0
-      }
-    }
-    
-    # Merge back
-    data$tanfValue[data$stateFIPS==8]<-temp$tanfValue
-    
-  }
-  
-  
-  # Connecticut----
-  
-  if(9 %in% unique(data$stateFIPS)){# make sure that state is in the list
-    
-    
-    list1 <- c(13590,
-               18310,
-               23030,
-               27750,
-               32470,
-               37190,
-               41910,
-               46630,
-               51350,
-               56070,
-               60790,
-               65510
-    )
-    
-    
-    tanfData$grossIncomeTest[tanfData$stateFIPS == 9] <- list1
-    
-    tanfData$StandardofNeed <- 0
-    
-    tanfData$StandardofNeed[tanfData$stateFIPS == 9] <- c(7488,
-                                                          10080,
-                                                          12672,
-                                                          15276,
-                                                          17868,
-                                                          20460,
-                                                          23064,
-                                                          25656,
-                                                          28248,
-                                                          30840,
-                                                          33432,
-                                                          36024
-    )
-    
-    tanfData$Value[tanfData$stateFIPS == 9] <- c(456,
-                                                 614,
-                                                 771,
-                                                 930,
-                                                 1087,
-                                                 1404,
-                                                 1561,
-                                                 1718, 
-                                                 1875, 
-                                                 2032, 
-                                                 2189, 
-                                                 2346 
-    )
-    
-    tanfData$timeLimit[tanfData$stateFIPS == 9] <- 21
-    
-    
-    temp<-data[data$stateFIPS==9,]
-    
-    #tanfData$timeLimit[tanfData$stateFIPS==9] <- 60
-    
-    temp<-left_join(temp, tanfData, by=c("stateFIPS", "famsize"))
-    
-    # Step I: Calculate net income
-    temp$net.income<-rowMaxs(cbind(temp$income - 12*90,0)) # earned income deduction
-    
-    # Step II: Calculate value of the benefit
-    temp$tanfValue<-0
-    subset<-temp$totalassets<temp$AssetTest
-    temp$tanfValue[subset]<-rowMaxs(cbind(12*temp$Value[subset] 
-                                          ,0))
-    
-    # Apply gross income test (if applicable)
-    
-    
-    #  temp$tanfValue[temp$income>(temp$grossIncomeTest)]<-0
-    temp$tanfValue[temp$net.income>(temp$grossIncomeTest)]<-0
-    
-    if(nrow(data)>1){
+   data$tanfValue<-0
+   data$value.tanf <-0  
+   
+   # Alabama----
+   state_code=1 
+   if(state_code %in% unique(data$stateFIPS)){
+     
+     # step 1 
+     temp<-data[data$stateFIPS==state_code,]
+     
+     # step 2
+     temp<-left_join(temp, tanfData, by=c("stateFIPS", "famsize"))
+     
+     # Step 3: add gift income
+     temp$income=temp$income+temp$income.gift 
+     
+     # add gift income 
+     temp$net.income<-rowMaxs(cbind((temp$income - temp$EarnedIncomeDisregard*temp$income)/12,0)) 
+     temp$net.income<-temp$net.income+(temp$value.ssdi/12)
+     # Step II: Calculate value of the benefit
+     temp$tanfValue<-0
+     subset<-temp$totalassets<temp$AssetTest
+     temp$tanfValue[subset]<-rowMaxs(cbind(temp$Maxbenefit[subset] - temp$net.income[subset],0))
+     
+     # Apply gross income test (if applicable)
+     temp$tanfValue[(temp$income/12)>temp$grossIncomeTest]<-0
+     temp$tanfValue[temp$net.income>temp$StandardOfNeed]<-0
+     
+     # TANF is not available for two married adults
+     temp$tanfValue[temp$FilingStatus==2 & temp$twoParents_tanf_policy=="No"]<-0
+     
+     
+     # In some states TANF is not available for childless adults
+     temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
+     
+     temp$tanfValue <- temp$tanfValue*12
+     
+     
+     # TIME SERIES
+     
+     
+     if(nrow(data)>1){
+       if(data$Year[1] != data$Year[2]){
+         
+         abc <- 1
+         
+         timeseries_data<- function(x){
+           if(nrow(x)>0){
+             length_x<-nrow(x)
+             potential_indicators<-c(1,1,1,1,1,0,0,0,0,0,0,0) # number of years (lifetime TANF limit)
+             if(length_x<=12){
+               potential_indicators<-potential_indicators[c(1:length_x)]
+             } else { potential_indicators<-c(potential_indicators,rep(0,times=length_x-12))
+             
+             }
+             x<-x %>% 
+               mutate(potential_indicators=potential_indicators) %>% 
+               mutate(tanfValue=ifelse(potential_indicators==0, 0, tanfValue))
+           }
+           
+           return(x)  
+         }
+         
+         # two possible career Paths
+         temp_1<- temp %>% 
+           filter(careerpathID==2) %>% 
+           timeseries_data  
+         
+         temp_2<- temp %>% 
+           filter(careerpathID==1) %>% 
+           timeseries_data  
+         
+         temp <- rbind(temp_1, temp_2)    
+         
+         
+       }else{
+         abc <- 0
+       }
+     }
+     
+     # Merge back
+     data$tanfValue[data$stateFIPS==state_code]<-temp$tanfValue  
+     
+     data$value.tanf[data$stateFIPS==state_code]<-temp$tanfValue
+   }
+   
+   # Alaska----
+   state_code=2
+   if(state_code %in% unique(data$stateFIPS)){ 
+     temp<-data %>% 
+       filter(stateFIPS==state_code) %>% 
+       left_join(tanfData, by=c("stateFIPS", "famsize")) %>% 
+       arrange(Year) %>% 
+       
+       # Step I: Calculate net income
+       mutate(income=income+income.gift) #%>% 
+     #    mutate(net.income = ifelse(Year==min(Year),income-0.33*(income-(150*12)),
+     #                                ifelse(rank(Year, ties.method="min")==2,income-0.25*(income-(150*12)),
+     #                                       ifelse(rank(Year, ties.method="min")==3,income-0.20*(income-(150*12)),
+     #                                              ifelse(rank(Year, ties.method="min")==4,income-0.15(income-(150*12)),
+     #                                                     ifelse(rank(Year, ties.method="min")==5,income-0.10*(income-(150*12)),       
+     #                                                            income)))))) 
+     temp$net.income <- temp$income
+     min_Year <- min(temp$Year)
+     temp$net.income[temp$Year == min_Year] <- temp$income[temp$Year == min_Year]-(150*12)-0.33*(temp$income[temp$Year == min_Year]-(150*12))
+     temp$net.income[temp$Year == min_Year+1] <- temp$income[temp$Year == min_Year+1]-(150*12)-0.25*(temp$income[temp$Year == min_Year+1]-(150*12))
+     temp$net.income[temp$Year == min_Year+2] <- temp$income[temp$Year == min_Year+2]-(150*12)-0.20*(temp$income[temp$Year == min_Year+2]-(150*12))
+     temp$net.income[temp$Year == min_Year+3] <- temp$income[temp$Year == min_Year+3]-(150*12)-0.15*(temp$income[temp$Year == min_Year+3]-(150*12))
+     temp$net.income[temp$Year == min_Year+4] <- temp$income[temp$Year == min_Year+4]-(150*12)-0.10*(temp$income[temp$Year == min_Year+4]-(150*12))
+     
+     temp$net.income[temp$net.income < 0] <- 0
+     
+     
+     temp<- temp %>% 
+       mutate(net.income=net.income/12) %>%
+       mutate(net.income=net.income+(value.ssdi/12)) %>%
+       # Step II: Calculate value of the benefit
+       mutate(tanfValue=0,
+              subset=totalassets<AssetTest) %>% 
+       mutate(tanfValue=ifelse(subset==TRUE,rowMaxs(cbind((Maxbenefit-net.income),0)),tanfValue)) %>% 
+       
+       # Apply gross income test (if applicable) & net income / standard test (if applicable)
+       
+       mutate(tanfValue=ifelse(net.income>StandardOfNeed,0,tanfValue))  %>% 
+       
+       
+       # TANF is not available for two married adults
+       
+       mutate(tanfValue=ifelse(FilingStatus==2 & twoParents_tanf_policy=="No",0,tanfValue ))
+     
+     # In some states TANF is not available for childless adults
+     
+     temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
+     
+     temp$tanfValue[(temp$income/12)>temp$grossIncomeTest]<-0
+     
+     temp$tanfValue[(temp$net.income/12) > temp$StandardOfNeed] <- 0
+     
+     temp$tanfValue <- temp$tanfValue*12
+     
+     # TIME SERIES
+     
+     if(nrow(data)>1){
+       if(data$Year[1] != data$Year[2]){
+         
+         abc <- 1
+         
+         timeseries_data<- function(x){
+           if(nrow(x)>0){
+             length_x<-nrow(x)
+             potential_indicators<-c(1,1,1,1,1,0,0,0,0,0,0) # number of years (lifetime TANF limit)
+             if(length_x<=11){
+               potential_indicators<-potential_indicators[c(1:length_x)]
+             } else { potential_indicators<-c(potential_indicators,rep(0,times=length_x-11))
+             
+             }
+             x<-x %>% 
+               mutate(potential_indicators=potential_indicators) %>% 
+               mutate(tanfValue=ifelse(potential_indicators==0, 0, tanfValue))
+           }
+           
+           return(x)  
+         }
+         # two career paths
+         temp_1<- temp %>% 
+           filter(careerpathID==2) %>% 
+           timeseries_data  
+         
+         temp_2<- temp %>% 
+           filter(careerpathID==1) %>% 
+           timeseries_data  
+         
+         temp <- rbind(temp_1, temp_2)
+         
+       }else{
+         abc <- 0
+       }
+     }
+     # 
+     # Merge back
+     data$tanfValue[data$stateFIPS==state_code]<-temp$tanfValue
+     #data$value.tanf <- 0  
+     data$value.tanf[data$stateFIPS==state_code]<-temp$tanfValue
+     
+   }
+   
+   # Arizona ----
+   
+   state_code=4
+   if(state_code %in% unique(data$stateFIPS)){ 
+     temp<-data %>% 
+       filter(stateFIPS==state_code) %>% 
+       left_join(tanfData, by=c("stateFIPS", "famsize")) %>% 
+       mutate(numkidsunder13 = rowSums(cbind(agePerson1, agePerson2, agePerson3, agePerson4, agePerson5, agePerson6, agePerson7, agePerson8, agePerson9, agePerson10, agePerson11, agePerson12)<13,na.rm=TRUE)) %>% 
+       mutate(numkidsunder2 = rowSums(cbind(agePerson1, agePerson2, agePerson3, agePerson4, agePerson5, agePerson6, agePerson7, agePerson8, agePerson9, agePerson10, agePerson11, agePerson12)<2,na.rm=TRUE)) %>% 
+       mutate(childcareDeduction = numkidsunder13*175 + numkidsunder2*25) %>%
+     
+       # Step I: Calculate net income
+       mutate(income=income+income.gift) %>% 
+       mutate(net.income = rowMaxs(cbind((income/12)-90-EarnedIncomeDisregard*((income/12) - 90),0))) %>% 
+       #mutate(net.income = net.income - (childcareDeduction/12)) %>%
+       mutate(net.income=net.income+(value.ssdi/12)) %>%
+ 
+       # Step II: Calculate value of the benefit
+       mutate(tanfValue=0,
+              subset=totalassets<AssetTest) %>% 
+       mutate(tanfValue=ifelse(subset==TRUE,rowMaxs(cbind(Maxbenefit-net.income,0)),tanfValue)) %>% 
+       
+       # Apply gross income test (if applicable) & net income / standard test (if applicable)
+       
+       mutate(tanfValue=ifelse(income/12>grossIncomeTest,0,tanfValue)) %>% 
+       
+       mutate(tanfValue=ifelse(net.income>StandardOfNeed,0,tanfValue)) %>% 
+       
+       # TANF is not available for two married adults
+       
+       mutate(tanfValue=ifelse(FilingStatus==2 & twoParents_tanf_policy=="No",0,tanfValue ))
+     
+     # In some states TANF is not available for childless adults
+     temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
+     
+     temp$tanfValue[(temp$income/12)>temp$grossIncomeTest]<-0
+     
+     temp$tanfValue <- temp$tanfValue*12
+     
+     # TIME SERIES
+     
+     if(nrow(data)>1){
+       if(data$Year[1] != data$Year[2]){
+         
+         abc <- 1
+         
+         timeseries_data<- function(x){
+           if(nrow(x)>0){
+             length_x<-nrow(x)
+             potential_indicators<-c(1,0,0,0,0,0,0,0,0,0,0) # number of years (lifetime TANF limit)
+             if(length_x<=11){
+               potential_indicators<-potential_indicators[c(1:length_x)]
+             } else { potential_indicators<-c(potential_indicators,rep(0,times=length_x-11))
+             
+             }
+             x<-x %>% 
+               mutate(potential_indicators=potential_indicators) %>% 
+               mutate(tanfValue=ifelse(potential_indicators==0, 0, tanfValue))
+           }
+           
+           return(x)  
+         }
+         
+         temp_1<- temp %>% 
+           filter(careerpathID==2) %>% 
+           timeseries_data  
+         
+         temp_2<- temp %>% 
+           filter(careerpathID==1) %>% 
+           timeseries_data  
+         
+         temp <- rbind(temp_1, temp_2)
+         
+       }else{
+         abc <- 0
+       }
+     }
+     # 
+     # Merge back
+     data$tanfValue[data$stateFIPS==state_code]<-temp$tanfValue
+     #data$value.tanf <- 0  
+     data$value.tanf[data$stateFIPS==state_code]<-temp$tanfValue
+     
+   }
+   
+   # Arkansas----
+   
+   state_code=5
+   if(state_code %in% unique(data$stateFIPS)){ 
+     temp<-data %>% 
+       filter(stateFIPS==state_code) %>% 
+       left_join(tanfData, by=c("stateFIPS", "famsize")) %>% 
+       
+       # Step I: Calculate net income
+       mutate(income=income+income.gift) %>% 
+       mutate(net.income.first = rowMaxs(cbind((income/12) - (income*EarnedIncomeDisregard/12),0))) %>% 
+       mutate(net.income = rowMaxs(cbind(net.income.first - (3*EarnedIncomeDisregard*net.income.first),0))) %>% 
+       mutate(net.income=net.income+(value.ssdi/12)) %>%
+       # Step II: Calculate value of the benefit
+       mutate(tanfValue=0,
+              subset=totalassets<AssetTest) %>% 
+       mutate(tanfValue=ifelse(subset==TRUE,rowMaxs(cbind(Maxbenefit,0)),tanfValue)) %>% 
+       
+       # Apply gross income test (if applicable) & net income / standard test (if applicable)
+       
+       mutate(tanfValue=ifelse(income/12>grossIncomeTest & net.income<=StandardOfNeed,(tanfValue/2),tanfValue)) %>% 
+       
+       mutate(tanfValue=ifelse(net.income>StandardOfNeed,0,tanfValue))
+     
+     #  TANF is not available for two married adults
+     temp$tanfValue[temp$FilingStatus==2 & temp$twoParents_tanf_policy=="No"]<-0
+     
+     
+     # In some states TANF is not available for childless adults
+     temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
+     
+     temp$tanfValue <- temp$tanfValue*12
+     
+     # TIME SERIES
+     
+     if(nrow(data)>1){
+       if(data$Year[1] != data$Year[2]){
+         
+         abc <- 1
+         
+         timeseries_data<- function(x){
+           if(nrow(x)>0){
+             length_x<-nrow(x)
+             potential_indicators<-c(1,1,0,0,0,0,0,0,0,0,0) # number of years (lifetime TANF limit)
+             if(length_x<=11){
+               potential_indicators<-potential_indicators[c(1:length_x)]
+             } else { potential_indicators<-c(potential_indicators,rep(0,times=length_x-11))
+             
+             }
+             x<-x %>% 
+               mutate(potential_indicators=potential_indicators) %>% 
+               mutate(tanfValue=ifelse(potential_indicators==0, 0, tanfValue))
+           }
+           
+           return(x)  
+         }
+         
+         temp_1<- temp %>% 
+           filter(careerpathID==2) %>% 
+           timeseries_data  
+         
+         temp_2<- temp %>% 
+           filter(careerpathID==1) %>% 
+           timeseries_data  
+         
+         temp <- rbind(temp_1, temp_2)
+         
+       }else{
+         abc <- 0
+       }
+     }
+     # 
+     # Merge back
+     data$tanfValue[data$stateFIPS==state_code]<-temp$tanfValue
+     #data$value.tanf <- 0  
+     data$value.tanf[data$stateFIPS==state_code]<-temp$tanfValue
+     
+     
+   }
+   
+   # California----
+   state_code=6
+   if(state_code %in% unique(data$stateFIPS)){ # make sure that state is in the list
+     
+     tanfDataCA <- tanfData[tanfData$stateFIPS == state_code & tanfData$famsize == 1,]
+     tanfDataCA$famsize <- 0
+     tanfDataCA[,34:38] <- 0
+     tanfData <- rbind(tanfData, tanfDataCA)
+     rm(tanfDataCA)
+     
+     temp_countys<-data %>% 
+       filter(stateFIPS==state_code) %>% 
+       filter(    
+         countyortownName == "Alameda County" 
+         | countyortownName ==  "Contra Costa County" 
+         | countyortownName == "Los Angeles County" 
+         | countyortownName == "Marin County" 
+         | countyortownName ==  "Monterey County" 
+         | countyortownName ==  "Napa County" 
+         | countyortownName ==  "Orange County" 
+         | countyortownName ==  "San Diego County" 
+         | countyortownName ==  "San Francisco County" 
+         | countyortownName ==  "San Luis Obispo County" 
+         | countyortownName ==  "San Mateo County"
+         | countyortownName ==  "Santa Barbara County"
+         | countyortownName ==  "Santa Clara County" 
+         | countyortownName ==  "Santa Cruz County" 
+         | countyortownName ==  "Sonoma County" 
+         | countyortownName ==  "Ventura County" 
+       )  %>% 
+       left_join(tanfData, by=c("stateFIPS", "famsize")) %>% 
+       
+       # Step I: Calculate net income - this is NOT including DBI, need to look into that 
+       mutate(income=income+income.gift) %>% 
+       mutate(net.income = rowMaxs(cbind((income/12) - 90,0))) %>%
+       mutate(net.income = rowMaxs(cbind(net.income - 600,0))) %>%
+       mutate(net.income = rowMaxs(cbind(net.income*EarnedIncomeDisregard,0))) %>% 
+       mutate(net.income=net.income+(value.ssdi/12)) %>%
+       # Step II: Calculate value of the benefit
+       mutate(tanfValue=0,
+              subset=totalassets<AssetTest) %>% 
+       mutate(tanfValue=ifelse(subset==TRUE,rowMaxs(cbind(Maxbenefit-net.income,0)),tanfValue)) %>% 
+       
+       # Apply gross income test (if applicable) & net income / standard test (if applicable)
+       
+       mutate(tanfValue=ifelse(income/12>grossIncomeTest,0,tanfValue)) %>% 
+       
+       mutate(tanfValue=ifelse(net.income>StandardOfNeed,0,tanfValue)) %>% 
+       
+       # TANF is not available for two married adults
+       
+       mutate(tanfValue=ifelse(FilingStatus==2 & twoParents_tanf_policy=="No",0,tanfValue )) %>% 
+       
+       # In some states TANF is not available for childless adults
+       
+       mutate(tanfValue=ifelse(numkids==0 & childless_tanf_policy=="No",0,tanfValue ))
+     
+     
+     temp_othercountys<-data %>% 
+       filter(stateFIPS==state_code) %>% 
+       filter(    
+         countyortownName != "Alameda County" 
+         & countyortownName !=  "Contra Costa County" 
+         & countyortownName != "Los Angeles County" 
+         & countyortownName != "Marin County" 
+         & countyortownName !=  "Monterey County" 
+         & countyortownName !=  "Napa County" 
+         & countyortownName !=  "Orange County" 
+         & countyortownName !=  "San Diego County" 
+         & countyortownName !=  "San Francisco County" 
+         & countyortownName !=  "San Luis Obispo County" 
+         & countyortownName !=  "San Mateo County"
+         & countyortownName !=  "Santa Barbara County"
+         & countyortownName !=  "Santa Clara County" 
+         & countyortownName !=  "Santa Cruz County" 
+         & countyortownName !=  "Sonoma County" 
+         & countyortownName !=  "Ventura County" 
+       )  %>% 
+       left_join(tanfData, by=c("stateFIPS", "famsize")) %>% 
+       
+       # Step I: Calculate net income - this is NOT including DBI, need to look into that 
+       mutate(income=income+income.gift) %>% 
+       mutate(net.income = rowMaxs(cbind((income/12) - 90,0))) %>%
+       mutate(net.income = rowMaxs(cbind(net.income - 600,0))) %>%
+       mutate(net.income = rowMaxs(cbind(net.income*EarnedIncomeDisregard,0))) %>% 
+       mutate(net.income=net.income+(value.ssdi/12)) %>%
+       # Step II: Calculate value of the benefit
+       mutate(tanfValue=0,
+              subset=totalassets<AssetTest) %>% 
+       mutate(tanfValue=ifelse(subset==TRUE,rowMaxs(cbind(Maxbenefit2-net.income,0)),tanfValue)) %>% 
+       
+       # Apply gross income test (if applicable) & net income / standard test (if applicable)
+       
+       mutate(tanfValue=ifelse(income/12>grossIncomeTest,0,tanfValue)) %>% 
+       
+       mutate(tanfValue=ifelse(net.income>StandardOfNeed2,0,tanfValue)) %>% 
+       
+       # TANF is not available for two married adults
+       
+       mutate(tanfValue=ifelse(FilingStatus==2 & twoParents_tanf_policy=="No",0,tanfValue )) %>% 
+       
+       # In some states TANF is not available for childless adults
+       
+       mutate(tanfValue=ifelse(numkids==0 & childless_tanf_policy=="No",0,tanfValue ))
+     
+     temp<-rbind(temp_countys, temp_othercountys)
+     
+     
+     
+     temp$tanfValue <- temp$tanfValue*12
+     
+     # TIME SERIES
+     
+     if(nrow(data)>1){
+       if(data$Year[1] != data$Year[2]){
+         
+         
+         temp_adults <- temp[temp$Year <= min(temp$Year)+3,]
+         # temp_no_adults <- temp[temp$Year > min(temp$Year)+3,]
+         
+         
+         ############## REDO NOW WITH ADULTS EXCLUDED 
+         
+         tanfData$numkids <- tanfData$famsize
+         
+         
+         temp_countys<-data[data$Year > min(data$Year)+3,] %>% 
+           filter(stateFIPS==state_code) %>% 
+           filter(    
+             countyortownName == "Alameda County" 
+             | countyortownName ==  "Contra Costa County" 
+             | countyortownName == "Los Angeles County" 
+             | countyortownName == "Marin County" 
+             | countyortownName ==  "Monterey County" 
+             | countyortownName ==  "Napa County" 
+             | countyortownName ==  "Orange County" 
+             | countyortownName ==  "San Diego County" 
+             | countyortownName ==  "San Francisco County" 
+             | countyortownName ==  "San Luis Obispo County" 
+             | countyortownName ==  "San Mateo County"
+             | countyortownName ==  "Santa Barbara County"
+             | countyortownName ==  "Santa Clara County" 
+             | countyortownName ==  "Santa Cruz County" 
+             | countyortownName ==  "Sonoma County" 
+             | countyortownName ==  "Ventura County" 
+           )  %>% 
+           left_join(tanfData, by=c("stateFIPS", "numkids")) %>% 
+           
+           # Step I: Calculate net income - this is NOT including DBI, need to look into that 
+           mutate(income=income+income.gift) %>% 
+           mutate(net.income = rowMaxs(cbind((income/12) - 90,0))) %>%
+           mutate(net.income = rowMaxs(cbind(net.income - 600,0))) %>%
+           mutate(net.income = rowMaxs(cbind(net.income*EarnedIncomeDisregard,0))) %>% 
+           
+           # Step II: Calculate value of the benefit
+           mutate(tanfValue=0,
+                  subset=totalassets<AssetTest) %>% 
+           mutate(tanfValue=ifelse(subset==TRUE,rowMaxs(cbind(Maxbenefit-net.income,0)),tanfValue)) %>% 
+           
+           # Apply gross income test (if applicable) & net income / standard test (if applicable)
+           
+           mutate(tanfValue=ifelse(income/12>grossIncomeTest,0,tanfValue)) %>% 
+           
+           mutate(tanfValue=ifelse(net.income>StandardOfNeed,0,tanfValue)) %>% 
+           
+           # TANF is not available for two married adults
+           
+           mutate(tanfValue=ifelse(FilingStatus==2 & twoParents_tanf_policy=="No",0,tanfValue )) %>% 
+           
+           # In some states TANF is not available for childless adults
+           
+           mutate(tanfValue=ifelse(numkids==0 & childless_tanf_policy=="No",0,tanfValue ))
+         
+         
+         temp_othercountys<-data[data$Year > min(data$Year)+3,] %>% 
+           filter(stateFIPS==state_code) %>% 
+           filter(    
+             countyortownName != "Alameda County" 
+             & countyortownName !=  "Contra Costa County" 
+             & countyortownName != "Los Angeles County" 
+             & countyortownName != "Marin County" 
+             & countyortownName !=  "Monterey County" 
+             & countyortownName !=  "Napa County" 
+             & countyortownName !=  "Orange County" 
+             & countyortownName !=  "San Diego County" 
+             & countyortownName !=  "San Francisco County" 
+             & countyortownName !=  "San Luis Obispo County" 
+             & countyortownName !=  "San Mateo County"
+             & countyortownName !=  "Santa Barbara County"
+             & countyortownName !=  "Santa Clara County" 
+             & countyortownName !=  "Santa Cruz County" 
+             & countyortownName !=  "Sonoma County" 
+             & countyortownName !=  "Ventura County" 
+           )  %>% 
+           left_join(tanfData, by=c("stateFIPS", "numkids")) %>% 
+           
+           # Step I: Calculate net income - this is NOT including DBI, need to look into that 
+           mutate(income=income+income.gift) %>% 
+           mutate(net.income = rowMaxs(cbind((income/12) - 90,0))) %>%
+           mutate(net.income = rowMaxs(cbind(net.income - 600,0))) %>%
+           mutate(net.income = rowMaxs(cbind(net.income*EarnedIncomeDisregard,0))) %>% 
+           
+           # Step II: Calculate value of the benefit
+           mutate(tanfValue=0,
+                  subset=totalassets<AssetTest) %>% 
+           mutate(tanfValue=ifelse(subset==TRUE,rowMaxs(cbind(Maxbenefit2-net.income,0)),tanfValue)) %>% 
+           
+           # Apply gross income test (if applicable) & net income / standard test (if applicable)
+           
+           mutate(tanfValue=ifelse(income/12>grossIncomeTest,0,tanfValue)) %>% 
+           
+           mutate(tanfValue=ifelse(net.income>StandardOfNeed2,0,tanfValue)) %>% 
+           
+           # TANF is not available for two married adults
+           
+           mutate(tanfValue=ifelse(FilingStatus==2 & twoParents_tanf_policy=="No",0,tanfValue )) %>% 
+           
+           # In some states TANF is not available for childless adults
+           
+           mutate(tanfValue=ifelse(numkids==0 & childless_tanf_policy=="No",0,tanfValue ))
+         
+         temp<-rbind(temp_countys, temp_othercountys)
+         
+         
+         
+         temp$tanfValue <- temp$tanfValue*12
+         
+         
+         temp <- rbind(temp_adults, temp)
+         
+         
+         timeseries_data<- function(x){
+           if(nrow(x)>0){
+             length_x<-nrow(x)
+             potential_indicators<-c(1,1,1,1,1,1,1,1,1,1,1)
+             if(length_x<=11){
+               potential_indicators<-potential_indicators[c(1:length_x)]
+             } else { potential_indicators<-c(potential_indicators,rep(0,times=length_x-11))
+             
+             }
+             x<-x %>% 
+               mutate(potential_indicators=potential_indicators) %>% 
+               mutate(tanfValue=ifelse(potential_indicators==0, 0, tanfValue))
+           }
+           
+           return(x)  
+         }
+         
+         temp_1<- temp %>% 
+           filter(careerpathID==2) %>% 
+           timeseries_data  
+         
+         temp_2<- temp %>% 
+           filter(careerpathID==1) %>% 
+           timeseries_data  
+         
+         temp <- rbind(temp_1, temp_2)
+         
+       }else{
+         abc <- 0
+       }
+     }
+     # 
+     # Merge back
+     data$tanfValue[data$stateFIPS==state_code]<-temp$tanfValue
+     #data$value.tanf <- 0  
+     data$value.tanf[data$stateFIPS==state_code]<-temp$tanfValue
+     
+   }
+   
+   
+   # Colorado----
+   
+   state_code=8
+   if(state_code %in% unique(data$stateFIPS)){ 
+     
+     
+     # step 1 
+     temp<-data[data$stateFIPS==8,]
+     
+     # step 2
+     temp<-left_join(temp, tanfData, by=c("stateFIPS", "famsize"))
+     
+     # Step 3: add gift income
+     temp$income=temp$income+temp$income.gift 
+     
+     # add gift income 
+     
+     temp$net.income<-rowMaxs(cbind((temp$income - temp$EarnedIncomeDisregard*temp$income)/12,0)) # earned income deduction
+     temp$net.income<-temp$net.income+(temp$value.ssdi/12)
+     
+     temp$tanfValue<-0
+     subset<-temp$totalassets<temp$AssetTest
+     
+     temp<-temp %>% 
+       mutate(tanfValue=ifelse(subset & numadults<2 & !is.na(numadults), rowMaxs(cbind(Maxbenefit - net.income,0)),tanfValue), 
+              tanfValue=ifelse(net.income>StandardOfNeed & numadults<2 & !is.na(numadults), 0, tanfValue),
+              tanfValue=ifelse(subset & numadults >= 2 & !is.na(numadults), rowMaxs(cbind(Maxbenefit2 - net.income,0)),tanfValue),
+              tanfValue=ifelse(net.income>StandardOfNeed2 & numadults >= 2 & !is.na(numadults), 0, tanfValue),
+              tanfValue=ifelse(is.na(numadults),0, tanfValue),
+              net.income=ifelse(is.na(numadults),0, net.income))
+     
+     # if(temp$numadults<2 & !is.na(temp$numadults)){
+     #   temp$tanfValue[subset]<-rowMaxs(cbind(temp$Maxbenefit[subset] - temp$net.income[subset],0))
+     #   temp$tanfValue[temp$net.income>temp$StandardOfNeed]<-0
+     # }else if(temp$numadults >= 2 & !is.na(temp$numadults)){
+     #   temp$tanfValue[subset]<-rowMaxs(cbind(temp$Maxbenefit2[subset] - temp$net.income[subset],0))
+     #   temp$tanfValue[temp$net.income>temp$StandardOfNeed2]<-0
+     # }else{
+     #   temp$net.income <- 0
+     #   temp$tanfValue <- 0
+     # }
+     
+     # TANF is not available for two married adults
+     temp$tanfValue[temp$FilingStatus==2 & temp$twoParents_tanf_policy=="No"]<-0
+     
+     # In some states TANF is not available for childless adults
+     temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
+     
+     temp$tanfValue[(temp$income/12)>temp$grossIncomeTest]<-0
+     
+     
+     temp$tanfValue <- temp$tanfValue*12
+     
+     # TIME SERIES
+     
+     if(nrow(data)>1){
+       if(data$Year[1] != data$Year[2]){
+         
+         abc <- 1
+         
+         timeseries_data<- function(x){
+           if(nrow(x)>0){
+             length_x<-nrow(x)
+             potential_indicators<-c(1,1,1,1,1,0,0,0,0,0,0,0) # number of years (lifetime TANF limit)
+             if(length_x<=12){
+               potential_indicators<-potential_indicators[c(1:length_x)]
+             } else { potential_indicators<-c(potential_indicators,rep(0,times=length_x-12))
+             
+             }
+             x<-x %>% 
+               mutate(potential_indicators=potential_indicators) %>% 
+               mutate(tanfValue=ifelse(potential_indicators==0, 0, tanfValue))
+           }
+           
+           return(x)  
+         }
+         
+         temp_1<- temp %>% 
+           filter(careerpathID==2) %>% 
+           timeseries_data  
+         
+         temp_2<- temp %>% 
+           filter(careerpathID==1) %>% 
+           timeseries_data  
+         
+         temp <- rbind(temp_1, temp_2)
+         
+         
+       }else{
+         abc <- 0
+       }
+     }
+     
+     # Merge back
+     data$tanfValue[data$stateFIPS==state_code]<-temp$tanfValue
+     #data$value.tanf <- 0  
+     data$value.tanf[data$stateFIPS==state_code]<-temp$tanfValue
+     
+     
+     
+   }
+   
+   
+   # Connecticut----
+   
+   state_code=9
+   if(state_code %in% unique(data$stateFIPS)){# make sure that state is in the list
+     
+     temp<-data[data$stateFIPS==9,]
+     temp<-left_join(temp, tanfData, by=c("stateFIPS", "famsize"))
+     
+     # Step I: Calculate net income
+     temp$net.income<-rowMaxs(cbind((temp$income/12) - temp$EarnedIncomeDisregard,0)) # earned income deduction
+     temp$net.income<-temp$net.income+(temp$value.ssdi/12)
+     # Step II: Calculate value of the benefit
+     temp$tanfValue<-0
+     subset<-temp$totalassets<temp$AssetTest
+     temp$tanfValue[subset]<-rowMaxs(cbind(temp$Maxbenefit[subset],0))
+     
+     # Apply gross income test (if applicable)
+     
+     
+     temp$tanfValue[(temp$income/12)>temp$grossIncomeTest]<-0
+     
+     # TANF is not available for two married adults
+     temp$tanfValue[temp$FilingStatus==2 & temp$twoParents_tanf_policy=="No"]<-0
+     
+     # In some states TANF is not available for childless adults
+     temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
+     
+     
+     
+     temp$tanfValue <- temp$tanfValue*12
+     
+     # time limit stuff
+     
+     if(nrow(data)>1){
+       if(data$Year[1] != data$Year[2]){
+         
+         temp$tanfValue2 <- temp$tanfValue
+         
+         abc <- 1
+         
+         temp_1 <- temp[temp$careerpathID == 2,]
+         temp_2 <- temp[temp$careerpathID == 1,]
+         
+         if(nrow(temp_1)>0){
+           
+           temp_1$count_tanf <- 0
+           temp_1$row_tanf <- 0
+           temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
+           for(i in 1:length(temp_1$tanfValue)){
+             temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
+           }
+           
+           
+           temp_1$tanfValue2[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
+           
+           if(temp_1$timeLimit[2] == 21){
+             temp_1$tanfValue2[2] <- 0.75*temp_1$tanfValue[2]
+           }
+           
+           # you qualify for 21 month time limit + 6 month extension because poor 
+           if((temp_1$income[2]/12)>temp_1$Maxbenefit[2] & temp_1$timeLimit[2] == 21){
+             temp_1$tanfValue2[temp_1$row_tanf > ceiling(temp_1$timeLimit/12) + 1] <- 0
+             temp_1$tanfValue2[2] <- temp_1$tanfValue[2]
+             temp_1$tanfValue2[3] <- 0.25*temp_1$tanfValue[3]
+             
+           }
+           # you qualify for 21 month time limit + 6 month extension because poor  + additional 6 month extension because poor 
+           
+           if((temp_1$income[3]/12)>temp_1$Maxbenefit[3] & temp_1$timeLimit[3] == 21){
+             temp_1$tanfValue2[temp_1$row_tanf > ceiling(temp_1$timeLimit/12) + 1] <- 0
+             temp_1$tanfValue2[2] <- temp_1$tanfValue[2]
+             temp_1$tanfValue2[3] <- 0.75*temp_1$tanfValue[3]
+             
+           }
+           
+           
+           temp_1$tanfValue <- temp_1$tanfValue2
+           
+         }
+         
+         if(nrow(temp_2)>0){
+           temp_2$count_tanf <- 0
+           temp_2$row_tanf <- 0
+           temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
+           for(i in 1:length(temp_2$tanfValue)){
+             temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
+           }
+           temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
+           
+           if(temp_2$timeLimit[2] == 21){
+             temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
+           }
+           
+           
+           if((temp_2$income[2]/12)>temp_2$Maxbenefit[2] & temp_2$timeLimit[2] == 21){
+             temp_2$tanfValue2[temp_2$row_tanf > ceiling(temp_2$timeLimit/12) + 1] <- 0
+             temp_2$tanfValue2[2] <- temp_2$tanfValue[2]
+             temp_2$tanfValue2[3] <- 0.25*temp_2$tanfValue[2]
+             
+           }
+           
+           if((temp_2$income[3]/12)>temp_2$Maxbenefit[3] & temp_2$timeLimit[3] == 21){
+             temp_2$tanfValue2[temp_2$row_tanf > ceiling(temp_2$timeLimit/12) + 1] <- 0
+             temp_2$tanfValue2[2] <- temp_2$tanfValue[2]
+             temp_2$tanfValue2[3] <- 0.75*temp_2$tanfValue[2]
+             
+           }
+           
+           temp_2$tanfValue <- temp_2$tanfValue2
+           
+           
+         }
+         
+         
+         temp <- rbind(temp_1, temp_2)
+         
+         
+         
+       }else{
+         abc <- 0
+       }
+     }
+     
+     # 
+     # Merge back
+     data$tanfValue[data$stateFIPS==state_code]<-temp$tanfValue   
+     #data$value.tanf <- 0  
+     data$value.tanf[data$stateFIPS==state_code]<-temp$tanfValue
+     
+   }
+   
+   
+   # Delaware ----
+   
+   state_code=10
+   if(state_code %in% unique(data$stateFIPS)){ # make sure that state is in the list
+     temp<-data %>% 
+       filter(stateFIPS==state_code) %>% 
+       left_join(tanfData, by=c("stateFIPS", "famsize")) %>% 
+       
+       # Step I: Calculate net income
+       mutate(income=income+income.gift) %>% 
+       mutate(net.income = rowMaxs(cbind((income/12)-90,0))) #%>% 
+     
+     temp$net.income[temp$Year == min(temp$Year)] <- temp$net.income[temp$Year == min(temp$Year)] - 30 - 0.25*(temp$EarnedIncomeDisregard[temp$Year == min(temp$Year)]*(temp$net.income[temp$Year == min(temp$Year)] - 30))
+     temp$net.income<-temp$net.income+(temp$value.ssdi/12)
+     temp <- temp %>%
+       # Step II: Calculate value of the benefit
+       mutate(tanfValue=0,
+              subset=totalassets<AssetTest) %>% 
+       mutate(tanfValue=ifelse(subset==TRUE,rowMaxs(cbind(Maxbenefit-net.income,0)),tanfValue)) %>% 
+       
+       # Apply gross income test (if applicable) & net income / standard test (if applicable)
+       
+       mutate(tanfValue=ifelse(income/12>grossIncomeTest,0,tanfValue)) %>% 
+       
+       mutate(tanfValue=ifelse(net.income>StandardOfNeed,0,tanfValue)) 
+     
+     # TANF is not available for two married adults
+     temp$tanfValue[temp$FilingStatus==2 & temp$twoParents_tanf_policy=="No"]<-0
+     
+     
+     # In some states TANF is not available for childless adults
+     temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
+     
+     temp$tanfValue <- temp$tanfValue*12
+     
+     # TIME SERIES
+     
+     if(nrow(data)>1){
+       if(data$Year[1] != data$Year[2]){
+         
+         abc <- 1
+         
+         timeseries_data<- function(x){
+           if(nrow(x)>0){
+             length_x<-nrow(x)
+             potential_indicators<-c(1,1,1,1,1,0,0,0,0,0,0) # number of years (lifetime TANF limit)
+             if(length_x<=11){
+               potential_indicators<-potential_indicators[c(1:length_x)]
+             } else { potential_indicators<-c(potential_indicators,rep(0,times=length_x-11))
+             
+             }
+             x<-x %>% 
+               mutate(potential_indicators=potential_indicators) %>% 
+               mutate(tanfValue=ifelse(potential_indicators==0, 0, tanfValue))
+           }
+           
+           return(x)  
+         }
+         
+         temp_1<- temp %>% 
+           filter(careerpathID==2) %>% 
+           timeseries_data  
+         
+         temp_2<- temp %>% 
+           filter(careerpathID==1) %>% 
+           timeseries_data  
+         
+         temp <- rbind(temp_1, temp_2)
+         
+       }else{
+         abc <- 0
+       }
+     }
+     # 
+     # Merge back
+     data$tanfValue[data$stateFIPS==state_code]<-temp$tanfValue
+     #data$value.tanf <- 0  
+     data$value.tanf[data$stateFIPS==state_code]<-temp$tanfValue
+     
+   }
+   
+   
+   # District of Columbia ----
+   
+   state_code=11
+   if(state_code %in% unique(data$stateFIPS)){ # make sure that state is in the list
+     
+     temp<-data[data$stateFIPS==11,]
+     
+     temp<-left_join(temp, tanfData, by=c("stateFIPS", "famsize"))
+     
+     # Step I: Calculate net income
+     
+     temp$income <- temp$income+temp$income.gift # add gift income
+     
+     # Apply TANF child care income deduction (175 for kids in childcare + $25 for <2)
+     temp$numkidsunder13 <- rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)<=12,na.rm=TRUE)
+     temp$numkidsunder2 <- rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)<=1,na.rm=TRUE)
+     
+     temp$childcareDeduction<-temp$numkidsunder13*175+temp$numkidsunder2*25
+     
+     temp$net.income<-rowMaxs(cbind(temp$income-(12*160+temp$EarnedIncomeDisregard*(temp$income-12*160)),0)) # earned income deduction
+    # temp$net.income<-rowMaxs(cbind(temp$net.income-12*temp$childcareDeduction,0))
+     temp$net.income<-temp$net.income+(temp$value.ssdi)
+     # Step II: Calculate value of the benefit
+     temp$tanfValue<-0
+     subset<-temp$totalassets<temp$AssetTest
+     temp$tanfValue[subset]<-rowMaxs(cbind(12*temp$Maxbenefit[subset] - temp$net.income[subset],0))
+     
+     # Apply gross income test (if applicable)
+     # temp$tanfValue[(temp$income/12)>temp$grossIncomeTest]<-0
+     
+     # TANF is not available for two married adults
+     temp$tanfValue[temp$FilingStatus==2 & temp$twoParents_tanf_policy=="No"]<-0
+     
+     # In some states TANF is not available for childless adults
+     temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
+     
+     # Merge back
+     data$tanfValue[data$stateFIPS==state_code]<-temp$tanfValue
+     #data$value.tanf <- 0  
+     data$value.tanf[data$stateFIPS==state_code]<-temp$tanfValue
+     
+     
+   }
+   
+   
+   # Florida ----
+   
+   state_code=12
+   if(state_code %in% unique(data$stateFIPS)){ # make sure that state is in the list
+     temp<-data %>% 
+       filter(stateFIPS==state_code) %>% 
+       left_join(tanfData, by=c("stateFIPS", "famsize")) %>% 
+       
+       # Step I: Calculate net income
+       mutate(income=income+income.gift) %>% 
+       mutate(net.income=income/12-(90+200))%>% 
+       mutate(net.income = rowMaxs(cbind(net.income*EarnedIncomeDisregard,0))) %>% 
+       mutate(net.income=net.income+(value.ssdi/12)) %>%
+       
+       # Step II: Calculate value of the benefit
+       mutate(tanfValue=0,
+              subset=totalassets<AssetTest) %>% 
+       mutate(tanfValue=ifelse(subset==TRUE,rowMaxs(cbind(Maxbenefit-net.income,0)),tanfValue)) %>% 
+       
+       # Apply gross income test (if applicable) & net income / standard test (if applicable)
+       
+       mutate(tanfValue=ifelse(income/12>grossIncomeTest,0,tanfValue)) %>% 
+       
+       mutate(tanfValue=ifelse(net.income>StandardOfNeed,0,tanfValue))
+     
+     # TANF is not available for two married adults
+     temp$tanfValue[temp$FilingStatus==2 & temp$twoParents_tanf_policy=="No"]<-0
+     
+     
+     # In some states TANF is not available for childless adults
+     temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
+     
+     temp$tanfValue <- temp$tanfValue*12
+     
+     # TIME SERIES
+     
+     if(nrow(data)>1){
+       if(data$Year[1] != data$Year[2]){
+         
+         abc <- 1
+         
+         timeseries_data<- function(x){
+           if(nrow(x)>0){
+             length_x<-nrow(x)
+             potential_indicators<-c(1,1,1,1,0,0,0,0,0,0,0) # number of years (lifetime TANF limit)
+             if(length_x<=11){
+               potential_indicators<-potential_indicators[c(1:length_x)]
+             } else { potential_indicators<-c(potential_indicators,rep(0,times=length_x-11))
+             
+             }
+             x<-x %>% 
+               mutate(potential_indicators=potential_indicators) %>% 
+               mutate(tanfValue=ifelse(potential_indicators==0, 0, tanfValue))
+           }
+           
+           return(x)  
+         }
+         
+         temp_1<- temp %>% 
+           filter(careerpathID==2) %>% 
+           timeseries_data  
+         
+         temp_2<- temp %>% 
+           filter(careerpathID==1) %>% 
+           timeseries_data  
+         
+         temp <- rbind(temp_1, temp_2)
+         
+       }else{
+         abc <- 0
+       }
+     }
+     # 
+     # Merge back
+     data$tanfValue[data$stateFIPS==state_code]<-temp$tanfValue
+     #data$value.tanf <- 0  
+     data$value.tanf[data$stateFIPS==state_code]<-temp$tanfValue
+     
+   }
+   
+   
+   # Georgia ----
+   
+   state_code=13
+   if(state_code %in% unique(data$stateFIPS)){
+     temp<-data %>% 
+       filter(stateFIPS==state_code) %>% 
+       left_join(tanfData, by=c("stateFIPS", "famsize")) %>% 
+       mutate(numkidsunder13 = rowSums(cbind(agePerson1, agePerson2, agePerson3, agePerson4, agePerson5, agePerson6, agePerson7, agePerson8, agePerson9, agePerson10, agePerson11, agePerson12)<13,na.rm=TRUE)) %>% 
+       mutate(numkidsunder2 = rowSums(cbind(agePerson1, agePerson2, agePerson3, agePerson4, agePerson5, agePerson6, agePerson7, agePerson8, agePerson9, agePerson10, agePerson11, agePerson12)<2,na.rm=TRUE)) %>% 
+       mutate(childcareDeduction = numkidsunder13*175 + numkidsunder2*25) %>%
+       
+       # Step I: Calculate net income
+       mutate(income=income+income.gift) %>% 
+       mutate(net.income = rowMaxs(cbind(income/12 - EarnedIncomeDisregard,0))) %>% 
+       mutate(net.income=net.income+(value.ssdi/12)) %>%
+       
+       # Step II: Calculate value of the benefit
+       mutate(tanfValue=0,
+              subset=totalassets<AssetTest) %>% 
+       
+       mutate(tanfValue=ifelse(subset==TRUE,rowMaxs(cbind(Maxbenefit-net.income,0)),tanfValue)) %>% 
+       
+       # Apply gross income test (if applicable) & net income / standard test (if applicable)
+       
+       mutate(tanfValue=ifelse(income/12>grossIncomeTest,0,tanfValue)) %>% 
+       
+       mutate(tanfValue=ifelse(net.income>StandardOfNeed,0,tanfValue)) %>% 
+       
+       # TANF is not available for two married adults
+       mutate(tanfValue=ifelse(FilingStatus==2 & twoParents_tanf_policy=="No",0,tanfValue )) %>% 
+       
+       # In some states TANF is not available for childless adults
+       mutate(tanfValue=ifelse(numkids==0 & childless_tanf_policy=="No",0,tanfValue ))
+     
+     temp$tanfValue <- temp$tanfValue*12
+     
+     # TIME SERIES
+     
+     if(nrow(data)>1){
+       if(data$Year[1] != data$Year[2]){
+         
+         abc <- 1
+         
+         timeseries_data<- function(x){
+           if(nrow(x)>0){
+             length_x<-nrow(x)
+             potential_indicators<-c(1,1,1,1,0,0,0,0,0,0,0) # number of years (lifetime TANF limit)
+             if(length_x<=11){
+               potential_indicators<-potential_indicators[c(1:length_x)]
+             } else { potential_indicators<-c(potential_indicators,rep(0,times=length_x-11))
+             
+             }
+             x<-x %>% 
+               mutate(potential_indicators=potential_indicators) %>% 
+               mutate(tanfValue=ifelse(potential_indicators==0, 0, tanfValue))
+           }
+           
+           return(x)  
+         }
+         
+         temp_1<- temp %>% 
+           filter(careerpathID==2) %>% 
+           timeseries_data  
+         
+         temp_2<- temp %>% 
+           filter(careerpathID==1) %>% 
+           timeseries_data  
+         
+         temp <- rbind(temp_1, temp_2)
+         
+       }else{
+         abc <- 0
+       }
+     }
+     # 
+     # Merge back
+     data$tanfValue[data$stateFIPS==state_code]<-temp$tanfValue
+     #data$value.tanf <- 0  
+     data$value.tanf[data$stateFIPS==state_code]<-temp$tanfValue
+     
+     
+   }
+   
+   # Hawaii ----
+   
+   state_code=15
+   if(state_code %in% unique(data$stateFIPS)){ # make sure that state is in the list
+     temp<-data %>% 
+       filter(stateFIPS==state_code) %>% 
+       left_join(tanfData, by=c("stateFIPS", "famsize")) %>% 
+       arrange(Year) 
+            
+#    temp$disabledadults<-rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)>18 & cbind(temp$disability1, temp$disability2, temp$disability3, temp$disability4, temp$disability5, temp$disability6, temp$disability7, temp$disability8, temp$disability9, temp$disability10, temp$disability11, temp$disability12)==1, na.rm=TRUE)
+#     temp$incapacitated_deduction <- temp$disabledadults*175
+       
+       # Step I: Calculate net income
+    temp <- temp %>%   
+       mutate(income=income+income.gift) %>% 
+       mutate(net.income=.80*income/12) %>% 
+       mutate(net.income=net.income-200)#%>%
+    
+    min_Year <- min(temp$Year)
+    
+    #net.income = ifelse
+    temp$net.income[temp$Year == min_Year] <- temp$net.income[temp$Year == min_Year] - 0.55*temp$net.income[temp$Year == min_Year]
+    temp$net.income[temp$Year == min_Year+1] <- temp$net.income[temp$Year == min_Year+1] - 0.55*temp$net.income[temp$Year == min_Year+1]
+    temp$net.income[temp$Year == min_Year+2] <- temp$net.income[temp$Year == min_Year+2] - 0.36*temp$net.income[temp$Year == min_Year+2]
+    temp$net.income[temp$Year == min_Year+3] <- temp$net.income[temp$Year == min_Year+3] - 0.36*temp$net.income[temp$Year == min_Year+3]
+    temp$net.income[temp$Year == min_Year+4] <- temp$net.income[temp$Year == min_Year+4] - 0.36*temp$net.income[temp$Year == min_Year+4]
+    
+      temp <- temp %>%
+        mutate(net.income=net.income+(value.ssdi/12)) %>%
+       # should deduct $175 a month for each incapacitated adult if said adult is employed full-time, or $165 if applicant is employed part-time
+       # Step II: Calculate value of the benefit
+       mutate(tanfValue=0,
+              subset=totalassets<AssetTest) %>% 
+       mutate(tanfValue=ifelse(subset==TRUE,rowMaxs(cbind((Maxbenefit-net.income),0)),tanfValue)) #%>% 
+     
+     
+      temp$tanfValue[temp$Year == min(temp$Year)] <- rowMaxs(cbind(((1/6)*(temp$Maxbenefit2[temp$Year == min(temp$Year)]-temp$net.income[temp$Year == min(temp$Year)]) + (5/6)*(temp$Maxbenefit[temp$Year == min(temp$Year)]-temp$net.income[temp$Year == min(temp$Year)])),0))
       
-      temp$tanfValue[temp$Year == min(temp$Year) & temp$net.income>(temp$StandardofNeed)]<-0
+     # Apply gross income test (if applicable) & net income / standard test (if applicable)
+     
+     temp <- temp %>% 
+       
+       mutate(tanfValue=ifelse(net.income>StandardOfNeed,0,tanfValue))
+     
+     
+     temp$tanfValue[temp$FilingStatus==2 & temp$twoParents_tanf_policy=="No"]<-0
+     
+     
+     # In some states TANF is not available for childless adults
+     temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
+     
+     
+     temp$tanfValue[(temp$income/12)>temp$grossIncomeTest]<-0
+     
+     temp$tanfValue <- temp$tanfValue*12
+     
+     # TIME SERIES
+     
+     if(nrow(data)>1){
+       if(data$Year[1] != data$Year[2]){
+         
+         abc <- 1
+         
+         timeseries_data<- function(x){
+           if(nrow(x)>0){
+             length_x<-nrow(x)
+             potential_indicators<-c(1,1,1,1,1,0,0,0,0,0,0) # number of years (lifetime TANF limit)
+             if(length_x<=11){
+               potential_indicators<-potential_indicators[c(1:length_x)]
+             } else { potential_indicators<-c(potential_indicators,rep(0,times=length_x-11))
+             
+             }
+             x<-x %>% 
+               mutate(potential_indicators=potential_indicators) %>% 
+               mutate(tanfValue=ifelse(potential_indicators==0, 0, tanfValue))
+           }
+           
+           return(x)  
+         }
+         
+         temp_1<- temp %>% 
+           filter(careerpathID==2) %>% 
+           timeseries_data  
+         
+         temp_2<- temp %>% 
+           filter(careerpathID==1) %>% 
+           timeseries_data  
+         
+         temp <- rbind(temp_1, temp_2)
+         
+       }else{
+         abc <- 0
+       }
+     }
+     # 
+     # Merge back
+     data$tanfValue[data$stateFIPS==state_code]<-temp$tanfValue
+     #data$value.tanf <- 0  
+     data$value.tanf[data$stateFIPS==state_code]<-temp$tanfValue
+     
+   }
+   
+   # Idaho ----
+   
+   state_code=16
+   if(state_code %in% unique(data$stateFIPS)){ # make sure that state is in the list
+     temp<-data %>% 
+       filter(stateFIPS==state_code) %>% 
+       left_join(tanfData, by=c("stateFIPS", "famsize")) %>% 
+       
+       # Step I: Calculate net income
+       mutate(income=income+income.gift) %>% 
+       mutate(net.income = rowMaxs(cbind(income/12 - (income*EarnedIncomeDisregard/12),0))) %>% 
+       mutate(net.income=net.income+(value.ssdi/12)) %>%
+       
+       # Step II: Calculate value of the benefit
+       mutate(tanfValue=0,
+              subset=totalassets<AssetTest) %>% 
+       mutate(tanfValue=ifelse(subset==TRUE,rowMaxs(cbind(Maxbenefit-net.income,0)),tanfValue)) %>% 
+       
+       # Apply gross income test (if applicable) & net income / standard test (if applicable)
+       
+       mutate(tanfValue=ifelse(income/12>grossIncomeTest,0,tanfValue)) %>% 
+       
+       mutate(tanfValue=ifelse(net.income>StandardOfNeed,0,tanfValue))
+     
+     # TANF is not available for two married adults
+     temp$tanfValue[temp$FilingStatus==2 & temp$twoParents_tanf_policy=="No"]<-0
+     
+     
+     # In some states TANF is not available for childless adults
+     temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
+     
+     temp$tanfValue <- temp$tanfValue*12
+     
+     # TIME SERIES
+     
+     if(nrow(data)>1){
+       if(data$Year[1] != data$Year[2]){
+         
+         abc <- 1
+         
+         timeseries_data<- function(x){
+           if(nrow(x)>0){
+             length_x<-nrow(x)
+             potential_indicators<-c(1,1,0,0,0,0,0,0,0,0,0) # number of years (lifetime TANF limit)
+             if(length_x<=11){
+               potential_indicators<-potential_indicators[c(1:length_x)]
+             } else { potential_indicators<-c(potential_indicators,rep(0,times=length_x-11))
+             
+             }
+             x<-x %>% 
+               mutate(potential_indicators=potential_indicators) %>% 
+               mutate(tanfValue=ifelse(potential_indicators==0, 0, tanfValue))
+           }
+           
+           return(x)  
+         }
+         
+         temp_1<- temp %>% 
+           filter(careerpathID==2) %>% 
+           timeseries_data  
+         
+         temp_2<- temp %>% 
+           filter(careerpathID==1) %>% 
+           timeseries_data  
+         
+         temp <- rbind(temp_1, temp_2)
+         
+       }else{
+         abc <- 0
+       }
+     }
+     # 
+     # Merge back
+     data$tanfValue[data$stateFIPS==state_code]<-temp$tanfValue
+     #data$value.tanf <- 0  
+     data$value.tanf[data$stateFIPS==state_code]<-temp$tanfValue
+     
+   }
+   
+   # Illinois----
+   
+   # NOTE: Illinois has applicants pass a test where family income must not exceed the Assistance Payment Level (MaxBenefit).
+   # A disregard is applied to family income, the amount being the difference being the Assistance Payment Level for the family size and 50% of FPL for the family size 
+   # Recipients don't have to worry about this 
+   
+   state_code=17
+   if(state_code %in% unique(data$stateFIPS)){ # make sure that state is in the list
+     temp<-data %>% 
+       filter(stateFIPS==state_code) %>% 
+       left_join(tanfData, by=c("stateFIPS", "famsize")) %>% 
+       
+       # Step I: Calculate net income
+       mutate(income=income+income.gift) %>% 
+       #   mutate(net.income = rowMaxs(cbind((income*EarnedIncomeDisregard/12),0))) %>% 
+       
+       # Step II: Calculate value of the benefit
+       mutate(tanfValue=0,
+              subset=totalassets<AssetTest) %>% 
+       mutate(tanfValue=ifelse(subset==TRUE,rowMaxs(cbind(Maxbenefit-(1-EarnedIncomeDisregard)*((income+value.ssdi)/12),0)),tanfValue)) %>% 
+       
+       # applicant net income is the difference between the Maxbenefit level and 50% of the FPL 
+       
+       # Apply gross income test (if applicable) & net income / standard test (if applicable)
+       
+       mutate(tanfValue=ifelse(income/12>grossIncomeTest,0,tanfValue))
+     
+     #   mutate(tanfValue=ifelse(net.income>StandardOfNeed,0,tanfValue))  
+     
+     # TANF is not available for two married adults
+     temp$tanfValue[temp$FilingStatus==2 & temp$twoParents_tanf_policy=="No"]<-0
+     
+     
+     # In some states TANF is not available for childless adults
+     temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
+     
+     temp$tanfValue <- temp$tanfValue*12
+     
+     
+     # TIME SERIES
+     
+     if(nrow(data)>1){
+       if(data$Year[1] != data$Year[2]){
+         
+         abc <- 1
+         
+         timeseries_data<- function(x){
+           if(nrow(x)>0){
+             length_x<-nrow(x)
+             potential_indicators<-c(1,1,1,1,1,0,0,0,0,0,0) # number of years (lifetime TANF limit)
+             if(length_x<=11){
+               potential_indicators<-potential_indicators[c(1:length_x)]
+             } else { potential_indicators<-c(potential_indicators,rep(0,times=length_x-11))
+             
+             }
+             x<-x %>% 
+               mutate(potential_indicators=potential_indicators) %>% 
+               mutate(tanfValue=ifelse(potential_indicators==0, 0, tanfValue))
+           }
+           
+           return(x)  
+         }
+         
+         temp_1<- temp %>% 
+           filter(careerpathID==2) %>% 
+           timeseries_data  
+         
+         temp_2<- temp %>% 
+           filter(careerpathID==1) %>% 
+           timeseries_data  
+         
+         temp <- rbind(temp_1, temp_2)
+         
+       }else{
+         abc <- 0
+       }
+     }
+     # 
+     # Merge back
+     data$tanfValue[data$stateFIPS==state_code]<-temp$tanfValue
+     #data$value.tanf <- 0  
+     data$value.tanf[data$stateFIPS==state_code]<-temp$tanfValue
+     
+   }
+   
+   # Indiana ----
+   
+   state_code=18
+   if(state_code %in% unique(data$stateFIPS)){ # make sure that state is in the list
+     temp<-data %>% 
+       filter(stateFIPS==state_code) %>% 
+       left_join(tanfData, by=c("stateFIPS", "famsize")) %>% 
+       
+       # Step I: Calculate net income
+       mutate(income=income+income.gift) %>% 
+       mutate(net.income = rowMaxs(cbind((income/12)-90,0))) %>% 
+       mutate(net.income=net.income+(value.ssdi/12))
+     
+     temp$net.income[temp$Year == min(temp$Year)] <- temp$net.income[temp$Year == min(temp$Year)] - 30 - 0.25*(0.33*(temp$net.income[temp$Year == min(temp$Year)] - 30))
+     
+     
+     temp <- temp %>%
+       # Step I: Calculate net income
+       # Step II: Calculate value of the benefit
+       mutate(tanfValue=0,
+              subset=totalassets<AssetTest) %>% 
+       mutate(tanfValue=ifelse(subset==TRUE,rowMaxs(cbind(Maxbenefit-(income*(1-EarnedIncomeDisregard)/12),0)),tanfValue)) %>% 
+       
+       # Apply gross income test (if applicable) & net income / standard test (if applicable)
+       
+       mutate(tanfValue=ifelse(income>grossIncomeTest,0,tanfValue)) %>% 
+       
+       mutate(tanfValue=ifelse(net.income>StandardOfNeed,0,tanfValue)) 
+     
+     # TANF is not available for two married adults
+     temp$tanfValue[temp$FilingStatus==2 & temp$twoParents_tanf_policy=="No"]<-0
+     
+     
+     # In some states TANF is not available for childless adults
+     temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
+     
+     
+     temp$tanfValue <- temp$tanfValue*12
+     
+     
+     # TIME SERIES
+     
+     if(nrow(data)>1){
+       if(data$Year[1] != data$Year[2]){
+         
+         abc <- 1
+         
+         timeseries_data<- function(x){
+           if(nrow(x)>0){
+             length_x<-nrow(x)
+             potential_indicators<-c(1,1,0,0,0,0,0,0,0,0,0) # number of years (lifetime TANF limit)
+             if(length_x<=11){
+               potential_indicators<-potential_indicators[c(1:length_x)]
+             } else { potential_indicators<-c(potential_indicators,rep(0,times=length_x-11))
+             
+             }
+             x<-x %>% 
+               mutate(potential_indicators=potential_indicators) %>% 
+               mutate(tanfValue=ifelse(potential_indicators==0, 0, tanfValue))
+           }
+           
+           return(x)  
+         }
+         
+         temp_1<- temp %>% 
+           filter(careerpathID==2) %>% 
+           timeseries_data  
+         
+         temp_2<- temp %>% 
+           filter(careerpathID==1) %>% 
+           timeseries_data  
+         
+         temp <- rbind(temp_1, temp_2)
+         
+       }else{
+         abc <- 0
+       }
+     }
+     # 
+     # Merge back
+     data$tanfValue[data$stateFIPS==state_code]<-temp$tanfValue
+     #data$value.tanf <- 0  
+     data$value.tanf[data$stateFIPS==state_code]<-temp$tanfValue
+     
+   }
+   
+   # Iowa ----
+   
+   state_code=19
+   if(state_code %in% unique(data$stateFIPS)){ # make sure that state is in the list
+     temp<-data %>% 
+       filter(stateFIPS==state_code) %>% 
+       left_join(tanfData, by=c("stateFIPS", "famsize")) %>% 
+       
+       # Step I: Calculate net income
+       mutate(income=income+income.gift) %>% 
+       mutate(net.income = rowMaxs(cbind(income/12 - (income*EarnedIncomeDisregard/12),0))) %>% 
+       mutate(net.income=net.income+(value.ssdi/12)) %>%
+       
+       # Step II: Calculate value of the benefit
+       mutate(tanfValue=0,
+              subset=totalassets<AssetTest) %>% 
+       mutate(tanfValue=ifelse(subset==TRUE,rowMaxs(cbind(Maxbenefit-.50*net.income,0)),tanfValue)) %>% 
+       
+       # Apply gross income test (if applicable) & net income / standard test (if applicable)
+       
+       mutate(tanfValue=ifelse(income/12>grossIncomeTest,0,tanfValue)) %>% 
+       
+       mutate(tanfValue=ifelse(net.income>StandardOfNeed,0,tanfValue)) 
+     
+     # TANF is not available for two married adults
+     temp$tanfValue[temp$FilingStatus==2 & temp$twoParents_tanf_policy=="No"]<-0
+     
+     
+     # In some states TANF is not available for childless adults
+     temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
+     
+     
+     temp$tanfValue <- temp$tanfValue*12
+     
+     
+     # TIME SERIES
+     
+     if(nrow(data)>1){
+       if(data$Year[1] != data$Year[2]){
+         
+         abc <- 1
+         
+         timeseries_data<- function(x){
+           if(nrow(x)>0){
+             length_x<-nrow(x)
+             potential_indicators<-c(1,1,1,1,1,0,0,0,0,0,0) # number of years (lifetime TANF limit)
+             if(length_x<=11){
+               potential_indicators<-potential_indicators[c(1:length_x)]
+             } else { potential_indicators<-c(potential_indicators,rep(0,times=length_x-11))
+             
+             }
+             x<-x %>% 
+               mutate(potential_indicators=potential_indicators) %>% 
+               mutate(tanfValue=ifelse(potential_indicators==0, 0, tanfValue))
+           }
+           
+           return(x)  
+         }
+         
+         temp_1<- temp %>% 
+           filter(careerpathID==2) %>% 
+           timeseries_data  
+         
+         temp_2<- temp %>% 
+           filter(careerpathID==1) %>% 
+           timeseries_data  
+         
+         temp <- rbind(temp_1, temp_2)
+         
+       }else{
+         abc <- 0
+       }
+     }
+     # 
+     # Merge back
+     data$tanfValue[data$stateFIPS==state_code]<-temp$tanfValue
+     #data$value.tanf <- 0  
+     data$value.tanf[data$stateFIPS==state_code]<-temp$tanfValue
+     
+   }
+   
+   
+   # Kansas----
+   
+   state_code=20
+   if(state_code %in% unique(data$stateFIPS)){ # make sure that state is in the list
+     temp<-data %>% 
+       filter(stateFIPS==state_code) %>% 
+       left_join(tanfData, by=c("stateFIPS", "famsize")) %>% 
+       
+       # Step I: Calculate net income
+       mutate(income=income+income.gift) %>% 
+       mutate(net.income = rowMaxs(cbind((income/12) - 90 - EarnedIncomeDisregard*((income/12)-90),0))) %>% 
+       mutate(net.income=net.income+(value.ssdi/12)) %>%
+       
+       # Step II: Calculate value of the benefit
+       mutate(tanfValue=0,
+              subset=totalassets<AssetTest) %>% 
+       mutate(tanfValue=ifelse(subset==TRUE,rowMaxs(cbind(StandardOfNeed-net.income,0)),tanfValue)) %>% 
+       
+       # Apply gross income test (if applicable) & net income / standard test (if applicable)
+       
+       mutate(tanfValue=ifelse(income/12>grossIncomeTest,0,tanfValue)) %>% 
+       
+       mutate(tanfValue=ifelse(net.income>StandardOfNeed,0,tanfValue))  %>% 
+       
+       # TANF is not available for two married adults
+       
+       mutate(tanfValue=ifelse(FilingStatus==2 & twoParents_tanf_policy=="No",0,tanfValue ))
+     
+     # In some states TANF is not available for childless adults
+     temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
+     
+     temp$tanfValue <- temp$tanfValue*12
+     
+     
+     # TIME SERIES
+     
+     if(nrow(data)>1){
+       if(data$Year[1] != data$Year[2]){
+         
+         abc <- 1
+         
+         timeseries_data<- function(x){
+           if(nrow(x)>0){
+             length_x<-nrow(x)
+             potential_indicators<-c(1,1,0,0,0,0,0,0,0,0,0) # number of years (lifetime TANF limit)
+             if(length_x<=11){
+               potential_indicators<-potential_indicators[c(1:length_x)]
+             } else { potential_indicators<-c(potential_indicators,rep(0,times=length_x-11))
+             
+             }
+             x<-x %>% 
+               mutate(potential_indicators=potential_indicators) %>% 
+               mutate(tanfValue=ifelse(potential_indicators==0, 0, tanfValue))
+           }
+           
+           return(x)  
+         }
+         
+         temp_1<- temp %>% 
+           filter(careerpathID==2) %>% 
+           timeseries_data  
+         
+         temp_2<- temp %>% 
+           filter(careerpathID==1) %>% 
+           timeseries_data  
+         
+         temp <- rbind(temp_1, temp_2)
+         
+       }else{
+         abc <- 0
+       }
+     }
+     # 
+     # Merge back
+     data$tanfValue[data$stateFIPS==state_code]<-temp$tanfValue
+     #data$value.tanf <- 0  
+     data$value.tanf[data$stateFIPS==state_code]<-temp$tanfValue
+     
+   }
+   
+   # Kentucky ----
+   
+   state_code=21
+   if(state_code %in% unique(data$stateFIPS)){ # make sure that state is in the list
+     
+     temp<-data[data$stateFIPS==21,]
+     
+     temp<-left_join(temp, tanfData, by=c("stateFIPS", "famsize"))
+     
+     temp$income=temp$income+temp$income.gift # add gift income
+     
+     
+     # Step I: Calculate net income
+     temp$net.income<-rowMaxs(cbind(temp$EarnedIncomeDisregard*(temp$StandardOfNeed - (temp$income/12)),0)
+     ) # earned income deduction
+     #temp$net.income<-rowMaxs(cbind(temp$net.income-0.2*temp$netexp.childcare,0)) # childcare deduction
+     temp$net.income <- temp$net.income + (temp$value.ssdi/12)
+     # Step II: Calculate value of the benefit
+     temp$tanfValue<-0
+     subset<-temp$totalassets<temp$AssetTest
+     temp$tanfValue[subset]<-rowMaxs(cbind(temp$Maxbenefit[subset] - temp$net.income[subset],0))
+     
+     # Apply gross income test (if applicable)
+     # temp$tanfValue[temp$income>temp$grossIncomeTest]<-0
+     
+     # TANF is not available for two married adults
+     temp$tanfValue[temp$FilingStatus==2 & temp$twoParents_tanf_policy=="No"]<-0
+     
+     # In some states TANF is not available for childless adults
+     temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
+     
+     temp$tanfValue[(temp$income/12)>temp$grossIncomeTest]<-0
+     
+     temp$tanfValue <- temp$tanfValue*12
+     
+     
+     # TIME SERIES
+     
+     if(nrow(data)>1){
+       if(data$Year[1] != data$Year[2]){
+         
+         abc <- 1
+         
+         timeseries_data<- function(x){
+           if(nrow(x)>0){
+             length_x<-nrow(x)
+             potential_indicators<-c(1,1,1,1,1,0,0,0,0,0,0,0)  # number of years (lifetime TANF limit)
+             if(length_x<=12){
+               potential_indicators<-potential_indicators[c(1:length_x)]
+             } else { potential_indicators<-c(potential_indicators,rep(0,times=length_x-12))
+             
+             }
+             x<-x %>% 
+               mutate(potential_indicators=potential_indicators) %>% 
+               mutate(tanfValue=ifelse(potential_indicators==0, 0, tanfValue))
+           }
+           
+           return(x)  
+         }
+         
+         temp_1<- temp %>% 
+           filter(careerpathID==2) %>% 
+           timeseries_data  
+         
+         temp_2<- temp %>% 
+           filter(careerpathID==1) %>% 
+           timeseries_data  
+         
+         temp <- rbind(temp_1, temp_2) 
+         
+         
+       }else{
+         abc <- 0
+       }
+     }
+     
+     # Merge back
+     data$tanfValue[data$stateFIPS==state_code]<-temp$tanfValue   
+     #data$value.tanf <- 0  
+     data$value.tanf[data$stateFIPS==state_code]<-temp$tanfValue
+     
+     
+   }
+   
+   
+   # Louisiana ----
+   
+   # NOTE: There is a one-time, six-month deduction of $900 that can be applied. However, it need not apply consecutively, so not
+   # including it for the time being 
+   
+   state_code=22
+   if(state_code %in% unique(data$stateFIPS)){ # make sure that state is in the list
+     temp<-data %>% 
+       filter(stateFIPS==state_code) %>% 
+       left_join(tanfData, by=c("stateFIPS", "famsize")) %>% 
+       
+       # Step I: Calculate net income
+       mutate(income=income+income.gift) %>% 
+       mutate(net.income = rowMaxs(cbind((income/12) - EarnedIncomeDisregard,0))) %>%
+       mutate(net.income=net.income+(value.ssdi/12)) %>%
+       
+       # Step II: Calculate value of the benefit
+       mutate(tanfValue=0,
+              subset=totalassets<AssetTest) %>% 
+       mutate(tanfValue=ifelse(subset==TRUE,rowMaxs(cbind(Maxbenefit-net.income,0)),tanfValue)) %>% 
+       
+       # Apply gross income test (if applicable) & net income / standard test (if applicable)
+       
+       mutate(tanfValue=ifelse(income/12>grossIncomeTest,0,tanfValue)) %>% 
+       
+       mutate(tanfValue=ifelse(net.income > StandardOfNeed,0,tanfValue)) %>% 
+       
+       # TANF is not available for two married adults
+       
+       mutate(tanfValue=ifelse(FilingStatus==2 & twoParents_tanf_policy=="No",0,tanfValue )) %>% 
+       
+       # In some states TANF is not available for childless adults
+       
+       mutate(tanfValue=ifelse(numkids==0 & childless_tanf_policy=="No",0,tanfValue ))
+     
+     temp$tanfValue <- temp$tanfValue*12
+     
+     # TIME SERIES
+     
+     if(nrow(data)>1){
+       if(data$Year[1] != data$Year[2]){
+         
+         abc <- 1
+         
+         timeseries_data<- function(x){
+           if(nrow(x)>0){
+             length_x<-nrow(x)
+             potential_indicators<-c(1,1,0,0,0,1,1,0,0,0,1)
+             if(length_x<=11){
+               potential_indicators<-potential_indicators[c(1:length_x)]
+             } else { potential_indicators<-c(potential_indicators,rep(0,times=length_x-11))
+             
+             }
+             x<-x %>% 
+               mutate(potential_indicators=potential_indicators) %>% 
+               mutate(tanfValue=ifelse(potential_indicators==0, 0, tanfValue))
+           }
+           
+           return(x)  
+         }
+         
+         temp_1<- temp %>% 
+           filter(careerpathID==2) %>% 
+           timeseries_data  
+         
+         temp_2<- temp %>% 
+           filter(careerpathID==1) %>% 
+           timeseries_data  
+         
+         temp <- rbind(temp_1, temp_2)
+         
+       }else{
+         abc <- 0
+       }
+     }
+     # 
+     # Merge back
+     data$tanfValue[data$stateFIPS==state_code]<-temp$tanfValue
+     #data$value.tanf <- 0  
+     data$value.tanf[data$stateFIPS==state_code]<-temp$tanfValue
+     
+   }
+   
+   # Maine ----
+   
+   state_code=23
+   if(state_code %in% unique(data$stateFIPS)){ # make sure that state is in the list
+     temp<-data %>% 
+       filter(stateFIPS==state_code) %>% 
+       left_join(tanfData, by=c("stateFIPS", "famsize")) %>% 
+       
+       # Step I: Calculate net income
+       mutate(income=income+income.gift) %>% 
+       mutate(net.income = rowMaxs(cbind((income/12) - 108 - (EarnedIncomeDisregard*((income/12)) - 108),0))) %>% 
+       mutate(net.income=net.income+(value.ssdi/12)) %>%
+       
+       # Step II: Calculate value of the benefit
+       mutate(tanfValue=0,
+              subset=totalassets<AssetTest) %>% 
+       mutate(tanfValue=ifelse(subset==TRUE,rowMaxs(cbind(Maxbenefit-net.income,0)),tanfValue)) %>% 
+       
+       # Apply gross income test (if applicable) & net income / standard test (if applicable)
+       
+       mutate(tanfValue=ifelse(income/12>grossIncomeTest,0,tanfValue)) %>% 
+       
+       mutate(tanfValue=ifelse(net.income>StandardOfNeed,0,tanfValue)) %>% 
+       
+       # TANF is not available for two married adults
+       
+       mutate(tanfValue=ifelse(FilingStatus==2 & twoParents_tanf_policy=="No",0,tanfValue )) %>% 
+       
+       # In some states TANF is not available for childless adults
+       mutate(tanfValue=ifelse(numkids==0 & childless_tanf_policy=="No",0,tanfValue ))
+     
+     
+     temp$tanfValue <- temp$tanfValue*12
+     
+     # TIME SERIES
+     
+     if(nrow(data)>1){
+       if(data$Year[1] != data$Year[2]){
+         
+         abc <- 1
+         
+         timeseries_data<- function(x){
+           if(nrow(x)>0){
+             length_x<-nrow(x)
+             potential_indicators<-c(1,1,1,1,1,0,0,0,0,0,0) # number of years (lifetime TANF limit)
+             if(length_x<=11){
+               potential_indicators<-potential_indicators[c(1:length_x)]
+             } else { potential_indicators<-c(potential_indicators,rep(0,times=length_x-11))
+             
+             }
+             x<-x %>% 
+               mutate(potential_indicators=potential_indicators) %>% 
+               mutate(tanfValue=ifelse(potential_indicators==0, 0, tanfValue))
+           }
+           
+           return(x)  
+         }
+         
+         temp_1<- temp %>% 
+           filter(careerpathID==2) %>% 
+           timeseries_data  
+         
+         temp_2<- temp %>% 
+           filter(careerpathID==1) %>% 
+           timeseries_data  
+         
+         temp <- rbind(temp_1, temp_2)
+         
+       }else{
+         abc <- 0
+       }
+     }
+     # 
+     # Merge back
+     data$tanfValue[data$stateFIPS==state_code]<-temp$tanfValue
+     #data$value.tanf <- 0  
+     data$value.tanf[data$stateFIPS==state_code]<-temp$tanfValue
+     
+   }
+   
+   
+   
+   # Maryland----
+   
+   state_code=24
+   if(state_code %in% unique(data$stateFIPS)){ # make sure that state is in the list
+     
+     temp<-data[data$stateFIPS==24,]
+     
+     temp<-left_join(temp, tanfData, by=c("stateFIPS", "famsize"))
+     
+     # Step I: Calculate net income
+     temp$income=temp$income+temp$income.gift
+     
+     # temp$monthly_hours <- 1
+     # temp$monthly_hours[temp$hours > 25] <- 2
+     
+     temp$net.income<-rowMaxs(cbind((temp$income/12)
+                                    -(temp$EarnedIncomeDisregard*temp$income/12)-200*temp$numkids,0)) # earned income deduction
+     temp$net.income <- temp$net.income + (temp$value.ssdi/12)
+     # Step II: Calculate value of the benefit
+     temp$tanfValue<-0
+     subset<-temp$totalassets<temp$AssetTest
+     temp$tanfValue[subset]<-rowMaxs(cbind(temp$Maxbenefit[subset] - temp$net.income[subset],0))
+     
+     # Apply gross income test (if applicable)
+     temp$tanfValue[(temp$income/12)>temp$grossIncomeTest]<-0
+     
+     temp$tanfValue[(temp$net.income/12)>temp$StandardofNeed]<-0
+     
+     
+     # TANF is not available for two married adults
+     temp$tanfValue[temp$FilingStatus==2 & temp$twoParents_tanf_policy=="No"]<-0
+     
+     
+     # In some states TANF is not available for childless adults
+     temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
+     
+     
+     temp$tanfValue <- temp$tanfValue*12
+     
+     # TIME SERIES
+     
+     if(nrow(data)>1){
+       if(data$Year[1] != data$Year[2]){
+         
+         abc <- 1
+         
+         timeseries_data<- function(x){
+           if(nrow(x)>0){
+             length_x<-nrow(x)
+             potential_indicators<-c(1,1,1,1,1,0,0,0,0,0,0,0) # number of years (lifetime TANF limit)
+             if(length_x<=12){
+               potential_indicators<-potential_indicators[c(1:length_x)]
+             } else { potential_indicators<-c(potential_indicators,rep(0,times=length_x-12))
+             
+             }
+             x<-x %>% 
+               mutate(potential_indicators=potential_indicators) %>% 
+               mutate(tanfValue=ifelse(potential_indicators==0, 0, tanfValue))
+           }
+           
+           return(x)  
+         }
+         
+         temp_1<- temp %>% 
+           filter(careerpathID==2) %>% 
+           timeseries_data  
+         
+         temp_2<- temp %>% 
+           filter(careerpathID==1) %>% 
+           timeseries_data  
+         
+         temp <- rbind(temp_1, temp_2)
+         
+       }else{
+         abc <- 0
+       }
+     }
+     
+     # Merge back
+     data$tanfValue[data$stateFIPS==state_code]<-temp$tanfValue
+     #data$value.tanf <- 0  
+     data$value.tanf[data$stateFIPS==state_code]<-temp$tanfValue
+     
+     
+   }
+   
+   #
+   # Massachusetts----
+   
+   state_code=25
+   if(state_code %in% unique(data$stateFIPS)){ # make sure that state is in the list
+     temp<-data %>% 
+       filter(stateFIPS==state_code) %>% 
+       left_join(tanfData, by=c("stateFIPS", "famsize")) %>% 
+       
+       # Step I: Calculate net income
+       mutate(income=income+income.gift) %>% 
+       mutate(net.income = rowMaxs(cbind((income/12) - 200 - EarnedIncomeDisregard*((income/12)-200),0))) %>% 
+       mutate(net.income = net.income + (value.ssdi/12)) %>%
+       # Step II: Calculate value of the benefit
+       mutate(tanfValue=0,
+              subset=totalassets<AssetTest) %>% 
+       
+       mutate(tanfValue=ifelse(subset==TRUE,rowMaxs(cbind(Maxbenefit-net.income,0)),tanfValue)) %>% 
+       
+       # Apply gross income test (if applicable) & net income / standard test (if applicable)
+       
+       mutate(tanfValue=ifelse(income/12>grossIncomeTest,0,tanfValue)) %>% 
+       
+       mutate(tanfValue=ifelse(net.income>StandardOfNeed,0,tanfValue)) 
+     
+     # TANF is not available for two married adults
+     temp$tanfValue[temp$FilingStatus==2 & temp$twoParents_tanf_policy=="No"]<-0 
+     
+     
+     # In some states TANF is not available for childless adults
+     temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
+     
+     temp$tanfValue <- temp$tanfValue*12
+     
+     # TIME SERIES
+     
+     if(nrow(data)>1){
+       if(data$Year[1] != data$Year[2]){
+         
+         abc <- 1
+         
+         timeseries_data<- function(x){
+           if(nrow(x)>0){
+             length_x<-nrow(x)
+             potential_indicators<-c(1,1,0,0,0,1,1,0,0,0,1,1,0,0,0,1,1,0,0,0,1,1,0,0,0,1,1,0,0,0) #Assumption: Family receives no more than 13 years of TANF
+             if(length_x<=30){
+               potential_indicators<-potential_indicators[c(1:length_x)]
+             } else { potential_indicators<-c(potential_indicators,rep(0,times=length_x-30))
+             
+             }
+             x<-x %>% 
+               mutate(potential_indicators=potential_indicators) %>% 
+               mutate(tanfValue=ifelse(potential_indicators==0, 0, tanfValue))
+           }
+           
+           return(x)  
+         }
+         
+         temp_1<- temp %>% 
+           filter(careerpathID==2) %>% 
+           timeseries_data  
+         
+         temp_2<- temp %>% 
+           filter(careerpathID==1) %>% 
+           timeseries_data  
+         
+         temp <- rbind(temp_1, temp_2)
+         
+       }else{
+         abc <- 0
+       }
+     }
+     # 
+     # Merge back
+     data$tanfValue[data$stateFIPS==state_code]<-temp$tanfValue
+     #data$value.tanf <- 0  
+     data$value.tanf[data$stateFIPS==state_code]<-temp$tanfValue
+     
+     
+   }
+   
+   
+   # Michigan ----
+   
+   state_code=26
+   if(state_code %in% unique(data$stateFIPS)){ # make sure that state is in the list
+     temp<-data %>% 
+       filter(stateFIPS==state_code) %>% 
+       left_join(tanfData, by=c("stateFIPS", "famsize")) %>% 
+       
+       # Step I: Calculate net income
+       mutate(income=income+income.gift) %>% 
+       mutate(net.income = rowMaxs(cbind(income/12 - 200 - EarnedIncomeDisregard*((income/12)-200),0))) %>% 
+       mutate(net.income = net.income + (value.ssdi/12)) %>%
+       # Step II: Calculate value of the benefit
+       mutate(tanfValue=0,
+              subset=totalassets<AssetTest) %>% 
+       mutate(tanfValue=ifelse(subset==TRUE,rowMaxs(cbind(Maxbenefit-net.income,0)),tanfValue)) %>% 
+       
+       # Apply gross income test (if applicable) & net income / standard test (if applicable)
+       
+       mutate(tanfValue=ifelse(income/12>grossIncomeTest,0,tanfValue)) %>% 
+       
+       mutate(tanfValue=ifelse(net.income>StandardOfNeed,0,tanfValue)) %>% 
+       
+       # TANF is not available for two married adults
+       mutate(tanfValue=ifelse(FilingStatus==2 & twoParents_tanf_policy=="No",0,tanfValue))
+     
+     
+     # In some states TANF is not available for childless adults
+     temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0 
+     
+     temp$tanfValue <- temp$tanfValue*12
+     
+     
+     # TIME SERIES
+     
+     if(nrow(data)>1){
+       if(data$Year[1] != data$Year[2]){
+         
+         abc <- 1
+         
+         timeseries_data<- function(x){
+           if(nrow(x)>0){
+             length_x<-nrow(x)
+             potential_indicators<-c(1,1,1,1,1,0,0,0,0,0,0) # number of years (lifetime TANF limit)
+             if(length_x<=11){
+               potential_indicators<-potential_indicators[c(1:length_x)]
+             } else { potential_indicators<-c(potential_indicators,rep(0,times=length_x-11))
+             
+             }
+             x<-x %>% 
+               mutate(potential_indicators=potential_indicators) %>% 
+               mutate(tanfValue=ifelse(potential_indicators==0, 0, tanfValue))
+           }
+           
+           return(x)  
+         }
+         
+         temp_1<- temp %>% 
+           filter(careerpathID==2) %>% 
+           timeseries_data  
+         
+         temp_2<- temp %>% 
+           filter(careerpathID==1) %>% 
+           timeseries_data  
+         
+         temp <- rbind(temp_1, temp_2)
+         
+       }else{
+         abc <- 0
+       }
+     }
+     # 
+     # Merge back
+     data$tanfValue[data$stateFIPS==state_code]<-temp$tanfValue
+     #data$value.tanf <- 0  
+     data$value.tanf[data$stateFIPS==state_code]<-temp$tanfValue
+     
+   }
+   
+   
+   # Minnesota----
+   
+   state_code=27
+   if(state_code %in% unique(data$stateFIPS)){ 
+     temp<-data %>% 
+       filter(stateFIPS==state_code) %>% 
+       left_join(tanfData, by=c("stateFIPS", "famsize")) %>% 
+       
+       # Step I: Calculate net income
+        
+# the 65 deduction should be per working adult that earns income       
+       mutate(income=income+income.gift) %>% 
+       mutate(net.income=(income/12)-65-(70*famsize)-35) %>% 
+       mutate(net.income=net.income*EarnedIncomeDisregard) %>% 
+       mutate(net.income = net.income + (value.ssdi/12))
       
-      if(data$Year[1] != data$Year[2]){ 
-        temp_1 <- temp[temp$careerpathID == 2,]
-        temp_2 <- temp[temp$careerpathID == 1,]
-        
-        
-        
-        if(temp_1$tanfValue[1] == 0){
-          temp_1$tanfValue <- 0
-        }
-        
-        if(temp_2$tanfValue[1] == 0){
-          temp_2$tanfValue <- 0
-        }
-        
-        temp <- rbind(temp_1, temp_2)
-        
-        
-      }
-    }
-    
-    #temp$tanfValue[1, temp]
-    
-    
-    # TANF is not available for two married adults
-    temp$tanfValue[temp$FilingStatus==2 & temp$twoAdults_tanf_policy=="No"]<-0
-    
-    # In some states TANF is not available for childless adults
-    temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
-    
-    
-    
-    
-    
-    
-    
-    if(nrow(data)>1){
-      if(data$Year[1] != data$Year[2]){
-        
-        temp$tanfValue2 <- temp$tanfValue
-        
-        abc <- 1
-        
-        temp_1 <- temp[temp$careerpathID == 2,]
-        temp_2 <- temp[temp$careerpathID == 1,]
-        
-        if(nrow(temp_1)>0){
-          
-          temp_1$count_tanf <- 0
-          temp_1$row_tanf <- 0
-          temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
-          for(i in 1:length(temp_1$tanfValue)){
-            temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
-          }
-          
-          
-          temp_1$tanfValue2[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
-          temp_1$tanfValue2[2] <- 0.75*temp_1$tanfValue[2]
-          
-          # you qualify for 21 month time limit + 6 month extension because poor 
-          if((12*temp_1$Value[2])>temp_1$net.income[2]){
-            temp_1$tanfValue2[temp_1$row_tanf > ceiling(temp_1$timeLimit/12) + 1] <- 0
-            temp_1$tanfValue2[2] <- temp_1$tanfValue[2]
-            temp_1$tanfValue2[3] <- 0.25*temp_1$tanfValue[2]
-            
-          }
-          # you qualify for 21 month time limit + 6 month extension because poor  + additional 6 month extension because poor 
-          
-          if((12*temp_1$Value[3])>temp_1$net.income[3]){
-            temp_1$tanfValue2[temp_1$row_tanf > ceiling(temp_1$timeLimit/12) + 1] <- 0
-            temp_1$tanfValue2[2] <- temp_1$tanfValue[2]
-            temp_1$tanfValue2[3] <- 0.75*temp_1$tanfValue[2]
-            
-          }
-          
-          
-          temp_1$tanfValue <- temp_1$tanfValue2
-          
-        }
-        
-        if(nrow(temp_2)>0){
-          temp_2$count_tanf <- 0
-          temp_2$row_tanf <- 0
-          temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
-          for(i in 1:length(temp_2$tanfValue)){
-            temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
-          }
-          temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
-          temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
-          
-          
-          if((12*temp_2$Value[2])>temp_2$net.income[2]){
-            temp_2$tanfValue2[temp_2$row_tanf > ceiling(temp_2$timeLimit/12) + 1] <- 0
-            temp_2$tanfValue2[2] <- temp_2$tanfValue[2]
-            temp_2$tanfValue2[3] <- 0.25*temp_2$tanfValue[2]
-            
-          }
-          
-          if((12*temp_2$Value[3])>temp_2$net.income[3]){
-            temp_2$tanfValue2[temp_2$row_tanf > ceiling(temp_2$timeLimit/12) + 1] <- 0
-            temp_2$tanfValue2[2] <- temp_2$tanfValue[2]
-            temp_2$tanfValue2[3] <- 0.75*temp_2$tanfValue[2]
-            
-          }
-          
-          temp_2$tanfValue <- temp_2$tanfValue2
-          
-          
-        }
-        
-        
-        
-        temp <- rbind(temp_1, temp_2)
-        
-        
-        
-      }else{
-        abc <- 0
-      }
-    }
-    
-    
-    
-    # 
-    # Merge back
-    data$tanfValue[data$stateFIPS==9]<-temp$tanfValue
-    
-  }
-  
-  # District of Columbia ----
-  
-  if(11 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-    
-    temp<-data[data$stateFIPS==11,]
-    
-    temp<-left_join(temp, tanfData, by=c("stateFIPS", "famsize"))
-    
-    # Step I: Calculate net income
-    
-    temp$income=temp$income+temp$income.gift # add gift income
-    
-    # Apply TANF child care income deduction (175 for kids in childcare + $25 for <2)
-    temp$numkidsunder13=rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)<=12,na.rm=TRUE)
-    temp$numkidsunder2=rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)<=1,na.rm=TRUE)
-    
-    temp$childcareDeduction<-temp$numkidsunder13*175+temp$numkidsunder2*25
-    
-    temp$net.income<-rowMaxs(cbind(temp$income-(12*160+temp$EarnedIncomeDisregard*(temp$income-12*160)),0)) # earned income deduction
-    temp$net.income<-rowMaxs(cbind(temp$net.income-12*temp$childcareDeduction,0))
-    
-    # Step II: Calculate value of the benefit
-    temp$tanfValue<-0
-    subset<-temp$totalassets<temp$AssetTest
-    temp$tanfValue[subset]<-rowMaxs(cbind(12*temp$Value[subset] - temp$net.income[subset],0))
-    
-    # Apply gross income test (if applicable)
-    temp$tanfValue[temp$income>temp$grossIncomeTest]<-0
-    
-    # TANF is not available for two married adults
-    temp$tanfValue[temp$FilingStatus==2 & temp$twoAdults_tanf_policy=="No"]<-0
-    
-    # In some states TANF is not available for childless adults
-    temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
-    
-    # Merge back
-    data$tanfValue[data$stateFIPS==11]<-temp$tanfValue
-    
-  }
-  
-  
-  # Florida ----
-  
-  if(12 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-    
-    temp<-data[data$stateFIPS==12,]
-    
-    temp<-left_join(temp, tanfData, by=c("stateFIPS", "famsize"))
-    
-    # Step I: Calculate net income
-    
-    temp$income=temp$income+temp$income.gift # add gift income
-    
-    temp$net.income<-rowMaxs(cbind(temp$income-((90*12)+(12*200)+temp$EarnedIncomeDisregard*(temp$income-(90*12)-(12*200))+(10*12)),0)) # earned income deduction
-    
-    # Step II: Calculate value of the benefit
-    temp$tanfValue<-0
-    subset<-temp$totalassets<temp$AssetTest
-    temp$tanfValue[subset]<-rowMaxs(cbind(12*temp$Value[subset] - temp$net.income[subset],0))
-    
-    # Apply gross income test (if applicable)
-    temp$tanfValue[(temp$income - (90*12)) > temp$grossIncomeTest]<-0
-    
-    # TANF is not available for two married adults
-    temp$tanfValue[temp$FilingStatus==2 & temp$twoAdults_tanf_policy=="No"]<-0
-    
-    # In some states TANF is not available for childless adults
-    temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
-    
-    if(nrow(data)>1){
-      if(data$Year[1] != data$Year[2]){
-        
-        abc <- 1
-        
-        temp_1 <- temp[temp$careerpathID == 2,]
-        temp_2 <- temp[temp$careerpathID == 1,]
-        
-        if(nrow(temp_1)>0){
-          temp_1$count_tanf <- 0
-          temp_1$row_tanf <- 0
-          temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
-          for(i in 1:length(temp_1$tanfValue)){
-            temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
-          }
-          temp_1$tanfValue[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
-          #    temp_1$tanfValue[2] <- 0.75*temp_1$tanfValue[2]
-        }
-        
-        if(nrow(temp_2)>0){
-          temp_2$count_tanf <- 0
-          temp_2$row_tanf <- 0
-          temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
-          for(i in 1:length(temp_2$tanfValue)){
-            temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
-          }
-          temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
-          #   temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
-        }
-        
-        temp <- rbind(temp_1, temp_2)
-        
-      }else{
-        abc <- 0
-      }
-    }
-    
-    
-    # Merge back
-    data$tanfValue[data$stateFIPS==12]<-temp$tanfValue
-    
-    
-  }
-  
-  
-  # Kentucky ----
-  
-  if(21 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-    
-    temp<-data[data$stateFIPS==21,]
-    
-    temp<-left_join(temp, tanfData, by=c("stateFIPS", "famsize"))
-    
-    temp$income=temp$income+temp$income.gift # add gift income
-    
-    
-    # Step I: Calculate net income
-    temp$net.income<-rowMaxs(cbind(temp$income-12*temp$EarnedIncomeDisregard,0)) # earned income deduction
-    #temp$net.income<-rowMaxs(cbind(temp$net.income-0.2*temp$netexp.childcare,0)) # childcare deduction
-    
-    # Step II: Calculate value of the benefit
-    temp$tanfValue<-0
-    subset<-temp$totalassets<temp$AssetTest
-    temp$tanfValue[subset]<-rowMaxs(cbind(12*temp$Value[subset] - temp$net.income[subset],0))
-    
-    # Apply gross income test (if applicable)
-    temp$tanfValue[temp$income>temp$grossIncomeTest]<-0
-    
-    # TANF is not available for two married adults
-    temp$tanfValue[temp$FilingStatus==2 & temp$twoAdults_tanf_policy=="No"]<-0
-    
-    # In some states TANF is not available for childless adults
-    temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
-    
-    if(nrow(data)>1){
-      if(data$Year[1] != data$Year[2]){
-        
-        abc <- 1
-        
-        temp_1 <- temp[temp$careerpathID == 2,]
-        temp_2 <- temp[temp$careerpathID == 1,]
-        
-        if(nrow(temp_1)>0){
-          temp_1$count_tanf <- 0
-          temp_1$row_tanf <- 0
-          temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
-          for(i in 1:length(temp_1$tanfValue)){
-            temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
-          }
-          temp_1$tanfValue[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
-          #    temp_1$tanfValue[2] <- 0.75*temp_1$tanfValue[2]
-        }
-        
-        if(nrow(temp_2)>0){
-          temp_2$count_tanf <- 0
-          temp_2$row_tanf <- 0
-          temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
-          for(i in 1:length(temp_2$tanfValue)){
-            temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
-          }
-          temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
-          #    temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
-        }
-        
-        temp <- rbind(temp_1, temp_2)
-        
-      }else{
-        abc <- 0
-      }
-    }
-    
-    data$tanfValue[data$stateFIPS==21]<-temp$tanfValue
-    
-    
-  }
-  
-  
-  # Louisiana ----
-  
-  if(22 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-    
-    temp<-data[data$stateFIPS==22,]
-    
-    temp<-left_join(temp, tanfData, by=c("stateFIPS", "famsize"))
-    
-    # Step I: Calculate net income
-    temp$net.income<-rowMaxs(cbind(temp$income-12*temp$EarnedIncomeDisregard,0)) # earned income deduction
-    
-    # Step II: Calculate value of the benefit
-    temp$tanfValue<-0
-    subset<-temp$totalassets<temp$AssetTest
-    temp$tanfValue[subset]<-rowMaxs(cbind(12*temp$Value[subset] - temp$net.income[subset],0))
-    
-    # TANF is not available for two married adults
-    temp$tanfValue[temp$FilingStatus==2 & temp$twoAdults_tanf_policy=="No"]<-0
-    
-    # Apply gross income test (if applicable)
-    temp$tanfValue[temp$income>temp$grossIncomeTest]<-0
-    
-    # In some states TANF is not available for childless adults
-    temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
-    
-    if(nrow(data)>1){
-      if(data$Year[1] != data$Year[2]){
-        
-        abc <- 1
-        
-        temp_1 <- temp[temp$careerpathID == 2,]
-        temp_2 <- temp[temp$careerpathID == 1,]
-        
-        if(nrow(temp_1)>0){
-          temp_1$count_tanf <- 0
-          temp_1$row_tanf <- 0
-          temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
-          for(i in 1:length(temp_1$tanfValue)){
-            temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
-          }
-          temp_1$tanfValue[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
-          #   temp_1$tanfValue[2] <- 0.75*temp_1$tanfValue[2]
-        }
-        
-        if(nrow(temp_2)>0){
-          temp_2$count_tanf <- 0
-          temp_2$row_tanf <- 0
-          temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
-          for(i in 1:length(temp_2$tanfValue)){
-            temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
-          }
-          temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
-          #  temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
-        }
-        
-        temp <- rbind(temp_1, temp_2)
-        
-      }else{
-        abc <- 0
-      }
-    }
-    
-    # Merge back
-    data$tanfValue[data$stateFIPS==22]<-temp$tanfValue
-    
-  }
-  
-  # Maine ----
-  
-  if(23 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-    
-    temp<-data[data$stateFIPS==23,]
-    
-    temp<-left_join(temp, tanfData, by=c("stateFIPS", "famsize"))
-    
-    # Step I: Calculate net income
-    temp$income=temp$income+temp$income.gift
-    temp$net.income<-rowMaxs(cbind(temp$income-(12*108+temp$EarnedIncomeDisregard*(temp$income-12*108)),0)) # earned income deduction
-    
-    # Step II: Calculate value of the benefit
-    temp$tanfValue<-0
-    subset<-temp$totalassets<temp$AssetTest
-    temp$tanfValue[subset]<-rowMaxs(cbind(12*temp$Value[subset] - temp$net.income[subset],0))
-    
-    # Apply gross income test (if applicable)
-    temp$tanfValue[temp$income>temp$grossIncomeTest]<-0
-    
-    # TANF is not available for two married adults
-    temp$tanfValue[temp$FilingStatus==2 & temp$twoAdults_tanf_policy=="No"]<-0
-    
-    # In some states TANF is not available for childless adults
-    temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
-    
-    if(nrow(data)>1){
-      if(data$Year[1] != data$Year[2]){
-        
-        abc <- 1
-        
-        temp_1 <- temp[temp$careerpathID == 2,]
-        temp_2 <- temp[temp$careerpathID == 1,]
-        
-        if(nrow(temp_1)>0){
-          temp_1$count_tanf <- 0
-          temp_1$row_tanf <- 0
-          temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
-          for(i in 1:length(temp_1$tanfValue)){
-            temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
-          }
-          temp_1$tanfValue[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
-          #    temp_1$tanfValue[2] <- 0.75*temp_1$tanfValue[2]
-        }
-        
-        if(nrow(temp_2)>0){
-          temp_2$count_tanf <- 0
-          temp_2$row_tanf <- 0
-          temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
-          for(i in 1:length(temp_2$tanfValue)){
-            temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
-          }
-          temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
-          #    temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
-        }
-        
-        temp <- rbind(temp_1, temp_2)
-        
-      }else{
-        abc <- 0
-      }
-    }
-    
-    # Merge back
-    data$tanfValue[data$stateFIPS==23]<-temp$tanfValue
-    
-  }
-  
-  
-  # Maryland----
-  
-  if(24 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-    
-    temp<-data[data$stateFIPS==24,]
-    
-    temp<-left_join(temp, tanfData, by=c("stateFIPS", "famsize"))
-    
-    # Step I: Calculate net income
-    temp$income=temp$income+temp$income.gift
-    
-    # temp$monthly_hours <- 1
-    # temp$monthly_hours[temp$hours > 25] <- 2
-    
-    temp$net.income<-rowMaxs(cbind(temp$income-(temp$EarnedIncomeDisregard*temp$income)-200*temp$numkids,0)) # earned income deduction
-    
-    # Step II: Calculate value of the benefit
-    temp$tanfValue<-0
-    subset<-temp$totalassets<temp$AssetTest
-    temp$tanfValue[subset]<-rowMaxs(cbind(12*temp$Value[subset] - temp$net.income[subset],0))
-    
-    # Apply gross income test (if applicable)
-    temp$tanfValue[(0.8*temp$income)>temp$grossIncomeTest]<-0
-    
-    # TANF is not available for two married adults
-    temp$tanfValue[temp$FilingStatus==2 & temp$twoAdults_tanf_policy=="No"]<-0
-    
-    # In some states TANF is not available for childless adults
-    temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
-    
-    if(nrow(data)>1){
-      if(data$Year[1] != data$Year[2]){
-        abc <- 1
-        temp$count_tanf <- 0
-        temp$row_tanf <- 0
-        temp$count_tanf[temp$tanfValue > 0] <- 1
-        for(i in 1:length(temp$tanfValue)){
-          temp$row_tanf[i] <- sum(temp$count_tanf[1:i])
-        }
-        temp$tanfValue[temp$row_tanf > (temp$timeLimit/12)] <- 0
-      }else{
-        abc <- 0
-      }
-    }
-    
-    # Merge back
-    data$tanfValue[data$stateFIPS==24]<-temp$tanfValue
-    
-  }
-  
-  #
-  # Massachusetts----
-  
-  if(25 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-    
-    temp<-data[data$stateFIPS==25,]
-    
-    temp<-left_join(temp, tanfData, by=c("stateFIPS", "famsize"))
-    
-    # Step I: Calculate net income
-    temp$income=temp$income+temp$income.gift
-    temp$net.income<-rowMaxs(cbind(temp$income-(12*200+temp$EarnedIncomeDisregard*(temp$income-12*200)),0)) # earned income deduction
-    
-    # Step II: Calculate value of the benefit
-    temp$tanfValue<-0
-    subset<-temp$totalassets<temp$AssetTest
-    #temp$tanfValue[subset]<-12*temp$Value[subset]
-    temp$tanfValue[subset]<-rowMaxs(cbind(12*temp$Value[subset] - temp$net.income[subset],0))
-    
-    # Apply gross income test (if applicable)
-    temp$tanfValue[temp$income>temp$grossIncomeTest]<-0
-    
-    # TANF is not available for two married adults
-    temp$tanfValue[temp$FilingStatus==2 & temp$twoAdults_tanf_policy=="No"]<-0
-    
-    # In some states TANF is not available for childless adults
-    temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
-    
-    if(nrow(data)>1){
-      if(data$Year[1] != data$Year[2]){
-        
-        abc <- 1
-        
-        temp_1 <- temp[temp$careerpathID == 2,]
-        temp_2 <- temp[temp$careerpathID == 1,]
-        
-        if(nrow(temp_1)>0){
-          temp_1$count_tanf <- 0
-          temp_1$row_tanf <- 0
-          temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
-          for(i in 1:length(temp_1$tanfValue)){
-            temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
-          }
-          temp_1$tanfValue[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
-          temp_1$tanfValue[2] <- 0.75*temp_1$tanfValue[2]
-        }
-        
-        if(nrow(temp_2)>0){
-          temp_2$count_tanf <- 0
-          temp_2$row_tanf <- 0
-          temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
-          for(i in 1:length(temp_2$tanfValue)){
-            temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
-          }
-          temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
-          temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
-        }
-        
-        temp <- rbind(temp_1, temp_2)
-        
-      }else{
-        abc <- 0
-      }
-    }
-    
-    # Merge back
-    data$tanfValue[data$stateFIPS==25]<-temp$tanfValue
-    
-  }
-  
-  
-  # New York----
-  
-  if(36 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-    
-    temp<-data[data$stateFIPS==36,]
-    
-    temp<-left_join(temp, tanfData, by=c("stateFIPS", "famsize"))
-    
-    # Step I: Calculate net income
-    temp$income=temp$income+temp$income.gift
-    temp$net.income<-rowMaxs(cbind(temp$income-(12*90+temp$EarnedIncomeDisregard*(temp$income-12*90)),0)) # earned income deduction
-    
-    # Step II: Calculate value of the benefit
-    temp$tanfValue<-0
-    subset<-temp$totalassets<temp$AssetTest
-    temp$tanfValue[subset]<-rowMaxs(cbind(12*temp$Value[subset] - temp$net.income[subset],0))
-    
-    # Apply gross income test (if applicable)
-    temp$tanfValue[temp$income>temp$grossIncomeTest]<-0
-    
-    # TANF is not available for two married adults
-    temp$tanfValue[temp$FilingStatus==2 & temp$twoAdults_tanf_policy=="No"]<-0
-    
-    # In some states TANF is not available for childless adults
-    temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
-    
-    if(nrow(data)>1){
-      if(data$Year[1] != data$Year[2]){
-        
-        abc <- 1
-        
-        temp_1 <- temp[temp$careerpathID == 2,]
-        temp_2 <- temp[temp$careerpathID == 1,]
-        
-        if(nrow(temp_1)>0){
-          temp_1$count_tanf <- 0
-          temp_1$row_tanf <- 0
-          temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
-          for(i in 1:length(temp_1$tanfValue)){
-            temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
-          }
-          temp_1$tanfValue[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
-          #  temp_1$tanfValue[2] <- 0.75*temp_1$tanfValue[2]
-        }
-        
-        if(nrow(temp_2)>0){
-          temp_2$count_tanf <- 0
-          temp_2$row_tanf <- 0
-          temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
-          for(i in 1:length(temp_2$tanfValue)){
-            temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
-          }
-          temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
-          # temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
-        }
-        
-        temp <- rbind(temp_1, temp_2)
-        
-      }else{
-        abc <- 0
-      }
-    }
-    
-    # Merge back
-    data$tanfValue[data$stateFIPS==36]<-temp$tanfValue
-    
-  }
-  
-  
-  # Tennessee ----
-  
-  if(47 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-    
-    temp<-data[data$stateFIPS==47,]
-    
-    tanfData$grossIncomeTest[tanfData$stateFIPS == 47] <- c(21672, 30420, 34392, 38892, 41844, 44604, 47088, 49572, 52056, 54540, 57024, 59058)
-    tanfData$Value[tanfData$stateFIPS == 47] <- c(244, 343,387, 438, 471, 502, 530, 558, 586, 614, 642, 670)
-    
-    
-    
-    temp<-left_join(temp, tanfData, by=c("stateFIPS", "famsize"))
-    
-    # Step I: Calculate net income
-    temp$income=temp$income+temp$income.gift
-    temp$net.income<-rowMaxs(cbind(temp$income-(250*12)-(175*12*temp$numkids),0)) # earned income deduction
-    
-    # Step II: Calculate value of the benefit
-    temp$tanfValue<-0
-    subset<-temp$totalassets<temp$AssetTest
-    temp$tanfValue[subset]<-rowMaxs(cbind(12*temp$Value[subset] - temp$net.income[subset],0))
-    
-    # Apply gross income test (if applicable)
-    temp$tanfValue[temp$income>temp$grossIncomeTest]<-0
-    
-    # TANF is not available for two married adults
-    temp$tanfValue[temp$FilingStatus==2 & temp$twoAdults_tanf_policy=="No"]<-0
-    
-    # In some states TANF is not available for childless adults
-    temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
-    
-    
-    
-    # TIME SERIES
-    
-    
-    if(nrow(data)>1){
-      if(data$Year[1] != data$Year[2]){
-        
-        abc <- 1
-        
-        temp_1 <- temp[temp$careerpathID == 2,]
-        temp_2 <- temp[temp$careerpathID == 1,]
-        
-        if(nrow(temp_1)>0){
-          temp_1$count_tanf <- 0
-          temp_1$row_tanf <- 0
-          temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
-          for(i in 1:length(temp_1$tanfValue)){
-            temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
-          }
-          temp_1$tanfValue[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
-          #    temp_1$tanfValue[2] <- 0.75*temp_1$tanfValue[2]
-        }
-        
-        if(nrow(temp_2)>0){
-          temp_2$count_tanf <- 0
-          temp_2$row_tanf <- 0
-          temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
-          for(i in 1:length(temp_2$tanfValue)){
-            temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
-          }
-          temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
-          #  temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
-        }
-        
-        temp <- rbind(temp_1, temp_2)
-        
-      }else{
-        abc <- 0
-      }
-    }
-    # 
-    # Merge back
-    data$tanfValue[data$stateFIPS==47]<-temp$tanfValue
-    
-  }
-  
-  
-  # Texas ----
-  
-  if(48 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-    
-    temp<-data[data$stateFIPS==48,]
-    
-    temp<-left_join(temp, tanfData, by=c("stateFIPS", "famsize"))
-    
-    # Step I: Calculate net income
-    temp$income=temp$income+temp$income.gift
-    
-    temp$net.income<-rowMaxs(cbind(
-      temp$income-(temp$EarnedIncomeDisregard*temp$income)-(120*12),0)
-    ) # earned income deduction
-    
-    # Step II: Calculate value of the benefit
-    temp$tanfValue<-0
-    subset<-temp$totalassets<temp$AssetTest
-    temp$tanfValue[subset]<-rowMaxs(cbind(12*temp$Value[subset] - temp$net.income[subset],0))
-    
-    # Apply gross income test (if applicable)
-    temp$tanfValue[((temp$EarnedIncomeDisregard*temp$income)-(120*12))>temp$grossIncomeTest]<-0
-    
-    # TANF is not available for two married adults
-    temp$tanfValue[temp$FilingStatus==2 & temp$twoAdults_tanf_policy=="No"]<-0
-    
-    # In some states TANF is not available for childless adults
-    temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
-    
-    if(nrow(data)>1){
-      if(data$Year[1] != data$Year[2]){
-        
-        abc <- 1
-        
-        temp_1 <- temp[temp$careerpathID == 2,]
-        temp_2 <- temp[temp$careerpathID == 1,]
-        
-        if(nrow(temp_1)>0){
-          temp_1$count_tanf <- 0
-          temp_1$row_tanf <- 0
-          temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
-          for(i in 1:length(temp_1$tanfValue)){
-            temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
-          }
-          temp_1$tanfValue[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
-          #    temp_1$tanfValue[2] <- 0.75*temp_1$tanfValue[2]
-        }
-        
-        if(nrow(temp_2)>0){
-          temp_2$count_tanf <- 0
-          temp_2$row_tanf <- 0
-          temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
-          for(i in 1:length(temp_2$tanfValue)){
-            temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
-          }
-          temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
-          #     temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
-        }
-        
-        temp <- rbind(temp_1, temp_2)
-        
-      }else{
-        abc <- 0
-      }
-    }
-    
-    # Merge back
-    data$tanfValue[data$stateFIPS==48]<-temp$tanfValue
-    
-  }
-  
-  
-  # Washington ----
-  
-  if(53 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-    
-    temp<-data[data$stateFIPS==53,]
-    
-    temp<-left_join(temp, tanfData, by=c("stateFIPS", "famsize"))
-    
-    # Step I: Calculate net income
-    temp$income=temp$income+temp$income.gift
-    temp$net.income<-rowMaxs(cbind(temp$income-(temp$EarnedIncomeDisregard*temp$income),0)) # earned income deduction
-    
-    # Step II: Calculate value of the benefit
-    temp$tanfValue<-0
-    subset<-temp$totalassets<temp$AssetTest
-    temp$tanfValue[subset]<-rowMaxs(cbind(12*temp$Value[subset] - temp$net.income[subset],0))
-    
-    # Apply gross income test (if applicable)
-    temp$tanfValue[temp$income>temp$grossIncomeTest]<-0
-    
-    # TANF is not available for two married adults
-    temp$tanfValue[temp$FilingStatus==2 & temp$twoAdults_tanf_policy=="No"]<-0
-    
-    # In some states TANF is not available for childless adults
-    temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
-    
-    if(nrow(data)>1){
-      if(data$Year[1] != data$Year[2]){
-        
-        abc <- 1
-        
-        temp_1 <- temp[temp$careerpathID == 2,]
-        temp_2 <- temp[temp$careerpathID == 1,]
-        
-        if(nrow(temp_1)>0){
-          temp_1$count_tanf <- 0
-          temp_1$row_tanf <- 0
-          temp_1$count_tanf[temp_1$tanfValue > 0] <- 1
-          for(i in 1:length(temp_1$tanfValue)){
-            temp_1$row_tanf[i] <- sum(temp_1$count_tanf[1:i])
-          }
-          temp_1$tanfValue[temp_1$row_tanf > ceiling(temp_1$timeLimit/12)] <- 0
-          #    temp_1$tanfValue[2] <- 0.75*temp_1$tanfValue[2]
-        }
-        
-        if(nrow(temp_2)>0){
-          temp_2$count_tanf <- 0
-          temp_2$row_tanf <- 0
-          temp_2$count_tanf[temp_2$tanfValue > 0] <- 1
-          for(i in 1:length(temp_2$tanfValue)){
-            temp_2$row_tanf[i] <- sum(temp_2$count_tanf[1:i])
-          }
-          temp_2$tanfValue[temp_2$row_tanf > ceiling(temp_2$timeLimit/12)] <- 0
-          #   temp_2$tanfValue[2] <- 0.75*temp_2$tanfValue[2]
-        }
-        
-        temp <- rbind(temp_1, temp_2)
-        
-      }else{
-        abc <- 0
-      }
-    }
-    
-    # Merge back
-    data$tanfValue[data$stateFIPS==53]<-temp$tanfValue
-    
-  }
-  
-  
-  return(data$tanfValue)
-  
-  
-}
+     temp$net.income[temp$net.income < 0] <- 0
+     
+       # Step II: Calculate value of the benefit
+     temp <- temp %>%
+     
+       mutate(tanfValue=0,
+              subset=totalassets<AssetTest) #%>%
+       
+     
+     temp$tanfValue <- temp$Maxbenefit - temp$net.income
+     temp$tanfValue[temp$tanfValue < 0] <- 0
+     
+     max_benefit <- as.numeric(unique(temp$Maxbenefit))
+     
+    #   mutate(tanfValue=ifelse(subset==TRUE,rowMaxs(cbind(StandardofNeed-net.income,0)),tanfValue)) #%>% 
+       
+     temp$tanfValue[temp$tanfValue > temp$Maxbenefit] <- max_benefit
+     
+       # Apply gross income test (if applicable) & net income / standard test (if applicable)
+       temp <- temp %>% 
+         mutate(tanfValue=ifelse(income/12>grossIncomeTest,0,tanfValue)) %>% 
+         mutate(tanfValue=ifelse(net.income>StandardOfNeed,0,tanfValue)) %>% 
+       
+       # TANF is not available for two married adults
+       
+       mutate(tanfValue=ifelse(FilingStatus==2 & twoParents_tanf_policy=="No",0,tanfValue ))
+     
+     # In some states TANF is not available for childless adults
+     temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
+     
+     
+     temp$tanfValue <- temp$tanfValue*12
+     
+     # TIME SERIES
+     
+     if(nrow(data)>1){
+       if(data$Year[1] != data$Year[2]){
+         
+         abc <- 1
+         
+         timeseries_data<- function(x){
+           if(nrow(x)>0){
+             length_x<-nrow(x)
+             potential_indicators<-c(1,1,1,1,1,0,0,0,0,0,0) # number of years (lifetime TANF limit)
+             if(length_x<=11){
+               potential_indicators<-potential_indicators[c(1:length_x)]
+             } else { potential_indicators<-c(potential_indicators,rep(0,times=length_x-11))
+             
+             }
+             x<-x %>% 
+               mutate(potential_indicators=potential_indicators) %>% 
+               mutate(tanfValue=ifelse(potential_indicators==0, 0, tanfValue))
+           }
+           
+           return(x)  
+         }
+         
+         temp_1<- temp %>% 
+           filter(careerpathID==2) %>% 
+           timeseries_data  
+         
+         temp_2<- temp %>% 
+           filter(careerpathID==1) %>% 
+           timeseries_data  
+         
+         temp <- rbind(temp_1, temp_2)
+         
+       }else{
+         abc <- 0
+       }
+     }
+     # 
+     # Merge back
+     data$tanfValue[data$stateFIPS==state_code]<-temp$tanfValue
+     #data$value.tanf <- 0  
+     data$value.tanf[data$stateFIPS==state_code]<-temp$tanfValue
+     
+   }
+   
+   # Mississippi----
+   
+   state_code=28
+   if(state_code %in% unique(data$stateFIPS)){ # make sure that state is in the list
+     temp<-data %>% 
+       filter(stateFIPS==state_code) %>% 
+       left_join(tanfData, by=c("stateFIPS", "famsize")) %>% 
+       
+       # Step I: Calculate net income
+       mutate(income=income+income.gift) %>% 
+       mutate(net.income=(income/12)-EarnedIncomeDisregard) %>%
+       mutate(net.income = net.income + (value.ssdi/12))
+     
+     # mutate(net.income[temp$Year == min(temp$Year)]=0.5*net.income[temp$Year == min(temp$Year)]) %>% 
+     
+     
+     temp$net.income[temp$Year == min(temp$Year)] <- temp$net.income[temp$Year == min(temp$Year)]*0.5
+     # Step II: Calculate value of the benefit
+     temp$net.income[temp$net.income < 0] <- 0
+     
+     temp <- temp %>%
+       mutate(tanfValue=0,
+              subset=totalassets<AssetTest) %>% 
+       mutate(tanfValue=ifelse(subset==TRUE,rowMaxs(cbind(Maxbenefit-net.income,0)),tanfValue)) %>% 
+       
+       # Apply gross income test (if applicable) & net income / standard test (if applicable)
+       
+       mutate(tanfValue=ifelse(income/12>grossIncomeTest,0,tanfValue)) %>% 
+       
+       mutate(tanfValue=ifelse(net.income>StandardOfNeed,0,tanfValue)) %>% 
+       
+       # TANF is not available for two married adults
+       
+       mutate(tanfValue=ifelse(FilingStatus==2 & twoParents_tanf_policy=="No",0,tanfValue ))
+     
+     # In some states TANF is not available for childless adults
+     temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
+     
+     temp$tanfValue <- temp$tanfValue*12
+     
+     
+     # TIME SERIES
+     
+     if(nrow(data)>1){
+       if(data$Year[1] != data$Year[2]){
+         
+         abc <- 1
+         
+         timeseries_data<- function(x){
+           if(nrow(x)>0){
+             length_x<-nrow(x)
+             potential_indicators<-c(1,1,1,1,1,0,0,0,0,0,0) # number of years (lifetime TANF limit)
+             if(length_x<=11){
+               potential_indicators<-potential_indicators[c(1:length_x)]
+             } else { potential_indicators<-c(potential_indicators,rep(0,times=length_x-11))
+             
+             }
+             x<-x %>% 
+               mutate(potential_indicators=potential_indicators) %>% 
+               mutate(tanfValue=ifelse(potential_indicators==0, 0, tanfValue))
+           }
+           
+           return(x)  
+         }
+         
+         temp_1<- temp %>% 
+           filter(careerpathID==2) %>% 
+           timeseries_data  
+         
+         temp_2<- temp %>% 
+           filter(careerpathID==1) %>% 
+           timeseries_data  
+         
+         temp <- rbind(temp_1, temp_2)
+         
+       }else{
+         abc <- 0
+       }
+     }
+     # 
+     # Merge back
+     data$tanfValue[data$stateFIPS==state_code]<-temp$tanfValue
+     #data$value.tanf <- 0  
+     data$value.tanf[data$stateFIPS==state_code]<-temp$tanfValue
+     
+   }
+   # Missouri----
+   
+   state_code=29
+   if(state_code %in% unique(data$stateFIPS)){ # make sure that state is in the list
+     
+     
+     
+     temp_jc<-data %>% 
+       filter(stateFIPS==state_code & countyortownName== "Jackson County") %>% 
+       left_join(tanfData, by=c("stateFIPS", "famsize")) %>% 
+       arrange(Year)
+     
+     if(nrow(temp_jc)>0){
+       
+       # Step I: Calculate net income
+       temp_jc <- temp_jc %>%
+         mutate(income=income+income.gift) %>% 
+         mutate(net.income=(income/12)-90) #%>% 
+       
+       min_Year <- min(temp_jc$Year)
+       
+       temp_jc$net.income[temp_jc$Year == min_Year] <- temp_jc$net.income[temp_jc$Year == min_Year] - 30 - temp_jc$EarnedIncomeDisregard[temp_jc$Year == min_Year]*temp_jc$net.income[temp_jc$Year == min_Year]
+       temp_jc$net.income[temp_jc$Year == min_Year+1] <- temp_jc$net.income[temp_jc$Year == min_Year+1] - 30 - temp_jc$EarnedIncomeDisregard[temp_jc$Year == min_Year+1]*temp_jc$net.income[temp_jc$Year == min_Year+1]
+       temp_jc$net.income[temp_jc$Year == min_Year+2] <- temp_jc$net.income[temp_jc$Year == min_Year+2] - 30 - temp_jc$EarnedIncomeDisregard[temp_jc$Year == min_Year+2]*temp_jc$net.income[temp_jc$Year == min_Year+2]
+       temp_jc$net.income[temp_jc$Year == min_Year+3] <- 0.75*(temp_jc$net.income[temp_jc$Year == min_Year+3] - 30 - temp_jc$EarnedIncomeDisregard[temp_jc$Year == min_Year+3]*temp_jc$net.income[temp_jc$Year == min_Year+3])
+       
+        # mutate(net.income = ifelse(Year==min(Year),net.income - 30 - EarnedIncomeDisregard*net.income,
+        #                            ifelse(rank(Year, ties.method="min")==2,net.income - 30 - EarnedIncomeDisregard*net.income,
+        #                                   ifelse(rank(Year, ties.method="min")==3,net.income - 30 - EarnedIncomeDisregard*net.income,
+        #                                          ifelse(rank(Year, ties.method="min")==4,0.75*(net.income - 30 - EarnedIncomeDisregard*net.income),
+        #                                                 income)
+        #                                   )
+        #                            )
+        # )
+        # ) %>% 
+       temp_jc <- temp_jc %>%
+         mutate(net.income = net.income + (value.ssdi/12)) %>%
+         
+         # Step II: Calculate value of the benefit
+         mutate(tanfValue=0,
+                subset=totalassets<AssetTest) %>% 
+         mutate(tanfValue=ifelse(subset==TRUE,rowMaxs(cbind((Maxbenefit - net.income),0)),tanfValue)) %>% 
+         
+         # Apply gross income test (if applicable) & net income / standard test (if applicable)
+         
+         mutate(tanfValue=ifelse(net.income>StandardOfNeed,0,tanfValue))  %>% 
+         
+         mutate(tanfValue=ifelse(income/12>grossIncomeTest,0,tanfValue)) %>% 
+         
+         # TANF is not available for two married adults
+         
+         mutate(tanfValue=ifelse(FilingStatus==2 & twoParents_tanf_policy=="No",0,tanfValue ))
+       
+       # In some states TANF is not available for childless adults
+     }
+     
+     
+     temp_njc<-data %>% 
+       filter(stateFIPS==state_code & countyortownName!= "Jackson County" ) %>% 
+       left_join(tanfData, by=c("stateFIPS", "famsize")) %>% 
+       arrange(Year)# %>% 
+     
+     
+     
+     if(nrow(temp_njc)>0){
+       
+       temp_njc <- temp_njc %>%
+         
+         # Step I: Calculate net income
+         mutate(income=income+income.gift) %>% 
+         mutate(net.income=(income/12)-90)# %>% 
+       
+       min_Year <- min(temp_njc$Year)
+       
+       temp_njc$net.income[temp_njc$Year == min_Year] <- temp_njc$EarnedIncomeDisregard[temp_njc$Year == min_Year]*temp_njc$net.income[temp_njc$Year == min_Year]
+       
+        # mutate(net.income = ifelse(Year==min(Year),EarnedIncomeDisregard*net.income,net.income
+        #                            
+        # )
+       #  )
+       
+       temp_njc  <-  temp_njc  %>% 
+         mutate(net.income = net.income + (value.ssdi/12)) %>%
+         
+         # Step II: Calculate value of the benefit
+         mutate(tanfValue=0,
+                subset=totalassets<AssetTest) %>% 
+         mutate(tanfValue=ifelse(subset==TRUE,rowMaxs(cbind((Maxbenefit - net.income),0)),tanfValue)) %>% 
+         
+         # Apply gross income test (if applicable) & net income / standard test (if applicable)
+         
+         mutate(tanfValue=ifelse(net.income>StandardOfNeed,0,tanfValue))  %>% 
+         
+         mutate(tanfValue=ifelse(income/12>grossIncomeTest,0,tanfValue)) %>% 
+         
+         # TANF is not available for two married adults
+         
+         mutate(tanfValue=ifelse(FilingStatus==2 & twoParents_tanf_policy=="No",0,tanfValue ))
+       
+     }
+     
+     temp<-temp_njc
+     
+  #   temp$tanfValue[temp$Year==min(temp$Year)+3] <- 0.75*temp$tanfValue[temp$Year==min(temp$Year)+3]
+     
+     # In some states TANF is not available for childless adults
+     
+     temp<-rbind(temp, temp_jc)
+     
+     
+     
+     temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
+     
+     temp$tanfValue <- temp$tanfValue*12
+     
+     
+     # TIME SERIES
+     
+     if(nrow(data)>1){
+       if(data$Year[1] != data$Year[2]){
+         
+         abc <- 1
+         
+         timeseries_data<- function(x){
+           if(nrow(x)>0){
+             length_x<-nrow(x)
+             potential_indicators<-c(1,1,1,1,0,0,0,0,0,0,0) # number of years (lifetime TANF limit)
+             if(length_x<=11){
+               potential_indicators<-potential_indicators[c(1:length_x)]
+             } else { potential_indicators<-c(potential_indicators,rep(0,times=length_x-11))
+             
+             }
+             x<-x %>% 
+               mutate(potential_indicators=potential_indicators) %>% 
+               mutate(tanfValue=ifelse(potential_indicators==0, 0, tanfValue))
+           }
+           
+           return(x)  
+         }
+         
+         temp_1<- temp %>% 
+           filter(careerpathID==2) %>% 
+           timeseries_data  
+         
+         temp_2<- temp %>% 
+           filter(careerpathID==1) %>% 
+           timeseries_data  
+         
+         temp <- rbind(temp_1, temp_2)
+         
+       }else{
+         abc <- 0
+       }
+     }
+     # 
+     # Merge back
+     data$tanfValue[data$stateFIPS==state_code]<-temp$tanfValue
+     #data$value.tanf <- 0  
+     data$value.tanf[data$stateFIPS==state_code]<-temp$tanfValue
+     
+   }
+   # Montana----
+   
+   state_code=30
+   if(state_code %in% unique(data$stateFIPS)){ # make sure that state is in the list
+     temp<-data %>% 
+       filter(stateFIPS==state_code) %>% 
+       left_join(tanfData, by=c("stateFIPS", "famsize")) %>% 
+       
+       # Step I: Calculate net income
+       mutate(income=income+income.gift) %>% 
+       mutate(net.income=income/12-(200))%>% 
+       mutate(net.income = rowMaxs(cbind(net.income - EarnedIncomeDisregard*net.income,0))) %>% 
+       mutate(net.income = net.income + (value.ssdi/12)) %>%
+       
+       # Step II: Calculate value of the benefit
+       mutate(tanfValue=0,
+              subset=totalassets<AssetTest) %>% 
+       
+       mutate(tanfValue=ifelse(subset==TRUE,rowMaxs(cbind(Maxbenefit-net.income,0)),tanfValue)) %>% 
+       
+       # Apply gross income test (if applicable) & net income / standard test (if applicable)
+       
+       mutate(tanfValue=ifelse(income/12>grossIncomeTest,0,tanfValue)) %>% 
+       
+       mutate(tanfValue=ifelse(net.income>StandardOfNeed,0,tanfValue)) %>% 
+       
+       # TANF is not available for two married adults
+       
+       mutate(tanfValue=ifelse(FilingStatus==2 & twoParents_tanf_policy=="No",0,tanfValue )) %>% 
+       
+       # In some states TANF is not available for childless adults
+       mutate(tanfValue=ifelse(numkids==0 & childless_tanf_policy=="No",0,tanfValue ))
+     
+     temp$tanfValue <- temp$tanfValue*12
+     
+     
+     # TIME SERIES
+     
+     if(nrow(data)>1){
+       if(data$Year[1] != data$Year[2]){
+         
+         abc <- 1
+         
+         timeseries_data<- function(x){
+           if(nrow(x)>0){
+             length_x<-nrow(x)
+             potential_indicators<-c(1,1,1,1,1,0,0,0,0,0,0,0) # number of years (lifetime TANF limit)
+             if(length_x<=12){
+               potential_indicators<-potential_indicators[c(1:length_x)]
+             } else { potential_indicators<-c(potential_indicators,rep(0,times=length_x-12))
+             
+             }
+             x<-x %>% 
+               mutate(potential_indicators=potential_indicators) %>% 
+               mutate(tanfValue=ifelse(potential_indicators==0, 0, tanfValue))
+           }
+           
+           return(x)  
+         }
+         
+         temp_1<- temp %>% 
+           filter(careerpathID==2) %>% 
+           timeseries_data  
+         
+         temp_2<- temp %>% 
+           filter(careerpathID==1) %>% 
+           timeseries_data  
+         
+         temp <- rbind(temp_1, temp_2)
+         
+       }else{
+         abc <- 0
+       }
+     }
+     # 
+     # Merge back
+     data$tanfValue[data$stateFIPS==state_code]<-temp$tanfValue
+     #data$value.tanf <- 0  
+     data$value.tanf[data$stateFIPS==state_code]<-temp$tanfValue
+     
+     
+   }
+   # Nebraska----
+   
+   state_code=31
+   if(state_code %in% unique(data$stateFIPS)){ # make sure that state is in the list
+     temp<-data %>% 
+       filter(stateFIPS==state_code) %>% 
+       left_join(tanfData, by=c("stateFIPS", "famsize")) %>% 
+       
+       # Step I: Calculate net income
+       mutate(income=income+income.gift) %>% 
+       mutate(net.income = rowMaxs(cbind(income/12 - ((income/12)*EarnedIncomeDisregard),0))) %>% 
+       mutate(net.income = net.income + (value.ssdi/12)) %>%
+       
+       # Step II: Calculate value of the benefit
+       mutate(tanfValue=0,
+              subset=totalassets<AssetTest) %>% 
+       mutate(tanfValue=ifelse(subset==TRUE,rowMaxs(cbind(Maxbenefit-net.income,0)),tanfValue)) %>% 
+       
+       # Apply gross income test (if applicable) & net income / standard test (if applicable)
+       
+       mutate(tanfValue=ifelse(income/12>grossIncomeTest,0,tanfValue)) %>% 
+       
+       mutate(tanfValue=ifelse(net.income>StandardOfNeed,0,tanfValue)) %>% 
+       
+       # TANF is not available for two married adults
+       
+       mutate(tanfValue=ifelse(FilingStatus==2 & twoParents_tanf_policy=="No",0,tanfValue ))
+     
+     # In some states TANF is not available for childless adults
+     
+     temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
+     
+     temp$tanfValue <- temp$tanfValue*12
+     
+     # TIME SERIES
+     
+     if(nrow(data)>1){
+       if(data$Year[1] != data$Year[2]){
+         
+         abc <- 1
+         
+         timeseries_data<- function(x){
+           if(nrow(x)>0){
+             length_x<-nrow(x)
+             potential_indicators<-c(1,1,1,1,1,0,0,0,0,0,0) # number of years (lifetime TANF limit)
+             if(length_x<=11){
+               potential_indicators<-potential_indicators[c(1:length_x)]
+             } else { potential_indicators<-c(potential_indicators,rep(0,times=length_x-11))
+             
+             }
+             x<-x %>% 
+               mutate(potential_indicators=potential_indicators) %>% 
+               mutate(tanfValue=ifelse(potential_indicators==0, 0, tanfValue))
+           }
+           
+           return(x)  
+         }
+         
+         temp_1<- temp %>% 
+           filter(careerpathID==2) %>% 
+           timeseries_data  
+         
+         temp_2<- temp %>% 
+           filter(careerpathID==1) %>% 
+           timeseries_data  
+         
+         temp <- rbind(temp_1, temp_2)
+         
+       }else{
+         abc <- 0
+       }
+     }
+     # 
+     # Merge back
+     data$tanfValue[data$stateFIPS==state_code]<-temp$tanfValue
+     #data$value.tanf <- 0  
+     data$value.tanf[data$stateFIPS==state_code]<-temp$tanfValue
+     
+   }
+   # Nevada----
+   
+   state_code=32
+   if(state_code %in% unique(data$stateFIPS)){ 
+     temp<-data %>% 
+       filter(stateFIPS==state_code) %>% 
+       left_join(tanfData, by=c("stateFIPS", "famsize")) %>% 
+       arrange(Year) %>% 
+       
+       # Step I: Calculate net income
+       mutate(income=income+income.gift) %>% 
+       mutate(income_month=income/12) %>% 
+       mutate(first.year = ifelse(Year==min(Year),1,0)) %>% 
+       mutate(net.income=ifelse(first.year==1, (income-(3*(1*income_month))-(3*(0.85*income_month))-(3*(0.75*income_month))-(3*(0.65*income_month)))/12 ,
+                                ifelse((income/12)*EarnedIncomeDisregard>90, (income-income*EarnedIncomeDisregard)/12, (income/12)-90))) %>% 
+       mutate(net.income = net.income + (value.ssdi/12)) %>%
+       
+       # Step II: Calculate value of the benefit
+       mutate(tanfValue=0,
+              subset=totalassets<AssetTest) %>% 
+       mutate(tanfValue=ifelse(subset==TRUE,rowMaxs(cbind((Maxbenefit - net.income),0)),tanfValue)) %>% 
+       
+       # Apply gross income test (if applicable) & net income / standard test (if applicable)
+       
+       mutate(tanfValue=ifelse(net.income>StandardOfNeed,0,tanfValue))  %>% 
+       
+       
+       # TANF is not available for two married adults
+       
+       mutate(tanfValue=ifelse(FilingStatus==2 & twoParents_tanf_policy=="No",0,tanfValue ))
+     
+     # In some states TANF is not available for childless adults
+     
+     temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
+     
+     
+     temp$tanfValue[(temp$income/12)>temp$grossIncomeTest]<-0
+     
+     temp$tanfValue <- temp$tanfValue*12
+     
+     
+     
+     # TIME SERIES
+     
+     if(nrow(data)>1){
+       if(data$Year[1] != data$Year[2]){
+         
+         abc <- 1
+         
+         timeseries_data<- function(x){
+           if(nrow(x)>0){
+             length_x<-nrow(x)
+             potential_indicators<-c(1,1,0,1,1,0,1,0,0,0,0) # number of years (lifetime TANF limit)
+             if(length_x<=11){
+               potential_indicators<-potential_indicators[c(1:length_x)]
+             } else { potential_indicators<-c(potential_indicators,rep(0,times=length_x-11))
+             
+             }
+             x<-x %>% 
+               mutate(potential_indicators=potential_indicators) %>% 
+               mutate(tanfValue=ifelse(potential_indicators==0, 0, tanfValue))
+           }
+           
+           return(x)  
+         }
+         
+         temp_1<- temp %>% 
+           filter(careerpathID==2) %>% 
+           timeseries_data  
+         
+         temp_2<- temp %>% 
+           filter(careerpathID==1) %>% 
+           timeseries_data  
+         
+         temp <- rbind(temp_1, temp_2)
+         
+       }else{
+         abc <- 0
+       }
+     }
+     # 
+     # Merge back
+     data$tanfValue[data$stateFIPS==state_code]<-temp$tanfValue
+     #data$value.tanf <- 0  
+     data$value.tanf[data$stateFIPS==state_code]<-temp$tanfValue
+     
+   }  
+   # New Hampshire----
+   
+   
+   
+   
+   state_code=33
+   if(state_code %in% unique(data$stateFIPS)){ 
+     temp<-data %>% 
+       filter(stateFIPS==state_code) %>% 
+       left_join(tanfData, by=c("stateFIPS", "famsize")) %>% 
+       mutate(numkidsunder13 = rowSums(cbind(agePerson1, agePerson2, agePerson3, agePerson4, agePerson5, agePerson6, agePerson7, agePerson8, agePerson9, agePerson10, agePerson11, agePerson12)<=12,na.rm=TRUE)) %>% 
+       mutate(numkidsunder6 = rowSums(cbind(agePerson1, agePerson2, agePerson3, agePerson4, agePerson5, agePerson6, agePerson7, agePerson8, agePerson9, agePerson10, agePerson11, agePerson12)<=5,na.rm=TRUE)) %>% 
+       mutate(childcareDeduction = numkidsunder13*175 + numkidsunder6*25)
+     # Step I: Calculate net income
+     
+    # temp$childcareDeduction[(temp$income/12)<377] <- temp$childcareDeduction[(temp$income/12)<377]/2
+     
+     temp <- temp %>%
+       mutate(income=income+income.gift) %>% 
+       #mutate(income=income/12*(.20))%>% 
+       mutate(net.income = rowMaxs(cbind((income - EarnedIncomeDisregard*income)/12,0))) %>% 
+   #    mutate(net.income = rowMaxs(cbind(net.income-childcareDeduction,0))) %>%
+       mutate(net.income = net.income + (value.ssdi/12)) %>%
+       
+       # Step II: Calculate value of the benefit
+       mutate(tanfValue=0,
+              subset=totalassets<AssetTest) %>% 
+       
+       mutate(tanfValue=ifelse(subset==TRUE,rowMaxs(cbind(Maxbenefit-net.income,0)),tanfValue)) %>% 
+       
+       # Apply gross income test (if applicable) & net income / standard test (if applicable)
+       
+       mutate(tanfValue=ifelse(income/12>grossIncomeTest,0,tanfValue)) %>% 
+       
+       mutate(tanfValue=ifelse(net.income>StandardOfNeed,0,tanfValue)) %>% 
+       
+       # TANF is not available for two married adults
+       
+       mutate(tanfValue=ifelse(FilingStatus==2 & twoParents_tanf_policy=="No",0,tanfValue ))
+     
+     # In some states TANF is not available for childless adults
+     
+     temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
+     
+     temp$tanfValue <- temp$tanfValue*12
+     
+     
+     # TIME SERIES
+     
+     if(nrow(data)>1){
+       if(data$Year[1] != data$Year[2]){
+         
+         abc <- 1
+         
+         timeseries_data<- function(x){
+           if(nrow(x)>0){
+             length_x<-nrow(x)
+             potential_indicators<-c(1,1,1,1,1,0,0,0,0,0,0,0) # number of years (lifetime TANF limit)
+             if(length_x<=12){
+               potential_indicators<-potential_indicators[c(1:length_x)]
+             } else { potential_indicators<-c(potential_indicators,rep(0,times=length_x-12))
+             
+             }
+             x<-x %>% 
+               mutate(potential_indicators=potential_indicators) %>% 
+               mutate(tanfValue=ifelse(potential_indicators==0, 0, tanfValue))
+           }
+           
+           return(x)  
+         }
+         
+         temp_1<- temp %>% 
+           filter(careerpathID==2) %>% 
+           timeseries_data  
+         
+         temp_2<- temp %>% 
+           filter(careerpathID==1) %>% 
+           timeseries_data  
+         
+         temp <- rbind(temp_1, temp_2)
+         
+       }else{
+         abc <- 0
+       }
+     }
+     # 
+     # Merge back
+     data$tanfValue[data$stateFIPS==state_code]<-temp$tanfValue
+     #data$value.tanf <- 0  
+     data$value.tanf[data$stateFIPS==state_code]<-temp$tanfValue
+     
+     
+   }
+   # New Jersey----
+   
+   state_code=34
+   if(state_code %in% unique(data$stateFIPS)){ # make sure that state is in the list
+     temp<-data %>% 
+       filter(stateFIPS==state_code) %>% 
+       left_join(tanfData, by=c("stateFIPS", "famsize")) %>% 
+       arrange(Year) %>% 
+       
+       # Step I: Calculate net income
+       mutate(income=income+income.gift) %>% 
+       mutate(income_month=income/12) %>% 
+       mutate(first.year = ifelse(Year==min(Year),1,0)) %>% 
+       mutate(net.income=ifelse(first.year==1, (income-(1*income_month)-(6*(0.75*income_month))-(5*(0.5*income_month)))/12,
+                                (income-(12*(0.5*income_month)))/12
+       )
+       ) %>% 
+       mutate(net.income = net.income + (value.ssdi/12)) %>%
+       
+       # Step II: Calculate value of the benefit
+       mutate(tanfValue=0,
+              subset=totalassets<AssetTest) %>% 
+       mutate(tanfValue=ifelse(subset==TRUE,rowMaxs(cbind((Maxbenefit - net.income),0)),tanfValue)) %>% 
+       
+       # Apply gross income test (if applicable) & net income / standard test (if applicable)
+       
+       mutate(tanfValue=ifelse(net.income>StandardOfNeed,0,tanfValue))  %>% 
+       
+       
+       # TANF is not available for two married adults
+       mutate(tanfValue=ifelse(FilingStatus==2 & twoParents_tanf_policy=="No",0,tanfValue ))
+     
+     # In some states TANF is not available for childless adults
+     temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
+     
+     temp$tanfValue[(temp$income/12)>temp$grossIncomeTest]<-0
+     
+     
+     temp$tanfValue <- temp$tanfValue*12
+     
+     
+     # TIME SERIES
+     
+     if(nrow(data)>1){
+       if(data$Year[1] != data$Year[2]){
+         
+         abc <- 1
+         
+         timeseries_data<- function(x){
+           if(nrow(x)>0){
+             length_x<-nrow(x)
+             potential_indicators<-c(1,1,1,1,1,0,0,0,0,0,0) # number of years (lifetime TANF limit)
+             if(length_x<=11){
+               potential_indicators<-potential_indicators[c(1:length_x)]
+             } else { potential_indicators<-c(potential_indicators,rep(0,times=length_x-11))
+             
+             }
+             x<-x %>% 
+               mutate(potential_indicators=potential_indicators) %>% 
+               mutate(tanfValue=ifelse(potential_indicators==0, 0, tanfValue))
+           }
+           
+           return(x)  
+         }
+         
+         temp_1<- temp %>% 
+           filter(careerpathID==2) %>% 
+           timeseries_data  
+         
+         temp_2<- temp %>% 
+           filter(careerpathID==1) %>% 
+           timeseries_data  
+         
+         temp <- rbind(temp_1, temp_2)
+         
+       }else{
+         abc <- 0
+       }
+     }
+     # 
+     # Merge back
+     data$tanfValue[data$stateFIPS==state_code]<-temp$tanfValue
+     #data$value.tanf <- 0  
+     data$value.tanf[data$stateFIPS==state_code]<-temp$tanfValue
+     
+   }
+   #  9018285892
+   # New Mexico----
+   
+   state_code=35
+   if(state_code %in% unique(data$stateFIPS)){ 
+     temp<-data %>% 
+       filter(stateFIPS==state_code) %>% 
+       left_join(tanfData, by=c("stateFIPS", "famsize")) %>% 
+       arrange(Year) %>% 
+       
+       # Step I: Calculate net income
+       mutate(income=income+income.gift) %>% 
+       mutate(net.income=ifelse(FilingStatus==1, (income/12)-125, ifelse(FilingStatus==2, (income/12)-225, (income/12)))) %>%
+       mutate(net.income=net.income*EarnedIncomeDisregard) %>% 
+       mutate(net.income = net.income + (value.ssdi/12)) %>%
+       
+       # Step II: Calculate value of the benefit
+       mutate(tanfValue=0,
+              subset=totalassets<AssetTest) %>% 
+       mutate(tanfValue=ifelse(subset==TRUE,rowMaxs(cbind((Maxbenefit - net.income),0)),tanfValue)) %>% 
+       
+       # Apply gross income test (if applicable) & net income / standard test (if applicable)
+       
+       mutate(tanfValue=ifelse(net.income>StandardOfNeed,0,tanfValue))  %>% 
+       
+       
+       # TANF is not available for two married adults
+       
+       mutate(tanfValue=ifelse(FilingStatus==2 & twoParents_tanf_policy=="No",0,tanfValue ))
+     
+     # In some states TANF is not available for childless adults
+     
+     temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
+     
+     temp$tanfValue[(temp$income/12)>temp$grossIncomeTest]<-0
+     
+     temp$tanfValue <- temp$tanfValue*12
+     
+     # TIME SERIES
+     
+     if(nrow(data)>1){
+       if(data$Year[1] != data$Year[2]){
+         
+         abc <- 1
+         
+         timeseries_data<- function(x){
+           if(nrow(x)>0){
+             length_x<-nrow(x)
+             potential_indicators<-c(1,1,1,1,1,0,0,0,0,0,0) # number of years (lifetime TANF limit)
+             if(length_x<=11){
+               potential_indicators<-potential_indicators[c(1:length_x)]
+             } else { potential_indicators<-c(potential_indicators,rep(0,times=length_x-11))
+             
+             }
+             x<-x %>% 
+               mutate(potential_indicators=potential_indicators) %>% 
+               mutate(tanfValue=ifelse(potential_indicators==0, 0, tanfValue))
+           }
+           
+           return(x)  
+         }
+         
+         temp_1<- temp %>% 
+           filter(careerpathID==2) %>% 
+           timeseries_data  
+         
+         temp_2<- temp %>% 
+           filter(careerpathID==1) %>% 
+           timeseries_data  
+         
+         temp <- rbind(temp_1, temp_2)
+         
+       }else{
+         abc <- 0
+       }
+     }
+     # 
+     # Merge back
+     data$tanfValue[data$stateFIPS==state_code]<-temp$tanfValue
+     #data$value.tanf <- 0  
+     data$value.tanf[data$stateFIPS==state_code]<-temp$tanfValue
+     
+   }
+   
+   # New York----
+   
+   state_code=36
+   if(state_code %in% unique(data$stateFIPS)){ # make sure that state is in the list
+     temp<-data %>% 
+       filter(stateFIPS==state_code) %>% 
+       left_join(tanfData, by=c("stateFIPS", "famsize")) %>% 
+       
+       # Step I: Calculate net income
+       mutate(income=income+income.gift) %>% 
+       mutate(net.income=income/12-(90))%>% 
+       mutate(net.income = rowMaxs(cbind(net.income - EarnedIncomeDisregard*net.income,0))) %>% 
+       mutate(net.income = net.income + (value.ssdi/12)) %>%
+       
+       # Step II: Calculate value of the benefit
+       mutate(tanfValue=0,
+              subset=totalassets<AssetTest) %>% 
+       
+       mutate(tanfValue=ifelse(subset==TRUE,rowMaxs(cbind(Maxbenefit-net.income,0)),tanfValue)) %>% 
+       
+       # Apply gross income test (if applicable) & net income / standard test (if applicable)
+       
+       mutate(tanfValue=ifelse(income/12>grossIncomeTest,0,tanfValue)) %>% 
+       
+       mutate(tanfValue=ifelse(net.income>StandardOfNeed,0,tanfValue)) %>% 
+       
+       # TANF is not available for two married adults
+       
+       mutate(tanfValue=ifelse(FilingStatus==2 & twoParents_tanf_policy=="No",0,tanfValue )) 
+     
+     # In some states TANF is not available for childless adults
+     
+     temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
+     
+     temp$tanfValue <- temp$tanfValue*12
+     
+     
+     # TIME SERIES
+     
+     if(nrow(data)>1){
+       if(data$Year[1] != data$Year[2]){
+         
+         abc <- 1
+         
+         timeseries_data<- function(x){
+           if(nrow(x)>0){
+             length_x<-nrow(x)
+             potential_indicators<-c(1,1,1,1,1,0,0,0,0,0,0,0) # number of years (lifetime TANF limit)
+             if(length_x<=12){
+               potential_indicators<-potential_indicators[c(1:length_x)]
+             } else { potential_indicators<-c(potential_indicators,rep(0,times=length_x-12))
+             
+             }
+             x<-x %>% 
+               mutate(potential_indicators=potential_indicators) %>% 
+               mutate(tanfValue=ifelse(potential_indicators==0, 0, tanfValue))
+           }
+           
+           return(x)  
+         }
+         
+         temp_1<- temp %>% 
+           filter(careerpathID==2) %>% 
+           timeseries_data  
+         
+         temp_2<- temp %>% 
+           filter(careerpathID==1) %>% 
+           timeseries_data  
+         
+         temp <- rbind(temp_1, temp_2)
+         
+       }else{
+         abc <- 0
+       }
+     }
+     # 
+     # Merge back
+     data$tanfValue[data$stateFIPS==state_code]<-temp$tanfValue
+     #data$value.tanf <- 0  
+     data$value.tanf[data$stateFIPS==state_code]<-temp$tanfValue
+     
+     
+   }
+   
+   # North Carolina ----
+   
+   state_code=37
+   if(state_code %in% unique(data$stateFIPS)){ 
+     temp<-data %>% 
+       filter(stateFIPS==state_code) %>% 
+       left_join(tanfData, by=c("stateFIPS", "famsize")) %>% 
+       
+       # Step I: Calculate net income
+       mutate(income=income+income.gift) %>% 
+       #mutate(net.income=income*EarnedIncomeDisregard) %>% 
+       mutate(net.income = rowMaxs(cbind(income/12 - (income*EarnedIncomeDisregard/12),0))) %>% 
+       mutate(net.income = net.income + (value.ssdi/12)) %>%
+       
+       # Step II: Calculate value of the benefit
+       mutate(tanfValue=0,
+              subset=totalassets<AssetTest) %>% 
+       mutate(tanfValue=ifelse(subset==TRUE,rowMaxs(cbind(.50*(StandardOfNeed-net.income) - 25,0)),tanfValue)) %>% 
+       mutate(tanfValue=ifelse(subset==TRUE,rowMins(cbind(tanfValue, Maxbenefit)), tanfvalue)) %>% 
+       # Apply gross income test (if applicable) & net income / standard test (if applicable)
+       
+       mutate(tanfValue=ifelse(income/12>grossIncomeTest,0,tanfValue)) %>% 
+       
+       mutate(tanfValue=ifelse(net.income>StandardOfNeed,0,tanfValue)) %>% 
+       
+       # TANF is not available for two married adults
+       
+       mutate(tanfValue=ifelse(FilingStatus==2 & twoParents_tanf_policy=="No",0,tanfValue ))
+     
+     # In some states TANF is not available for childless adults
+     
+     temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
+     
+     
+     temp$tanfValue <- temp$tanfValue*12
+     
+     # TIME SERIES
+     
+     if(nrow(data)>1){
+       if(data$Year[1] != data$Year[2]){
+         
+         abc <- 1
+         
+         timeseries_data<- function(x){
+           if(nrow(x)>0){
+             length_x<-nrow(x)
+             potential_indicators<-c(1,1,0,0,0,1,1,0,0,0,1) # number of years (lifetime TANF limit)
+             if(length_x<=11){
+               potential_indicators<-potential_indicators[c(1:length_x)]
+             } else { potential_indicators<-c(potential_indicators,rep(0,times=length_x-11))
+             
+             }
+             x<-x %>% 
+               mutate(potential_indicators=potential_indicators) %>% 
+               mutate(tanfValue=ifelse(potential_indicators==0, 0, tanfValue))
+           }
+           
+           return(x)  
+         }
+         
+         temp_1<- temp %>% 
+           filter(careerpathID==2) %>% 
+           timeseries_data  
+         
+         temp_2<- temp %>% 
+           filter(careerpathID==1) %>% 
+           timeseries_data  
+         
+         temp <- rbind(temp_1, temp_2)
+         
+       }else{
+         abc <- 0
+       }
+     }
+     # 
+     # Merge back
+     data$tanfValue[data$stateFIPS==state_code]<-temp$tanfValue
+     #data$value.tanf <- 0  
+     data$value.tanf[data$stateFIPS==state_code]<-temp$tanfValue
+     
+   }
+   # North Dakota----
+   
+   state_code=38
+   if(state_code %in% unique(data$stateFIPS)){
+     temp<-data %>% 
+       filter(stateFIPS==state_code) %>% 
+       left_join(tanfData, by=c("stateFIPS", "famsize")) %>% 
+       arrange(Year) %>% 
+       
+       # Step I: Calculate net income
+       mutate(income=income+income.gift) %>% 
+       mutate(first.year = ifelse(Year==min(Year),1,0)) %>% 
+       mutate(net.income=ifelse((income/12)*EarnedIncomeDisregard>180,income*EarnedIncomeDisregard/12, 180)) %>% 
+       mutate(income_month=net.income/12) %>% 
+       mutate(net.income=ifelse(first.year==1, (net.income-(6*(0.5*income_month))-(3*(0.35*income_month)) - (3*(0.25*income_month)))/12,
+                                (net.income-(6*(0.5*income_month))-(3*(0.35*income_month)) - (3*(0.25*income_month)))/12
+       )
+       ) %>% 
+       mutate(net.income=ifelse(first.year==2, net.income-(0.25*income_month), net.income-(0.25*income_month))) %>%
+       # Step II: Calculate value of the benefit
+       mutate(net.income=ifelse(net.income < 0, 0, net.income)) %>%
+       mutate(net.income = net.income + (value.ssdi/12)) %>%
+       mutate(tanfValue=0,
+              subset=totalassets<AssetTest) %>% 
+       mutate(tanfValue=ifelse(subset==TRUE,rowMaxs(cbind((Maxbenefit - net.income),0)),tanfValue)) %>% 
+       
+       # Apply gross income test (if applicable) & net income / standard test (if applicable)
+       
+       mutate(tanfValue=ifelse(net.income>StandardOfNeed,0,tanfValue))  %>% 
+       
+       
+       # TANF is not available for two married adults
+       
+       mutate(tanfValue=ifelse(FilingStatus==2 & twoParents_tanf_policy=="No",0,tanfValue ))
+     
+     # In some states TANF is not available for childless adults
+     
+     temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
+     
+     temp$tanfValue[(temp$income/12)>temp$grossIncomeTest]<-0
+     
+     temp$tanfValue <- temp$tanfValue*12
+     
+     # TIME SERIES
+     
+     if(nrow(data)>1){
+       if(data$Year[1] != data$Year[2]){
+         
+         abc <- 1
+         
+         timeseries_data<- function(x){
+           if(nrow(x)>0){
+             length_x<-nrow(x)
+             potential_indicators<-c(1,1,1,1,1,0,0,0,0,0,0) # number of years (lifetime TANF limit)
+             if(length_x<=11){
+               potential_indicators<-potential_indicators[c(1:length_x)]
+             } else { potential_indicators<-c(potential_indicators,rep(0,times=length_x-11))
+             
+             }
+             x<-x %>% 
+               mutate(potential_indicators=potential_indicators) %>% 
+               mutate(tanfValue=ifelse(potential_indicators==0, 0, tanfValue))
+           }
+           
+           return(x)  
+         }
+         
+         temp_1<- temp %>% 
+           filter(careerpathID==2) %>% 
+           timeseries_data  
+         
+         temp_2<- temp %>% 
+           filter(careerpathID==1) %>% 
+           timeseries_data  
+         
+         temp <- rbind(temp_1, temp_2)
+         
+       }else{
+         abc <- 0
+       }
+     }
+     # 
+     # Merge back
+     data$tanfValue[data$stateFIPS==state_code]<-temp$tanfValue
+     #data$value.tanf <- 0  
+     data$value.tanf[data$stateFIPS==state_code]<-temp$tanfValue
+     
+   }
+   
+   
+   # Ohio----
+   
+   state_code=39
+   if(state_code %in% unique(data$stateFIPS)){ 
+     temp<-data %>% 
+       filter(stateFIPS==state_code) %>% 
+       left_join(tanfData, by=c("stateFIPS", "famsize")) %>% 
+       
+       # Step I: Calculate net income
+       mutate(income=income+income.gift) %>% 
+       mutate(net.income = rowMaxs(cbind(income/12 - EarnedIncomeDisregard*((income/12) - 250),0))) %>% 
+       mutate(net.income = net.income + (value.ssdi/12)) %>%
+       # Step II: Calculate value of the benefit
+       mutate(tanfValue=0,
+              subset=totalassets<AssetTest) %>% 
+       mutate(tanfValue=ifelse(subset==TRUE,rowMaxs(cbind(Maxbenefit-net.income,0)),tanfValue)) %>% 
+       
+       # Apply gross income test (if applicable) & net income / standard test (if applicable)
+       
+       mutate(tanfValue=ifelse(income/12>grossIncomeTest,0,tanfValue)) %>% 
+       
+       mutate(tanfValue=ifelse(net.income>StandardOfNeed,0,tanfValue)) %>% 
+       
+       # TANF is not available for two married adults
+       
+       mutate(tanfValue=ifelse(FilingStatus==2 & twoParents_tanf_policy=="No",0,tanfValue ))
+     
+     # In some states TANF is not available for childless adults
+     
+     temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
+     
+     temp$tanfValue <- temp$tanfValue*12
+     
+     
+     
+     # TIME SERIES
+     
+     if(nrow(data)>1){
+       if(data$Year[1] != data$Year[2]){
+         
+         abc <- 1
+         
+         timeseries_data<- function(x){
+           if(nrow(x)>0){
+             length_x<-nrow(x)
+             potential_indicators<-c(1,1,1,1,1,0,0,0,0,0,0) # number of years (lifetime TANF limit)
+             if(length_x<=11){
+               potential_indicators<-potential_indicators[c(1:length_x)]
+             } else { potential_indicators<-c(potential_indicators,rep(0,times=length_x-11))
+             
+             }
+             x<-x %>% 
+               mutate(potential_indicators=potential_indicators) %>% 
+               mutate(tanfValue=ifelse(potential_indicators==0, 0, tanfValue))
+           }
+           
+           return(x)  
+         }
+         
+         temp_1<- temp %>% 
+           filter(careerpathID==2) %>% 
+           timeseries_data  
+         
+         temp_2<- temp %>% 
+           filter(careerpathID==1) %>% 
+           timeseries_data  
+         
+         temp <- rbind(temp_1, temp_2)
+         
+       }else{
+         abc <- 0
+       }
+     }
+     # 
+     # Merge back
+     data$tanfValue[data$stateFIPS==state_code]<-temp$tanfValue
+     #data$value.tanf <- 0  
+     data$value.tanf[data$stateFIPS==state_code]<-temp$tanfValue
+     
+   }
+   
+   
+   
+   # Oklahoma ----
+   
+   state_code=40
+   if(state_code %in% unique(data$stateFIPS)){ 
+     temp<-data %>% 
+       filter(stateFIPS==state_code) %>% 
+       left_join(tanfData, by=c("stateFIPS", "famsize")) %>% 
+       
+       # Step I: Calculate net income
+       mutate(income=income+income.gift) %>% 
+       mutate(net.income = rowMaxs(cbind((income/12) - 240 - EarnedIncomeDisregard*((income/12) - 240),0))) %>% 
+       mutate(net.income = net.income + (value.ssdi/12)) %>%
+       # Step II: Calculate value of the benefit
+       mutate(tanfValue=0,
+              subset=totalassets<AssetTest) %>% 
+       mutate(tanfValue=ifelse(subset==TRUE,rowMaxs(cbind(Maxbenefit-net.income,0)),tanfValue)) %>% 
+       
+       # Apply gross income test (if applicable) & net income / standard test (if applicable)
+       
+       mutate(tanfValue=ifelse((income/12)>grossIncomeTest,0,tanfValue)) %>% 
+       
+       mutate(tanfValue=ifelse((income/12)-240>StandardOfNeed,0,tanfValue)) %>% 
+       
+       # TANF is not available for two married adults
+       
+       mutate(tanfValue=ifelse(FilingStatus==2 & twoParents_tanf_policy=="No",0,tanfValue ))
+     
+     # In some states TANF is not available for childless adults
+     
+     temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
+     
+     temp$tanfValue <- temp$tanfValue*12
+     
+     
+     # TIME SERIES
+     
+     if(nrow(data)>1){
+       if(data$Year[1] != data$Year[2]){
+         
+         abc <- 1
+         
+         timeseries_data<- function(x){
+           if(nrow(x)>0){
+             length_x<-nrow(x)
+             potential_indicators<-c(1,1,1,1,1,0,0,0,0,0,0) # number of years (lifetime TANF limit)
+             if(length_x<=11){
+               potential_indicators<-potential_indicators[c(1:length_x)]
+             } else { potential_indicators<-c(potential_indicators,rep(0,times=length_x-11))
+             
+             }
+             x<-x %>% 
+               mutate(potential_indicators=potential_indicators) %>% 
+               mutate(tanfValue=ifelse(potential_indicators==0, 0, tanfValue))
+           }
+           
+           return(x)  
+         }
+         
+         temp_1<- temp %>% 
+           filter(careerpathID==2) %>% 
+           timeseries_data  
+         
+         temp_2<- temp %>% 
+           filter(careerpathID==1) %>% 
+           timeseries_data  
+         
+         temp <- rbind(temp_1, temp_2)
+         
+       }else{
+         abc <- 0
+       }
+     }
+     # 
+     # Merge back
+     data$tanfValue[data$stateFIPS==state_code]<-temp$tanfValue
+     #data$value.tanf <- 0  
+     data$value.tanf[data$stateFIPS==state_code]<-temp$tanfValue
+     
+   }
+   
+   
+   # Oregon ----
+   
+   state_code=41
+   if(state_code %in% unique(data$stateFIPS)){ 
+     temp<-data %>% 
+       filter(stateFIPS==state_code) %>% 
+       left_join(tanfData, by=c("stateFIPS", "famsize")) %>% 
+       
+       # Step I: Calculate net income
+       mutate(income=income+income.gift) %>% 
+       mutate(net.income = rowMaxs(cbind((income/12) - EarnedIncomeDisregard*(income/12),0))) %>% 
+       mutate(net.income = net.income + (value.ssdi/12)) %>%
+       # Step II: Calculate value of the benefit
+       mutate(tanfValue=0,
+              subset=totalassets<AssetTest) %>% 
+       mutate(tanfValue=ifelse(subset==TRUE,rowMaxs(cbind(Maxbenefit-net.income,0)),tanfValue)) %>% 
+       
+       # Apply gross income test (if applicable) & net income / standard test (if applicable)
+       
+       mutate(tanfValue=ifelse(income/12>grossIncomeTest,0,tanfValue)) %>% 
+       
+       mutate(tanfValue=ifelse(net.income>StandardOfNeed2,0,tanfValue)) %>% 
+       
+       # TANF is not available for two married adults
+       
+       mutate(tanfValue=ifelse(FilingStatus==2 & twoParents_tanf_policy=="No",0,tanfValue ))
+     
+     # In some states TANF is not available for childless adults
+     
+     temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
+     
+     temp$tanfValue <- temp$tanfValue*12
+     
+     # TIME SERIES
+     
+     if(nrow(data)>1){
+       if(data$Year[1] != data$Year[2]){
+         
+         abc <- 1
+         
+         timeseries_data<- function(x){
+           if(nrow(x)>0){
+             length_x<-nrow(x)
+             potential_indicators<-c(1,1,1,1,1,0,0,0,0,0,0) # number of years (lifetime TANF limit)
+             if(length_x<=11){
+               potential_indicators<-potential_indicators[c(1:length_x)]
+             } else { potential_indicators<-c(potential_indicators,rep(0,times=length_x-11))
+             
+             }
+             x<-x %>% 
+               mutate(potential_indicators=potential_indicators) %>% 
+               mutate(tanfValue=ifelse(potential_indicators==0, 0, tanfValue))
+           }
+           
+           return(x)  
+         }
+         
+         temp_1<- temp %>% 
+           filter(careerpathID==2) %>% 
+           timeseries_data  
+         
+         temp_2<- temp %>% 
+           filter(careerpathID==1) %>% 
+           timeseries_data  
+         
+         temp <- rbind(temp_1, temp_2)
+         
+       }else{
+         abc <- 0
+       }
+     }
+     # 
+     # Merge back
+     data$tanfValue[data$stateFIPS==state_code]<-temp$tanfValue
+     #data$value.tanf <- 0  
+     data$value.tanf[data$stateFIPS==state_code]<-temp$tanfValue
+     
+   }
+   
+   # Pennsylvania----
+   
+   state_code=42
+   if(state_code %in% unique(data$stateFIPS)){ 
+     temp<-data %>% 
+       filter(stateFIPS==state_code) %>% 
+       left_join(tanfData, by=c("stateFIPS", "famsize")) %>% 
+       
+       # Step I: Calculate net income
+       mutate(income=income+income.gift) %>% 
+       mutate(net.income=(income/12)-200) %>% 
+       mutate(net.income = rowMaxs(cbind(net.income - EarnedIncomeDisregard*(net.income),0))) %>% 
+       mutate(net.income = net.income + (value.ssdi/12)) %>%
+       # Step II: Calculate value of the benefit
+       mutate(tanfValue=0,
+              subset=totalassets<AssetTest) %>% 
+       mutate(tanfValue=ifelse(subset==TRUE,rowMaxs(cbind(Maxbenefit-net.income,0)),tanfValue)) %>%
+       
+       # Apply gross income test (if applicable) & net income / standard test (if applicable)
+       
+       mutate(tanfValue=ifelse(net.income>StandardOfNeed,0,tanfValue)) %>% 
+       
+       mutate(tanfValue=ifelse(income/12>grossIncomeTest,0,tanfValue))  %>% 
+       
+       
+       # TANF is not available for two married adults
+       
+       mutate(tanfValue=ifelse(FilingStatus==2 & twoParents_tanf_policy=="No",0,tanfValue))
+     
+     # In some states TANF is not available for childless adults
+     
+     temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
+     
+     temp$tanfValue <- temp$tanfValue*12
+     
+     # TIME SERIES
+     
+     if(nrow(data)>1){
+       if(data$Year[1] != data$Year[2]){
+         
+         abc <- 1
+         
+         timeseries_data<- function(x){
+           if(nrow(x)>0){
+             length_x<-nrow(x)
+             potential_indicators<-c(1,1,1,1,1,0,0,0,0,0,0) # number of years (lifetime TANF limit)
+             if(length_x<=11){
+               potential_indicators<-potential_indicators[c(1:length_x)]
+             } else { potential_indicators<-c(potential_indicators,rep(0,times=length_x-11))
+             
+             }
+             x<-x %>% 
+               mutate(potential_indicators=potential_indicators) %>% 
+               mutate(tanfValue=ifelse(potential_indicators==0, 0, tanfValue))
+           }
+           
+           return(x)  
+         }
+         
+         temp_1<- temp %>% 
+           filter(careerpathID==2) %>% 
+           timeseries_data  
+         
+         temp_2<- temp %>% 
+           filter(careerpathID==1) %>% 
+           timeseries_data  
+         
+         temp <- rbind(temp_1, temp_2)
+         
+       }else{
+         abc <- 0
+       }
+     }
+     # 
+     # Merge back
+     data$tanfValue[data$stateFIPS==state_code]<-temp$tanfValue
+     #data$value.tanf <- 0  
+     data$value.tanf[data$stateFIPS==state_code]<-temp$tanfValue
+     
+     
+   }
+   # Rhode Island----
+   
+   state_code=44
+   if(state_code %in% unique(data$stateFIPS)){ 
+     temp<-data %>% 
+       filter(stateFIPS==state_code) %>% 
+       left_join(tanfData, by=c("stateFIPS", "famsize")) %>% 
+       
+       # Step I: Calculate net income
+       mutate(income=income+income.gift) %>% 
+       mutate(net.income=income/12-(170))%>% 
+       mutate(net.income = rowMaxs(cbind(net.income - EarnedIncomeDisregard*net.income,0))) %>% 
+       mutate(net.income = net.income + (value.ssdi/12)) %>%
+       # Step II: Calculate value of the benefit
+       mutate(tanfValue=0,
+              subset=totalassets<AssetTest) %>% 
+       
+       mutate(tanfValue=ifelse(subset==TRUE,rowMaxs(cbind(Maxbenefit-net.income,0)),tanfValue)) %>% 
+       
+       # Apply gross income test (if applicable) & net income / standard test (if applicable)
+       
+       mutate(tanfValue=ifelse(income/12>grossIncomeTest,0,tanfValue)) %>% 
+       
+       mutate(tanfValue=ifelse(net.income>StandardOfNeed,0,tanfValue)) %>% 
+       
+       # TANF is not available for two married adults
+       
+       mutate(tanfValue=ifelse(FilingStatus==2 & twoParents_tanf_policy=="No",0,tanfValue )) 
+     
+     # In some states TANF is not available for childless adults
+     
+     temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
+     
+     temp$tanfValue <- temp$tanfValue*12
+     
+     # TIME SERIES
+     
+     if(nrow(data)>1){
+       if(data$Year[1] != data$Year[2]){
+         
+         abc <- 1
+         
+         timeseries_data<- function(x){
+           if(nrow(x)>0){
+             length_x<-nrow(x)
+             potential_indicators<-c(1,1,1,1,0,0,0,0,0,0,0,0) # number of years (lifetime TANF limit)
+             if(length_x<=12){
+               potential_indicators<-potential_indicators[c(1:length_x)]
+             } else { potential_indicators<-c(potential_indicators,rep(0,times=length_x-12))
+             
+             }
+             x<-x %>% 
+               mutate(potential_indicators=potential_indicators) %>% 
+               mutate(tanfValue=ifelse(potential_indicators==0, 0, tanfValue))
+           }
+           
+           return(x)  
+         }
+         
+         temp_1<- temp %>% 
+           filter(careerpathID==2) %>% 
+           timeseries_data  
+         
+         temp_2<- temp %>% 
+           filter(careerpathID==1) %>% 
+           timeseries_data  
+         
+         temp <- rbind(temp_1, temp_2)
+         
+       }else{
+         abc <- 0
+       }
+     }
+     # 
+     # Merge back
+     data$tanfValue[data$stateFIPS==state_code]<-temp$tanfValue
+     #data$value.tanf <- 0  
+     data$value.tanf[data$stateFIPS==state_code]<-temp$tanfValue
+     
+     
+   }
+   
+   
+   # Soth Carolina----
+   
+   state_code=45
+   if(state_code %in% unique(data$stateFIPS)){ 
+     temp<-data %>% 
+       filter(stateFIPS==state_code) %>% 
+       left_join(tanfData, by=c("stateFIPS", "famsize")) %>% 
+       
+       # Step I: Calculate net income
+       mutate(income=income+income.gift)
+     
+     minyear <- min(temp$Year)
+     
+     temp$net.income <- temp$income/12
+     
+     temp$net.income <- temp$net.income - 100*temp$famsize 
+     
+     temp$net.income[temp$Year == minyear] <- temp$net.income[temp$Year == minyear] + 100*temp$famsize[temp$Year == minyear] - (0.33*0.5*temp$net.income[temp$Year == minyear]) - (0.67*100*temp$famsize[temp$Year == minyear]) 
+     temp$net.income <- temp$net.income + (temp$value.ssdi/12)   
+     # Step II: Calculate value of the benefit
+     temp<-temp %>% 
+       mutate(tanfValue=0,
+              subset=totalassets<AssetTest) %>% 
+       
+       mutate(tanfValue=ifelse(subset==TRUE,rowMaxs(cbind(Maxbenefit-net.income,0)),tanfValue)) %>% 
+       
+       # Apply gross income test (if applicable) & net income / standard test (if applicable)
+       
+       mutate(tanfValue=ifelse(income/12>grossIncomeTest,0,tanfValue)) %>% 
+       
+       mutate(tanfValue=ifelse(net.income>StandardOfNeed,0,tanfValue)) %>% 
+       
+       # TANF is not available for two married adults
+       
+       mutate(tanfValue=ifelse(FilingStatus==2 & twoParents_tanf_policy=="No",0,tanfValue )) 
+     
+     # In some states TANF is not available for childless adults
+     
+     temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
+     
+     temp$tanfValue <- temp$tanfValue*12
+     
+     # TIME SERIES
+     
+     if(nrow(data)>1){
+       if(data$Year[1] != data$Year[2]){
+         
+         abc <- 1
+         
+         timeseries_data<- function(x){
+           if(nrow(x)>0){
+             length_x<-nrow(x)
+             potential_indicators<-c(1,1,0,0,0,0,0,0,0,0,0,0) # number of years (lifetime TANF limit)
+             if(length_x<=12){
+               potential_indicators<-potential_indicators[c(1:length_x)]
+             } else { potential_indicators<-c(potential_indicators,rep(0,times=length_x-12))
+             
+             }
+             x<-x %>% 
+               mutate(potential_indicators=potential_indicators) %>% 
+               mutate(tanfValue=ifelse(potential_indicators==0, 0, tanfValue))
+           }
+           
+           return(x)  
+         }
+         
+         temp_1<- temp %>% 
+           filter(careerpathID==2) %>% 
+           timeseries_data  
+         
+         temp_2<- temp %>% 
+           filter(careerpathID==1) %>% 
+           timeseries_data  
+         
+         temp <- rbind(temp_1, temp_2)
+         
+       }else{
+         abc <- 0
+       }
+     }
+     # 
+     # Merge back
+     data$tanfValue[data$stateFIPS==state_code]<-temp$tanfValue
+     #data$value.tanf <- 0  
+     data$value.tanf[data$stateFIPS==state_code]<-temp$tanfValue
+     
+     
+   }
+   
+   # South Dakota ----
+   
+   state_code=46
+   if(state_code %in% unique(data$stateFIPS)){ # make sure that state is in the list
+     temp<-data %>% 
+       filter(stateFIPS==state_code) %>% 
+       left_join(tanfData, by=c("stateFIPS", "famsize")) %>% 
+       
+       # Step I: Calculate net income
+       mutate(income=income+income.gift) %>% 
+       mutate(net.income=(income/12)-90) %>% 
+       mutate(net.income = rowMaxs(cbind(net.income - EarnedIncomeDisregard*net.income,0))) %>% 
+       mutate(net.income = net.income + (value.ssdi/12)) %>%
+       # Step II: Calculate value of the benefit
+       mutate(tanfValue=0,
+              subset=totalassets<AssetTest) %>% 
+       mutate(tanfValue=ifelse(subset==TRUE,rowMaxs(cbind(Maxbenefit-net.income,0)),tanfValue)) %>% 
+       
+       # Apply gross income test (if applicable) & net income / standard test (if applicable)
+       
+       mutate(tanfValue=ifelse(net.income>grossIncomeTest,0,tanfValue)) %>% 
+       
+       mutate(tanfValue=ifelse(net.income>StandardOfNeed,0,tanfValue)) %>% 
+       
+       # TANF is not available for two married adults
+       
+       mutate(tanfValue=ifelse(FilingStatus==2 & twoParents_tanf_policy=="No",0,tanfValue ))
+     
+     # In some states TANF is not available for childless adults
+     temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
+     
+     temp$tanfValue <- temp$tanfValue*12
+     
+     
+     # TIME SERIES
+     
+     if(nrow(data)>1){
+       if(data$Year[1] != data$Year[2]){
+         
+         abc <- 1
+         
+         timeseries_data<- function(x){
+           if(nrow(x)>0){
+             length_x<-nrow(x)
+             potential_indicators<-c(1,1,1,1,1,0,0,0,0,0,0) # number of years (lifetime TANF limit)
+             if(length_x<=11){
+               potential_indicators<-potential_indicators[c(1:length_x)]
+             } else { potential_indicators<-c(potential_indicators,rep(0,times=length_x-11))
+             
+             }
+             x<-x %>% 
+               mutate(potential_indicators=potential_indicators) %>% 
+               mutate(tanfValue=ifelse(potential_indicators==0, 0, tanfValue))
+           }
+           
+           return(x)  
+         }
+         
+         temp_1<- temp %>% 
+           filter(careerpathID==2) %>% 
+           timeseries_data  
+         
+         temp_2<- temp %>% 
+           filter(careerpathID==1) %>% 
+           timeseries_data  
+         
+         temp <- rbind(temp_1, temp_2)
+         
+       }else{
+         abc <- 0
+       }
+     }
+     # 
+     # Merge back
+     data$tanfValue[data$stateFIPS==state_code]<-temp$tanfValue
+     #data$value.tanf <- 0  
+     data$value.tanf[data$stateFIPS==state_code]<-temp$tanfValue
+     
+   }  
+   # Tennessee ----
+   
+   state_code=47
+   if(state_code %in% unique(data$stateFIPS)){ 
+     
+     temp<-data[data$stateFIPS==47,]
+     
+     temp<-left_join(temp, tanfData, by=c("stateFIPS", "famsize")) 
+     
+     
+     temp$numkidsunder13 <- rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)<=12,na.rm=TRUE)
+     
+     temp$childcareDeduction<-temp$numkidsunder13*175
+     
+     # Step I: Calculate net income
+     temp$income=temp$income+temp$income.gift
+     temp$net.income<-rowMaxs(cbind((temp$income/12)-temp$EarnedIncomeDisregard,0)) # earned income deduction
+   #  temp$net.income<-rowMaxs(cbind(temp$net.income-temp$childcareDeduction,0))
+     temp$net.income <- temp$net.income + (temp$value.ssdi/12)   
+     # Step II: Calculate value of the benefit
+     
+     
+     temp$tanfValue<-0
+     subset<-temp$totalassets<temp$AssetTest
+     temp$tanfValue[subset]<-rowMaxs(cbind(temp$Maxbenefit[subset] - temp$net.income[subset],0))
+     
+     # Apply gross income test (if applicable) & net income / standard test (if applicable)
+     
+     temp <- temp %>%
+       
+       mutate(tanfValue=ifelse(net.income>grossIncomeTest,0,tanfValue)) %>% 
+       
+       mutate(tanfValue=ifelse(net.income>StandardOfNeed,0,tanfValue)) 
+     
+     # TANF is not available for two married adults
+     temp$tanfValue[temp$FilingStatus==2 & temp$twoParents_tanf_policy=="No"]<-0
+     
+     # In some states TANF is not available for childless adults
+     temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0  
+     
+     temp$tanfValue <- temp$tanfValue*12
+     
+     
+     # TIME SERIES
+     
+     if(nrow(data)>1){
+       if(data$Year[1] != data$Year[2]){
+         
+         abc <- 1
+         
+         timeseries_data<- function(x){
+           if(nrow(x)>0){
+             length_x<-nrow(x)
+             potential_indicators<-c(1,1,1,1,1,0,0,0,0,0,0) # number of years (lifetime TANF limit)
+             if(length_x<=11){
+               potential_indicators<-potential_indicators[c(1:length_x)]
+             } else { potential_indicators<-c(potential_indicators,rep(0,times=length_x-11))
+             
+             }
+             x<-x %>% 
+               mutate(potential_indicators=potential_indicators) %>% 
+               mutate(tanfValue=ifelse(potential_indicators==0, 0, tanfValue))
+           }
+           
+           return(x)  
+         }
+         
+         temp_1<- temp %>% 
+           filter(careerpathID==2) %>% 
+           timeseries_data  
+         
+         temp_2<- temp %>% 
+           filter(careerpathID==1) %>% 
+           timeseries_data  
+         
+         temp <- rbind(temp_1, temp_2)
+         
+       }else{
+         abc <- 0
+       }
+     }
+     # 
+     # Merge back
+     data$tanfValue[data$stateFIPS==state_code]<-temp$tanfValue
+     #data$value.tanf <- 0  
+     data$value.tanf[data$stateFIPS==state_code]<-temp$tanfValue
+     
+   }  
+   
+   
+   # Texas ----
+   
+   state_code=48
+   if(state_code %in% unique(data$stateFIPS)){ 
+     
+     temp<-data[data$stateFIPS==48,]
+     
+     temp<-left_join(temp, tanfData, by=c("stateFIPS", "famsize"))
+     
+     # Step I: Calculate net income
+     temp$income=temp$income+temp$income.gift
+     
+     temp$net.income<-rowMaxs(cbind((temp$income/12)-120,0)) # earned income deduction
+     
+     temp$net.income[temp$Year == min(temp$Year)] <- temp$net.income[temp$Year == min(temp$Year)] -  0.25*rowMins(cbind(1400,0.9*temp$net.income[temp$Year == min(temp$Year)]))
+     temp$net.income <- temp$net.income + (temp$value.ssdi/12)
+     subset<-temp$totalassets<temp$AssetTest
+     temp$tanfValue<-0
+     temp$subset<-subset
+     temp<-temp %>% 
+       mutate(cases=ifelse(subset & numadults<2 & !is.na(numadults),"case_1",NA),
+              cases=ifelse(net.income>StandardOfNeed & numadults<2 & !is.na(numadults),"case_2",cases),
+              cases=ifelse(subset & numadults >= 2 & !is.na(numadults),"case_3",cases),
+              cases=ifelse(net.income>StandardOfNeed2 & numadults >= 2 & !is.na(numadults),"case_4",cases),
+              cases=ifelse(is.na(numadults),"case_5",cases)) %>% 
+       
+       mutate(tanfValue=ifelse(subset & numadults<2 & !is.na(numadults), rowMaxs(cbind(Maxbenefit - net.income,0)),tanfValue), 
+              tanfValue=ifelse(net.income>StandardOfNeed & numadults<2 & !is.na(numadults), 0, tanfValue),
+              tanfValue=ifelse(subset & numadults >= 2 & !is.na(numadults), rowMaxs(cbind(Maxbenefit2 - net.income,0)),tanfValue),
+              tanfValue=ifelse(net.income>StandardOfNeed2 & numadults >= 2 & !is.na(numadults), 0, tanfValue),
+              tanfValue=ifelse(is.na(numadults),0, tanfValue),
+              net.income=ifelse(is.na(numadults),0, net.income))
+     
+     # TANF is not available for two married adults
+     temp$tanfValue[temp$FilingStatus==2 & temp$twoParents_tanf_policy=="No"]<-0
+     
+     # In some states TANF is not available for childless adults
+     temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
+     
+     temp$tanfValue <- temp$tanfValue*12
+     
+     
+     
+     # TIME SERIES
+     
+     if(nrow(data)>1){
+       if(data$Year[1] != data$Year[2]){
+         
+         abc <- 1
+         
+         timeseries_data<- function(x){
+           if(nrow(x)>0){
+             length_x<-nrow(x)
+             potential_indicators<-c(1,1,1,1,1,0,0,0,0,0,0,0) # number of years (lifetime TANF limit)
+             if(length_x<=12){
+               potential_indicators<-potential_indicators[c(1:length_x)]
+             } else { potential_indicators<-c(potential_indicators,rep(0,times=length_x-12))
+             
+             }
+             x<-x %>% 
+               mutate(potential_indicators=potential_indicators) %>% 
+               mutate(tanfValue=ifelse(potential_indicators==0, 0, tanfValue))
+           }
+           
+           return(x)  
+         }
+         
+         temp_1<- temp %>% 
+           filter(careerpathID==2) %>% 
+           timeseries_data  
+         
+         temp_2<- temp %>% 
+           filter(careerpathID==1) %>% 
+           timeseries_data  
+         
+         temp <- rbind(temp_1, temp_2)
+         
+         
+       }else{
+         abc <- 0
+       }
+     }
+     
+     # Merge back
+     data$tanfValue[data$stateFIPS==state_code]<-temp$tanfValue
+     #data$value.tanf <- 0  
+     data$value.tanf[data$stateFIPS==state_code]<-temp$tanfValue
+     
+     
+   }
+   
+   # Utah ----
+   
+   state_code=49
+   if(state_code %in% unique(data$stateFIPS)){ 
+     temp<-data %>% 
+       filter(stateFIPS==state_code) %>% 
+       left_join(tanfData, by=c("stateFIPS", "famsize")) %>% 
+       
+       # Step I: Calculate net income
+       mutate(income=income+income.gift) %>% 
+       mutate(net.income = rowMaxs(cbind(income/12 - 100 - EarnedIncomeDisregard*(income/12 - 100),0))) %>% 
+       mutate(net.income = net.income + (value.ssdi/12)) %>%
+       
+       # Step II: Calculate value of the benefit
+       mutate(tanfValue=0,
+              subset=totalassets<AssetTest) %>% 
+       mutate(tanfValue=ifelse(subset==TRUE,rowMaxs(cbind(Maxbenefit-net.income,0)),tanfValue)) %>% 
+       
+       # Apply gross income test (if applicable) & net income / standard test (if applicable)
+       
+       mutate(tanfValue=ifelse(income/12>grossIncomeTest,0,tanfValue)) %>% 
+       
+       mutate(tanfValue=ifelse(net.income>StandardOfNeed,0,tanfValue)) %>% 
+       
+       # TANF is not available for two married adults
+       
+       mutate(tanfValue=ifelse(FilingStatus==2 & twoParents_tanf_policy=="No",0,tanfValue ))
+     
+     # In some states TANF is not available for childless adults
+     
+     temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
+     
+     
+     temp$tanfValue <- temp$tanfValue*12
+     
+     # TIME SERIES
+     
+     if(nrow(data)>1){
+       if(data$Year[1] != data$Year[2]){
+         
+         abc <- 1
+         
+         timeseries_data<- function(x){
+           if(nrow(x)>0){
+             length_x<-nrow(x)
+             potential_indicators<-c(1,1,1,0,0,0,0,0,0,0,0) # number of years (lifetime TANF limit)
+             if(length_x<=11){
+               potential_indicators<-potential_indicators[c(1:length_x)]
+             } else { potential_indicators<-c(potential_indicators,rep(0,times=length_x-11))
+             
+             }
+             x<-x %>% 
+               mutate(potential_indicators=potential_indicators) %>% 
+               mutate(tanfValue=ifelse(potential_indicators==0, 0, tanfValue))
+           }
+           
+           return(x)  
+         }
+         
+         temp_1<- temp %>% 
+           filter(careerpathID==2) %>% 
+           timeseries_data  
+         
+         temp_2<- temp %>% 
+           filter(careerpathID==1) %>% 
+           timeseries_data  
+         
+         temp <- rbind(temp_1, temp_2)
+         
+       }else{
+         abc <- 0
+       }
+     }
+     # 
+     # Merge back
+     data$tanfValue[data$stateFIPS==state_code]<-temp$tanfValue
+     #data$value.tanf <- 0  
+     data$value.tanf[data$stateFIPS==state_code]<-temp$tanfValue
+     
+   }
+   
+   # Vermont----
+   
+   state_code=50
+   if(state_code %in% unique(data$stateFIPS)){ 
+     temp<-data %>% 
+       filter(stateFIPS==state_code) %>% 
+       left_join(tanfData, by=c("stateFIPS", "famsize")) %>% 
+       
+       # Step I: Calculate net income
+       mutate(income=income+income.gift) %>% 
+       mutate(net.income=(income/12)-250) %>% 
+       mutate(net.income=net.income*(1-EarnedIncomeDisregard)) %>% 
+       mutate(net.income = net.income + (value.ssdi/12)) %>%
+       
+       # Step II: Calculate value of the benefit
+       mutate(tanfValue=0,
+              subset=totalassets<AssetTest) %>% 
+       mutate(tanfValue=ifelse(subset==TRUE,rowMaxs(cbind(Maxbenefit - (0.496*net.income),0)),tanfValue)) %>% 
+       
+       # Apply gross income test (if applicable) & net income / standard test (if applicable)
+       
+       mutate(tanfValue=ifelse(net.income>StandardOfNeed,0,tanfValue))  %>% 
+       
+       mutate(tanfValue=ifelse(0.496*net.income>Maxbenefit,0,tanfValue))  %>% 
+       
+       # TANF is not available for two married adults
+       
+       mutate(tanfValue=ifelse(FilingStatus==2 & twoParents_tanf_policy=="No",0,tanfValue ))
+     
+     # In some states TANF is not available for childless adults
+     
+     temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
+     
+     temp$tanfValue[(temp$income/12)>temp$grossIncomeTest]<-0
+     
+     temp$tanfValue <- temp$tanfValue*12
+     
+     # TIME SERIES
+     
+     if(nrow(data)>1){
+       if(data$Year[1] != data$Year[2]){
+         
+         abc <- 1
+         
+         timeseries_data<- function(x){
+           if(nrow(x)>0){
+             length_x<-nrow(x)
+             potential_indicators<-c(1,1,1,1,1,0,0,0,0,0,0) # number of years (lifetime TANF limit)
+             if(length_x<=11){
+               potential_indicators<-potential_indicators[c(1:length_x)]
+             } else { potential_indicators<-c(potential_indicators,rep(0,times=length_x-11))
+             
+             }
+             x<-x %>% 
+               mutate(potential_indicators=potential_indicators) %>% 
+               mutate(tanfValue=ifelse(potential_indicators==0, 0, tanfValue))
+           }
+           
+           return(x)  
+         }
+         
+         temp_1<- temp %>% 
+           filter(careerpathID==2) %>% 
+           timeseries_data  
+         
+         temp_2<- temp %>% 
+           filter(careerpathID==1) %>% 
+           timeseries_data  
+         
+         temp <- rbind(temp_1, temp_2)
+         
+       }else{
+         abc <- 0
+       }
+     }
+     # 
+     # Merge back
+     data$tanfValue[data$stateFIPS==state_code]<-temp$tanfValue
+     #data$value.tanf <- 0  
+     data$value.tanf[data$stateFIPS==state_code]<-temp$tanfValue
+     
+   }
+   
+   
+   # Virginia----
+   
+   state_code=51
+   if(state_code %in% unique(data$stateFIPS)){ # make sure that state is in the list
+     
+     temp_countys<-data %>% 
+       filter(stateFIPS==state_code) %>% 
+       filter(     
+         countyortownName == "Albemarle County" 
+         | countyortownName ==  "Arlington County" 
+         | countyortownName == "Augusta County" 
+         | countyortownName == "Caroline County" 
+         | countyortownName ==  "Fairfax County" 
+         | countyortownName ==  "Fauquier County" 
+         | countyortownName ==  "James City County" 
+         | countyortownName ==  "King George County" 
+         | countyortownName ==  "Montgomery County" 
+         | countyortownName ==  "Prince William County" 
+         | countyortownName ==  "Spotsylvania County"
+         | countyortownName ==  "Stafford County"
+         | countyortownName ==  "York County" 
+         | countyortownName ==  "Alexandria city" 
+         | countyortownName ==  "Charlottesville city"
+         | countyortownName ==  "Colonial Heights city" 
+         | countyortownName ==  "Fairfax city" 
+         | countyortownName ==  "Falls Church city" 
+         | countyortownName ==  "Fredericksburg city" 
+         | countyortownName ==  "Hampton city" 
+         | countyortownName ==  "Manassas city" 
+         | countyortownName ==  "Manassas Park city"
+         | countyortownName ==  "Newport News city"
+         | countyortownName ==  "Poquoson city" 
+         | countyortownName ==  "Staunton city" 
+         | countyortownName ==  "Waynesboro city")  %>% 
+       
+       
+       left_join(tanfData, by=c("stateFIPS", "famsize")) %>% 
+       
+       # Step I: Calculate net income
+       mutate(income=income+income.gift) %>% 
+       mutate(net.income=(income/12)-177) %>% 
+       mutate(net.income=ifelse(famsize>=4,net.income-9,net.income)) %>%
+       mutate(net.income=ifelse(famsize>=5,net.income-31,net.income)) %>%
+       mutate(net.income=ifelse(famsize>=6,net.income-31,net.income)) %>%
+       mutate(net.income=net.income*EarnedIncomeDisregard) %>% 
+       mutate(net.income=ifelse(net.income<0,0,net.income)) %>% 
+       mutate(net.income = net.income + (value.ssdi/12)) %>%
+       
+       # Step II: Calculate value of the benefit
+       mutate(tanfValue=0,
+              subset=totalassets<AssetTest) %>% 
+       mutate(tanfValue=ifelse(subset==TRUE,rowMaxs(cbind((Maxbenefit2 - net.income),0)),tanfValue)) %>% 
+       
+       # Apply gross income test (if applicable) & net income / standard test (if applicable)
+       
+       mutate(tanfValue=ifelse(income/12>StandardOfNeed2,0,tanfValue))  %>% 
+       
+       # TANF is not available for two married adults
+       
+       mutate(tanfValue=ifelse(FilingStatus==2 & twoParents_tanf_policy=="No",0,tanfValue )) %>% 
+       
+       mutate(tanfValue=ifelse(income/12>grossIncomeTest2,0,tanfValue))
+     
+     
+     # In some states TANF is not available for childless adults
+     
+     temp_countys$tanfValue[temp_countys$numkids==0 & temp_countys$childless_tanf_policy=="No"]<-0
+     
+     
+     
+     temp_othercountys<-data %>% 
+       filter(stateFIPS==state_code) %>% 
+       filter(  countyortownName != "Albemarle County" 
+                & countyortownName !=  "Arlington County" 
+                & countyortownName != "Augusta County" 
+                & countyortownName != "Caroline County" 
+                & countyortownName !=  "Fairfax County" 
+                & countyortownName !=  "Fauquier County" 
+                & countyortownName !=  "James City County" 
+                & countyortownName !=  "King George County" 
+                & countyortownName !=  "Montgomery County" 
+                & countyortownName !=  "Prince William County" 
+                & countyortownName !=  "Spotsylvania County"
+                & countyortownName !=  "Stafford County"
+                & countyortownName !=  "York County" 
+                & countyortownName !=  "Alexandria city" 
+                & countyortownName !=  "Charlottesville city"
+                & countyortownName !=  "Colonial Heights city" 
+                & countyortownName !=  "Fairfax city" 
+                & countyortownName !=  "Falls Church city" 
+                & countyortownName !=  "Fredericksburg city" 
+                & countyortownName !=  "Hampton city" 
+                & countyortownName !=  "Manassas city" 
+                & countyortownName !=  "Manassas Park city"
+                & countyortownName !=  "Newport News city"
+                & countyortownName !=  "Poquoson city" 
+                & countyortownName !=  "Staunton city" 
+                & countyortownName !=  "Waynesboro city") %>% 
+       
+       left_join(tanfData, by=c("stateFIPS", "famsize")) %>% 
+       
+       # Step I: Calculate net income
+       mutate(income=income+income.gift) %>% 
+       mutate(net.income=(income/12)-177) %>% 
+       mutate(net.income=ifelse(famsize>=4,net.income-9,net.income)) %>%
+       mutate(net.income=ifelse(famsize>=5,net.income-31,net.income)) %>%
+       mutate(net.income=ifelse(famsize>=6,net.income-31,net.income)) %>%
+       mutate(net.income=net.income*EarnedIncomeDisregard) %>% 
+       mutate(net.income = net.income + (value.ssdi/12)) %>%
+       
+       # Step II: Calculate value of the benefit
+       mutate(tanfValue=0,
+              subset=totalassets<AssetTest) %>% 
+       mutate(tanfValue=ifelse(subset==TRUE,rowMaxs(cbind((Maxbenefit - net.income),0)),tanfValue)) %>% 
+       
+       # Apply gross income test (if applicable) & net income / standard test (if applicable)
+       
+       mutate(tanfValue=ifelse(income/12>StandardOfNeed,0,tanfValue))  %>% 
+       
+       mutate(tanfValue=ifelse(income/12>grossIncomeTest,0,tanfValue)) %>% 
+       
+       
+       # TANF is not available for two married adults
+       
+       mutate(tanfValue=ifelse(FilingStatus==2 & twoParents_tanf_policy=="No",0,tanfValue ))
+     
+     # In some states TANF is not available for childless adults
+     
+     temp_othercountys$tanfValue[temp_othercountys$numkids==0 & temp_othercountys$childless_tanf_policy=="No"]<-0
+     
+     
+     temp<-rbind(temp_countys, temp_othercountys)
+     
+     temp$tanfValue <- temp$tanfValue*12
+     
+     traza<-1 
+     # TIME SERIES
+     
+     if(nrow(data)>1){
+       if(data$Year[1] != data$Year[2]){
+         
+         abc <- 1
+         
+         timeseries_data<- function(x){
+           if(nrow(x)>0){
+             length_x<-nrow(x)
+             potential_indicators<-c(1,1,1,1,1,0,0,0,0,0,0) # number of years (lifetime TANF limit)
+             if(length_x<=11){
+               potential_indicators<-potential_indicators[c(1:length_x)]
+             } else { potential_indicators<-c(potential_indicators,rep(0,times=length_x-11))
+             
+             }
+             x<-x %>% 
+               mutate(potential_indicators=potential_indicators) %>% 
+               mutate(tanfValue=ifelse(potential_indicators==0, 0, tanfValue))
+           }
+           
+           return(x)  
+         }
+         
+         temp_1<- temp %>% 
+           filter(careerpathID==2) %>% 
+           timeseries_data  
+         
+         temp_2<- temp %>% 
+           filter(careerpathID==1) %>% 
+           timeseries_data  
+         
+         temp <- rbind(temp_1, temp_2)
+         
+       }else{
+         abc <- 0
+       }
+     }     
+     # 
+     # Merge back
+     data$tanfValue[data$stateFIPS==state_code]<-temp$tanfValue
+     #data$value.tanf <- 0  
+     data$value.tanf[data$stateFIPS==state_code]<-temp$tanfValue
+   }
+   # Washington ----
+   
+   state_code=53
+   if(state_code %in% unique(data$stateFIPS)){ # make sure that state is in the list
+     temp<-data %>% 
+       filter(stateFIPS==state_code) %>% 
+       left_join(tanfData, by=c("stateFIPS", "famsize")) %>% 
+       
+       # Step I: Calculate net income
+       mutate(income=income+income.gift) %>% 
+       mutate(net.income = rowMaxs(cbind(income/12 - (income*EarnedIncomeDisregard/12),0))) %>% 
+       mutate(net.income = net.income + (value.ssdi/12)) %>%
+       
+       # Step II: Calculate value of the benefit
+       mutate(tanfValue=0,
+              subset=totalassets<AssetTest) %>% 
+       mutate(tanfValue=ifelse(subset==TRUE,rowMaxs(cbind(Maxbenefit-net.income,0)),tanfValue)) %>% 
+       
+       # Apply gross income test (if applicable) & net income / standard test (if applicable)
+       
+       mutate(tanfValue=ifelse(income/12>grossIncomeTest,0,tanfValue)) %>% 
+       
+       mutate(tanfValue=ifelse(net.income>StandardOfNeed,0,tanfValue)) %>% 
+       
+       # TANF is not available for two married adults
+       
+       mutate(tanfValue=ifelse(FilingStatus==2 & twoParents_tanf_policy=="No",0,tanfValue )) %>% 
+       
+       # In some states TANF is not available for childless adults
+       mutate(tanfValue=ifelse(numkids==0 & childless_tanf_policy=="No",0,tanfValue ))
+     
+     temp$tanfValue <- temp$tanfValue*12
+     
+     # TIME SERIES
+     
+     if(nrow(data)>1){
+       if(data$Year[1] != data$Year[2]){
+         
+         abc <- 1
+         
+         timeseries_data<- function(x){
+           if(nrow(x)>0){
+             length_x<-nrow(x)
+             potential_indicators<-c(1,1,1,1,1,0,0,0,0,0,0) # number of years (lifetime TANF limit)
+             if(length_x<=11){
+               potential_indicators<-potential_indicators[c(1:length_x)]
+             } else { potential_indicators<-c(potential_indicators,rep(0,times=length_x-11))
+             
+             }
+             x<-x %>% 
+               mutate(potential_indicators=potential_indicators) %>% 
+               mutate(tanfValue=ifelse(potential_indicators==0, 0, tanfValue))
+           }
+           
+           return(x)  
+         }
+         
+         temp_1<- temp %>% 
+           filter(careerpathID==2) %>% 
+           timeseries_data  
+         
+         temp_2<- temp %>% 
+           filter(careerpathID==1) %>% 
+           timeseries_data  
+         
+         temp <- rbind(temp_1, temp_2)
+         
+       }else{
+         abc <- 0
+       }
+     }
+     # 
+     # Merge back
+     data$tanfValue[data$stateFIPS==state_code]<-temp$tanfValue
+     #data$value.tanf <- 0  
+     data$value.tanf[data$stateFIPS==state_code]<-temp$tanfValue
+     
+   }
+   
+   
+   # West Virginia ----
+   
+   state_code=54
+   if(state_code %in% unique(data$stateFIPS)){ # make sure that state is in the list
+     temp<-data %>% 
+       filter(stateFIPS==state_code) %>% 
+       left_join(tanfData, by=c("stateFIPS", "famsize")) %>% 
+       
+       # Step I: Calculate net income
+       mutate(income=income+income.gift) %>% 
+       mutate(net.income = rowMaxs(cbind(income/12 - (income*EarnedIncomeDisregard/12),0))) %>% 
+       mutate(net.income = net.income + (value.ssdi/12)) %>%
+       
+       # Step II: Calculate value of the benefit
+       mutate(tanfValue=0,
+              subset=totalassets<AssetTest) %>% 
+       
+       mutate(tanfValue=ifelse(subset==TRUE,rowMaxs(cbind(Maxbenefit-net.income,0)),tanfValue)) %>% 
+       
+       # Apply gross income test (if applicable) & net income / standard test (if applicable)
+       
+       mutate(tanfValue=ifelse(income/12>grossIncomeTest,0,tanfValue)) %>% 
+       
+       mutate(tanfValue=ifelse(net.income>StandardOfNeed,0,tanfValue)) %>% 
+       
+       # TANF is not available for two married adults
+       
+       mutate(tanfValue=ifelse(FilingStatus==2 & twoParents_tanf_policy=="No",0,tanfValue )) 
+     
+     # In some states TANF is not available for childless adults
+     
+     temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
+     
+     temp$tanfValue <- temp$tanfValue*12
+     
+     
+     # TIME SERIES
+     
+     if(nrow(data)>1){
+       if(data$Year[1] != data$Year[2]){
+         
+         abc <- 1
+         
+         timeseries_data<- function(x){
+           if(nrow(x)>0){
+             length_x<-nrow(x)
+             potential_indicators<-c(1,1,1,1,1,0,0,0,0,0,0,0)  # number of years (lifetime TANF limit)
+             if(length_x<=12){
+               potential_indicators<-potential_indicators[c(1:length_x)]
+             } else { potential_indicators<-c(potential_indicators,rep(0,times=length_x-12))
+             
+             }
+             x<-x %>% 
+               mutate(potential_indicators=potential_indicators) %>% 
+               mutate(tanfValue=ifelse(potential_indicators==0, 0, tanfValue))
+           }
+           
+           return(x)  
+         }
+         
+         temp_1<- temp %>% 
+           filter(careerpathID==2) %>% 
+           timeseries_data  
+         
+         temp_2<- temp %>% 
+           filter(careerpathID==1) %>% 
+           timeseries_data  
+         
+         temp <- rbind(temp_1, temp_2)
+         
+       }else{
+         abc <- 0
+       }
+     }
+     # 
+     # Merge back
+     data$tanfValue[data$stateFIPS==state_code]<-temp$tanfValue
+     #data$value.tanf <- 0  
+     data$value.tanf[data$stateFIPS==state_code]<-temp$tanfValue
+     
+   }
+   # Wisconsin ----
+   
+   state_code=55
+   if(state_code %in% unique(data$stateFIPS)){ 
+     temp<-data %>% 
+       filter(stateFIPS==state_code) %>% 
+       left_join(tanfData, by=c("stateFIPS", "famsize")) %>% 
+       
+       # Step I: Calculate net income
+       mutate(income=income+income.gift) %>%
+       mutate(net.income=income/12) %>% 
+       mutate(net.income = net.income + (value.ssdi/12)) %>%
+       
+       # Step II: Calculate value of the benefit
+       mutate(tanfValue=0,
+              subset=totalassets<AssetTest) %>% 
+       mutate(tanfValue=ifelse(subset==TRUE,rowMaxs(cbind((Maxbenefit - net.income),0)),tanfValue)) %>% 
+       # Apply gross income test (if applicable) & net income / standard test (if applicable)
+       
+       #mutate(tanfValue=ifelse(income/12>StandardOfNeed,0,tanfValue))  %>% 
+       
+       # TANF is not available for two married adults
+       
+       mutate(tanfValue=ifelse(FilingStatus==2 & twoParents_tanf_policy=="No",0,tanfValue ))
+     
+     # In some states TANF is not available for childless adults
+     
+     temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
+     
+     
+     temp$tanfValue[(temp$income/12)>temp$grossIncomeTest]<-0
+     
+     temp$tanfValue <- temp$tanfValue*12
+     
+     # TIME SERIES
+     
+     if(nrow(data)>1){
+       if(data$Year[1] != data$Year[2]){
+         
+         abc <- 1
+         
+         timeseries_data<- function(x){
+           if(nrow(x)>0){
+             length_x<-nrow(x)
+             potential_indicators<-c(1,1,1,1,0,0,0,0,0,0,0) # number of years (lifetime TANF limit)
+             if(length_x<=11){
+               potential_indicators<-potential_indicators[c(1:length_x)]
+             } else { potential_indicators<-c(potential_indicators,rep(0,times=length_x-11))
+             
+             }
+             x<-x %>% 
+               mutate(potential_indicators=potential_indicators) %>% 
+               mutate(tanfValue=ifelse(potential_indicators==0, 0, tanfValue))
+           }
+           
+           return(x)  
+         }
+         
+         temp_1<- temp %>% 
+           filter(careerpathID==2) %>% 
+           timeseries_data  
+         
+         temp_2<- temp %>% 
+           filter(careerpathID==1) %>% 
+           timeseries_data  
+         
+         temp <- rbind(temp_1, temp_2)
+         
+       }else{
+         abc <- 0
+       }
+     }
+     # 
+     # Merge back
+     data$tanfValue[data$stateFIPS==state_code]<-temp$tanfValue
+     #data$value.tanf <- 0  
+     data$value.tanf[data$stateFIPS==state_code]<-temp$tanfValue
+     
+   }
+   
+   # Wyoming----
+   
+   state_code=56
+   if(state_code %in% unique(data$stateFIPS)){ 
+     temp<-data %>% 
+       filter(stateFIPS==state_code) %>% 
+       left_join(tanfData, by=c("stateFIPS", "famsize")) %>% 
+       
+       # Step I: Calculate net income
+       mutate(income=income+income.gift) %>% 
+       mutate(net.income = rowMaxs(cbind(income/12 - (EarnedIncomeDisregard),0))) #%>% 
+     
+     min_Year <- min(temp$Year)
+     
+     temp$net.income[temp$FilingStatus == 2] <- temp$net.income[temp$FilingStatus == 2] - 600
+     
+     
+       #mutate(net.income = ifelse(FilingStatus==2, net.income-600, net.income)) 
+       
+       temp <- temp %>% 
+       mutate(net.income = rowMaxs(cbind(net.income,0))) %>% 
+       mutate(net.income = net.income + (value.ssdi/12)) %>%
+       
+       # Step II: Calculate value of the benefit
+       mutate(tanfValue=0,
+              subset=totalassets<AssetTest) %>% 
+       mutate(tanfValue=ifelse(subset==TRUE,rowMaxs(cbind(Maxbenefit-net.income,0)),tanfValue)) %>% 
+       
+       # Apply gross income test (if applicable) & net income / standard test (if applicable)
+       
+       mutate(tanfValue=ifelse(income/12>grossIncomeTest,0,tanfValue)) %>% 
+       
+       mutate(tanfValue=ifelse(net.income>StandardOfNeed,0,tanfValue)) %>% 
+       
+       # TANF is not available for two married adults
+       
+       mutate(tanfValue=ifelse(FilingStatus==2 & twoParents_tanf_policy=="No",0,tanfValue ))
+     
+     # In some states TANF is not available for childless adults
+     
+     temp$tanfValue[temp$numkids==0 & temp$childless_tanf_policy=="No"]<-0
+     
+     temp$tanfValue <- temp$tanfValue*12
+     
+     
+     # TIME SERIES
+     
+     if(nrow(data)>1){
+       if(data$Year[1] != data$Year[2]){
+         
+         abc <- 1
+         
+         timeseries_data<- function(x){
+           if(nrow(x)>0){
+             length_x<-nrow(x)
+             potential_indicators<-c(1,1,1,1,1,0,0,0,0,0,0) # number of years (lifetime TANF limit)
+             if(length_x<=11){
+               potential_indicators<-potential_indicators[c(1:length_x)]
+             } else { potential_indicators<-c(potential_indicators,rep(0,times=length_x-11))
+             
+             }
+             x<-x %>% 
+               mutate(potential_indicators=potential_indicators) %>% 
+               mutate(tanfValue=ifelse(potential_indicators==0, 0, tanfValue))
+           }
+           
+           return(x)  
+         }
+         
+         temp_1<- temp %>% 
+           filter(careerpathID==2) %>% 
+           timeseries_data  
+         
+         temp_2<- temp %>% 
+           filter(careerpathID==1) %>% 
+           timeseries_data  
+         
+         temp <- rbind(temp_1, temp_2)
+         
+       }else{
+         abc <- 0
+       }
+     }
+     # 
+     # Merge back
+     data$tanfValue[data$stateFIPS==state_code]<-temp$tanfValue
+     #data$value.tanf <- 0  
+     data$value.tanf[data$stateFIPS==state_code]<-temp$tanfValue
+     
+   }
+   ### result ####
+   return(data$value.tanf) 
+   
+ }
 
 
 
@@ -1295,10 +4733,7 @@ function.tanfBenefit<-function(data){
 
 function.ssdiBenefit<-function(data){
   
-  # generate a separate "married" variable for SSI/SSDI
-  data$married<-case_when(data$FilingStatus==2 ~ 1
-                          ,TRUE ~ 0)
-  
+  # We have historical rules
   data<-left_join(data, ssdiData, by=c("ruleYear"))
   data$value.ssdi<-0
   data$value.ssdi.mnth<-0
@@ -1403,7 +4838,7 @@ function.ssdiBenefit<-function(data){
   data$value.ssdi.mnth<-data$famSSDIbenefit
   data$value.ssdi<-data$value.ssdi.mnth*12
   
-  # create lag of the value of ssdi. Once value of ssdi reaches zero, disabled ppl may still qualify for Medicare part A
+  # create lag of the value of SSDI. Once value of SSDI reaches zero, disabled people may still qualify for Medicare part A
   data$hadssdi1<-case_when(data$disability1==1 & !is.na(data$disability1) & data$value.ssdi>0 ~ 0
                           ,data$disability1==1 & !is.na(data$disability1) & data$value.ssdi<=0 ~ 1
                           ,TRUE ~ 0)
@@ -1447,17 +4882,13 @@ function.ssdiBenefit<-function(data){
 }  
 
 
-
 # Supplemental Security Income Program (SSI)----
 
 function.ssiBenefit<-function(data){ 
-
-  # generate a separate "married" variable for SSI/SSDI
-  data$married<-case_when(data$FilingStatus==2 ~ 1
-                          ,TRUE ~ 0)
   
+  # We have historical rules
   data<-left_join(data, ssiData, by=c("married","ruleYear"))
-  data<-left_join(data, sspData, by=c("stateName","ruleYear"))
+  data<-left_join(data, select(sspData, -c("ruleYear")), by=c("stateName")) # State Supplement Program only has values for 2022. Not merging by ruleYear
   data$value.ssi<-0
   data$value.ssi.mnth<-0
   
@@ -1468,7 +4899,6 @@ function.ssiBenefit<-function(data){
   
   # Distribute household assets & monthly disability work expense across all adults
   data$gift.distr<-data$income.gift/data$numadults
-  data$child_support.distr<-data$income.child_support/data$numadults
   data$investment.distr<-data$income.investment/data$numadults #ER 9/8/22: should divide by numadlts-disabledAdlts bc all interest bearing accounts go to nondisabled adlts
   data$disab.work.exp.distr<-data$disab.work.exp/data$disabledAdlts
    
@@ -1489,7 +4919,7 @@ function.ssiBenefit<-function(data){
   data$month.earned.income6<-data$ann.earned.income6 / 12
   
   # Step 3a: Calculate annual and monthly total countable unearned income for each person in the home
-    # annual countable unearned income - SSI counts child support as income for the child so it is not included here, instead in Step 11
+    # annual countable unearned income - SSI counts child support as income for the child so it is not included here, instead see Step 11
   data$ann.unearned.income1<-rowSums(cbind(data$gift.distr, data$investment.distr, data$portionedAuxAdlt1),na.rm=TRUE)
   data$ann.unearned.income2<-rowSums(cbind(data$gift.distr, data$investment.distr, data$portionedAuxAdlt2),na.rm=TRUE)
   data$ann.unearned.income3<-rowSums(cbind(data$gift.distr, data$investment.distr),na.rm=TRUE)
@@ -1557,17 +4987,15 @@ function.ssiBenefit<-function(data){
   data$ineligible.adlt.earned.income<-0
   data$ssi.deemed.remain<-0
   data$eligible.adlt.unearned.income<-0
-  #data$income.disregard.remain<-0 # difference between eligible.adlt.unearned.income & income disregard ($20) # er:CHECK AND CAN PROBABLY DELETE
   
-  subset3<-data$married==1 & (data$disability1==1 & !is.na(data$disability1)) & (data$disability2==0 & !is.na(data$disability2)) # Currently don't have situation where disability1==0 & disability2==1
+  subset3<-data$married==1 & (data$disability1==1 & !is.na(data$disability1)) & (data$disability2==0 & !is.na(data$disability2))
   
   data$deemed.nondisabled.child.allocation<-rowMaxs(cbind(data$non_disabledkids*data$nondisabled_child_allocation,0),na.rm=TRUE)
   
   data$eligible.adlt.earnings<-data$month.earned.income1
   data$ineligible.adlt.earnings<-data$month.earned.income2
   data$gross.ineligible.adlt.unearned.income<-data$month.unearned.income2
-  data$eligible.adlt.unearned.income<-rowMaxs(cbind(data$month.unearned.income1,0),na.rm=TRUE) # Monthly unearned income - monthly interest (we don't have monthly interest)
-  #data$income.disregard.remain<-rowMaxs(cbind(data$eligible.adlt.unearned.income-data$income_disregard,0),na.rm=TRUE)# er:CHECK AND CAN PROBABLY DELETE
+  data$eligible.adlt.unearned.income<-rowMaxs(cbind(data$month.unearned.income1,0),na.rm=TRUE)
   
   data$ineligible.adlt.unearned.income[subset3]<-rowMaxs(cbind(data$gross.ineligible.adlt.unearned.income[subset3]-data$deemed.nondisabled.child.allocation[subset3],0),na.rm=TRUE)
   data$remaining.deemable.income[subset3]<-rowMaxs(cbind(data$deemed.nondisabled.child.allocation[subset3]-data$gross.ineligible.adlt.unearned.income[subset3],0),na.rm=TRUE)
@@ -1578,7 +5006,7 @@ function.ssiBenefit<-function(data){
   data$value.ssi.mnth[subset4]<-rowMaxs(cbind(data$fbr_individual[subset4]+data$ssp_spouse_as_fbr_individual[subset4]-data$ssi.income[subset4],0),na.rm=TRUE)
   
   subset5<-data$ineligible.adlt.earned.income+data$ineligible.adlt.unearned.income>data$fbr_difference & data$married==1 & (data$disability1==1 & !is.na(data$disability1)) & (data$disability2==0 & !is.na(data$disability2))
-  data$included.unearned.income[subset5]<-rowMaxs(cbind(data$ineligible.adlt.unearned.income[subset5]+data$eligible.adlt.unearned.income[subset5]-data$income_disregard[subset5],0),na.rm=TRUE) # all unearned income is currently 0 (no investments,gifts,child support)
+  data$included.unearned.income[subset5]<-rowMaxs(cbind(data$ineligible.adlt.unearned.income[subset5]+data$eligible.adlt.unearned.income[subset5]-data$income_disregard[subset5],0),na.rm=TRUE) 
   data$remain.disregard[subset5]<-rowMaxs(cbind(data$income_disregard[subset5]-data$total.unearned.income[subset5],0),na.rm=TRUE)
   data$included.earned.income[subset5]<-(1-data$earnings_disregard_pct[subset5])*rowMaxs(cbind(data$ineligible.adlt.earned.income[subset5]+data$eligible.adlt.earnings[subset5]-data$earnings_disregard_amt[subset5]-data$remain.disregard[subset5],0),na.rm=TRUE)
   data$ssi.income[subset5]<-rowMaxs(cbind(data$included.unearned.income[subset5]+data$included.earned.income[subset5]-data$disab.work.exp[subset5],0),na.rm=TRUE)
@@ -1593,8 +5021,7 @@ function.ssiBenefit<-function(data){
   data$eligible.adlt.earnings<-data$month.earned.income2
   data$ineligible.adlt.earnings<-data$month.earned.income1
   data$gross.ineligible.adlt.unearned.income<-data$month.unearned.income1
-  data$eligible.adlt.unearned.income<-rowMaxs(cbind(data$month.unearned.income2,0),na.rm=TRUE) # Monthly unearned income - monthly interest (we don't have monthly interest)
-  #data$income.disregard.remain<-rowMaxs(cbind(data$eligible.adlt.unearned.income-data$income_disregard,0),na.rm=TRUE) # er:CHECK AND CAN PROBABLY DELETE
+  data$eligible.adlt.unearned.income<-rowMaxs(cbind(data$month.unearned.income2,0),na.rm=TRUE)
   
   data$ineligible.adlt.unearned.income[subset3.1]<-rowMaxs(cbind(data$gross.ineligible.adlt.unearned.income[subset3.1]-data$deemed.nondisabled.child.allocation[subset3.1],0),na.rm=TRUE)
   data$remaining.deemable.income[subset3.1]<-rowMaxs(cbind(data$deemed.nondisabled.child.allocation[subset3.1]-data$gross.ineligible.adlt.unearned.income[subset3.1],0),na.rm=TRUE)
@@ -1605,179 +5032,87 @@ function.ssiBenefit<-function(data){
   data$value.ssi.mnth[subset4]<-rowMaxs(cbind(data$fbr_individual[subset4]+data$ssp_spouse_as_fbr_individual[subset4]-data$ssi.income[subset4],0),na.rm=TRUE)
   
   subset5<-data$ineligible.adlt.earned.income+data$ineligible.adlt.unearned.income>data$fbr_difference & data$married==1 & (data$disability1==0 & !is.na(data$disability1)) & (data$disability2==1 & !is.na(data$disability2))
-  data$included.unearned.income[subset5]<-rowMaxs(cbind(data$ineligible.adlt.unearned.income[subset5]+data$eligible.adlt.unearned.income[subset5]-data$income_disregard[subset5],0),na.rm=TRUE) # all unearned income is currently 0 (no investments,gifts,child support)
+  data$included.unearned.income[subset5]<-rowMaxs(cbind(data$ineligible.adlt.unearned.income[subset5]+data$eligible.adlt.unearned.income[subset5]-data$income_disregard[subset5],0),na.rm=TRUE) 
   data$remain.disregard[subset5]<-rowMaxs(cbind(data$income_disregard[subset5]-data$total.unearned.income[subset5],0),na.rm=TRUE)
   data$included.earned.income[subset5]<-(1-data$earnings_disregard_pct[subset5])*rowMaxs(cbind(data$ineligible.adlt.earned.income[subset5]+data$eligible.adlt.earnings[subset5]-data$earnings_disregard_amt[subset5]-data$remain.disregard[subset5],0),na.rm=TRUE)
   data$ssi.income[subset5]<-rowMaxs(cbind(data$included.unearned.income[subset5]+data$included.earned.income[subset5]-data$disab.work.exp[subset5],0),na.rm=TRUE)
-  data$value.ssi.mnth[subset5]<-rowMaxs(cbind(data$fbr[subset5]+data$ssp_spouse_in_fbr_couple[subset5]-data$ssi.income[subset5],0),na.rm=TRUE) # SSP couple amount goes here or one line below?
+  data$value.ssi.mnth[subset5]<-rowMaxs(cbind(data$fbr[subset5]+data$ssp_spouse_in_fbr_couple[subset5]-data$ssi.income[subset5],0),na.rm=TRUE)
   data$ssi.deemed.remain[subset5]<-rowMaxs(cbind(data$ssi.income[subset5]-data$fbr[subset5]+data$ssp_spouse_in_fbr_couple[subset5],0),na.rm=TRUE)
   
   # Step 7.5: Check for other adults with disability 
-    # Calculations when all adults in the household have a disability and no one is married - extension of Step 6A
-  subset2.1A<-(data$disability2==1 & !is.na(data$disability2)) & (data$agePerson2>18 & !is.na(data$agePerson2)) & subset1==TRUE
-  data$included.unearned.income[subset2.1A]<-rowMaxs(cbind((data$month.unearned.income1[subset2.1A]+data$month.unearned.income2[subset2.1A]-data$income_disregard[subset2.1A]),0),na.rm=TRUE) 
-  data$remain.disregard[subset2.1A]<-rowMaxs(cbind((data$income_disregard[subset2.1A]-data$month.unearned.income1[subset2.1A]-data$month.unearned.income2[subset2.1A]),0),na.rm=TRUE)
-  data$included.earned.income[subset2.1A]<-(1-data$earnings_disregard_pct[subset2.1A])*rowMaxs(cbind((data$month.earned.income1[subset2.1A]+data$month.earned.income2[subset2.1A]-data$earnings_disregard_amt[subset2.1A]-data$remain.disregard[subset2.1A]),0),na.rm=TRUE)
-  data$ssi.income_1[subset2.1A]<-rowMaxs(cbind((data$included.unearned.income[subset2.1A]+data$included.earned.income[subset2.1A]-data$disab.work.exp[subset2.1A]),0),na.rm=TRUE) # Entire mnthly disab work exp
-  data$value.ssi.mnth_1[subset2.1A]<-rowMaxs(cbind((data$fbr[subset2.1A]+data$ssp_individual[subset2.1A]-data$ssi.income_1[subset2.1A]),0),na.rm=TRUE)
-    # Add ssi.income and value.ssi.mnth from Step 6A to get total household SSI values
-  data$ssi.income[subset2.1A]<-rowSums(cbind(data$ssi.income_1[subset2.1A], data$ssi.income[subset2.1A]),na.rm=TRUE)
-  data$value.ssi.mnth[subset2.1A]<-rowSums(cbind(data$value.ssi.mnth_1[subset2.1A], data$value.ssi.mnth[subset2.1A]),na.rm=TRUE)
+    # Calculate SSI value for each individual when no one is married - extension of Step 6A
+  subset2.1A<-(data$disability2==1 & !is.na(data$disability2)) & (data$agePerson2>18 & !is.na(data$agePerson2)) & data$married==0 
+  data$included.unearned.income[subset2.1A]<-rowMaxs(cbind((data$month.unearned.income2[subset2.1A]-data$income_disregard[subset2.1A]),0),na.rm=TRUE) 
+  data$remain.disregard[subset2.1A]<-rowMaxs(cbind((data$income_disregard[subset2.1A]-data$month.unearned.income2[subset2.1A]),0),na.rm=TRUE)
+  data$included.earned.income[subset2.1A]<-(1-data$earnings_disregard_pct[subset2.1A])*rowMaxs(cbind((data$month.earned.income2[subset2.1A]-data$earnings_disregard_amt[subset2.1A]-data$remain.disregard[subset2.1A]),0),na.rm=TRUE)
+  data$ssi.income_2[subset2.1A]<-rowMaxs(cbind((data$included.unearned.income[subset2.1A]+data$included.earned.income[subset2.1A]),0),na.rm=TRUE)
+  data$value.ssi.mnth_2[subset2.1A]<-rowMaxs(cbind((data$fbr[subset2.1A]+data$ssp_individual[subset2.1A]-data$ssi.income_2[subset2.1A]),0),na.rm=TRUE)
   
-  subset2.2A<-(data$disability3==1 & !is.na(data$disability3)) & (data$agePerson3>18 & !is.na(data$agePerson3)) & subset2.1A==TRUE
-  data$included.unearned.income[subset2.2A]<-rowMaxs(cbind((data$month.unearned.income1[subset2.2A]+data$month.unearned.income2[subset2.2A]+data$month.unearned.income3[subset2.2A]-data$income_disregard[subset2.2A]),0),na.rm=TRUE) 
-  data$remain.disregard[subset2.2A]<-rowMaxs(cbind((data$income_disregard[subset2.2A]-data$month.unearned.income1[subset2.2A]-data$month.unearned.income2[subset2.2A]-data$month.unearned.income3[subset2.2A]),0),na.rm=TRUE)
-  data$included.earned.income[subset2.2A]<-(1-data$earnings_disregard_pct[subset2.2A])*rowMaxs(cbind((data$month.earned.income1[subset2.2A]+data$month.earned.income2[subset2.2A]+data$month.earned.income3[subset2.2A]-data$earnings_disregard_amt[subset2.2A]-data$remain.disregard[subset2.2A]),0),na.rm=TRUE)
-  data$ssi.income_1[subset2.2A]<-rowMaxs(cbind((data$included.unearned.income[subset2.2A]+data$included.earned.income[subset2.2A]-data$disab.work.exp[subset2.2A]),0),na.rm=TRUE) # Entire mnthly disab work exp
-  data$value.ssi.mnth_1[subset2.2A]<-rowMaxs(cbind((data$fbr[subset2.2A]+data$ssp_individual[subset2.2A]-data$ssi.income_1[subset2.2A]),0),na.rm=TRUE)
-    # Add ssi.income and value.ssi.mnth from Step 6A to get total household SSI values
-  data$ssi.income[subset2.2A]<-rowSums(cbind(data$ssi.income_1[subset2.2A], data$ssi.income[subset2.2A]),na.rm=TRUE)
-  data$value.ssi.mnth[subset2.2A]<-rowSums(cbind(data$value.ssi.mnth_1[subset2.2A], data$value.ssi.mnth[subset2.2A]),na.rm=TRUE)
+  subset2.2A<-(data$disability3==1 & !is.na(data$disability3)) & (data$agePerson3>18 & !is.na(data$agePerson3)) & data$married==0
+  data$included.unearned.income[subset2.2A]<-rowMaxs(cbind((data$month.unearned.income3[subset2.2A]-data$income_disregard[subset2.2A]),0),na.rm=TRUE) 
+  data$remain.disregard[subset2.2A]<-rowMaxs(cbind((data$income_disregard[subset2.2A]-data$month.unearned.income3[subset2.2A]),0),na.rm=TRUE)
+  data$included.earned.income[subset2.2A]<-(1-data$earnings_disregard_pct[subset2.2A])*rowMaxs(cbind((data$month.earned.income3[subset2.2A]-data$earnings_disregard_amt[subset2.2A]-data$remain.disregard[subset2.2A]),0),na.rm=TRUE)
+  data$ssi.income_3[subset2.2A]<-rowMaxs(cbind((data$included.unearned.income[subset2.2A]+data$included.earned.income[subset2.2A]),0),na.rm=TRUE) 
+  data$value.ssi.mnth_3[subset2.2A]<-rowMaxs(cbind((data$fbr[subset2.2A]+data$ssp_individual[subset2.2A]-data$ssi.income_3[subset2.2A]),0),na.rm=TRUE)
   
-  subset2.3A<-(data$disability4==1 & !is.na(data$disability4)) & (data$agePerson4>18 & !is.na(data$agePerson4)) & subset2.2A==TRUE 
-  data$included.unearned.income[subset2.3A]<-rowMaxs(cbind((data$month.unearned.income1[subset2.3A]+data$month.unearned.income2[subset2.3A]+data$month.unearned.income3[subset2.3A]+data$month.unearned.income4[subset2.3A]-data$income_disregard[subset2.3A]),0),na.rm=TRUE) 
-  data$remain.disregard[subset2.3A]<-rowMaxs(cbind((data$income_disregard[subset2.3A]-data$month.unearned.income1[subset2.3A]-data$month.unearned.income2[subset2.3A]-data$month.unearned.income3[subset2.3A]-data$month.unearned.income4[subset2.3A]),0),na.rm=TRUE)
-  data$included.earned.income[subset2.3A]<-(1-data$earnings_disregard_pct[subset2.3A])*rowMaxs(cbind((data$month.earned.income1[subset2.3A]+data$month.earned.income2[subset2.3A]+data$month.earned.income3[subset2.3A]+data$month.earned.income4[subset2.3A]-data$earnings_disregard_amt[subset2.3A]-data$remain.disregard[subset2.3A]),0),na.rm=TRUE)
-  data$ssi.income_1[subset2.3A]<-rowMaxs(cbind((data$included.unearned.income[subset2.3A]+data$included.earned.income[subset2.3A]-data$disab.work.exp[subset2.3A]),0),na.rm=TRUE) # Entire mnthly disab work exp
-  data$value.ssi.mnth_1[subset2.3A]<-rowMaxs(cbind((data$fbr[subset2.3A]+data$ssp_individual[subset2.3A]-data$ssi.income_1[subset2.3A]),0),na.rm=TRUE)
-    # Add ssi.income and value.ssi.mnth from Step 6A to get total household SSI values
-  data$ssi.income[subset2.3A]<-rowSums(cbind(data$ssi.income_1[subset2.3A], data$ssi.income[subset2.3A]),na.rm=TRUE)
-  data$value.ssi.mnth[subset2.3A]<-rowSums(cbind(data$value.ssi.mnth_1[subset2.3A], data$value.ssi.mnth[subset2.3A]),na.rm=TRUE)
+  subset2.3A<-(data$disability4==1 & !is.na(data$disability4)) & (data$agePerson4>18 & !is.na(data$agePerson4)) & data$married==0
+  data$included.unearned.income[subset2.3A]<-rowMaxs(cbind((data$month.unearned.income4[subset2.3A]-data$income_disregard[subset2.3A]),0),na.rm=TRUE) 
+  data$remain.disregard[subset2.3A]<-rowMaxs(cbind((data$income_disregard[subset2.3A]-data$month.unearned.income4[subset2.3A]),0),na.rm=TRUE)
+  data$included.earned.income[subset2.3A]<-(1-data$earnings_disregard_pct[subset2.3A])*rowMaxs(cbind((data$month.earned.income4[subset2.3A]-data$earnings_disregard_amt[subset2.3A]-data$remain.disregard[subset2.3A]),0),na.rm=TRUE)
+  data$ssi.income_4[subset2.3A]<-rowMaxs(cbind((data$included.unearned.income[subset2.3A]+data$included.earned.income[subset2.3A]),0),na.rm=TRUE)
+  data$value.ssi.mnth_4[subset2.3A]<-rowMaxs(cbind((data$fbr[subset2.3A]+data$ssp_individual[subset2.3A]-data$ssi.income_4[subset2.3A]),0),na.rm=TRUE)
   
-  subset2.4A<-(data$disability5==1 & !is.na(data$disability5)) & (data$agePerson5>18 & !is.na(data$agePerson5)) & subset2.3A==TRUE 
-  data$included.unearned.income[subset2.4A]<-rowMaxs(cbind((data$month.unearned.income1[subset2.4A]+data$month.unearned.income2[subset2.4A]+data$month.unearned.income3[subset2.4A]+data$month.unearned.income4[subset2.4A]+data$month.unearned.income5[subset2.4A]-data$income_disregard[subset2.4A]),0),na.rm=TRUE) 
-  data$remain.disregard[subset2.4A]<-rowMaxs(cbind((data$income_disregard[subset2.4A]-data$month.unearned.income1[subset2.4A]-data$month.unearned.income2[subset2.4A]-data$month.unearned.income3[subset2.4A]-data$month.unearned.income4[subset2.4A]-data$month.unearned.income5[subset2.4A]),0),na.rm=TRUE)
-  data$included.earned.income[subset2.4A]<-(1-data$earnings_disregard_pct[subset2.4A])*rowMaxs(cbind((data$month.earned.income1[subset2.4A]+data$month.earned.income2[subset2.4A]+data$month.earned.income3[subset2.4A]+data$month.earned.income4[subset2.4A]+data$month.earned.income5[subset2.4A]-data$earnings_disregard_amt[subset2.4A]-data$remain.disregard[subset2.4A]),0),na.rm=TRUE)
-  data$ssi.income_1[subset2.4A]<-rowMaxs(cbind((data$included.unearned.income[subset2.4A]+data$included.earned.income[subset2.4A]-data$disab.work.exp[subset2.4A]),0),na.rm=TRUE) # Entire mnthly disab work exp
-  data$value.ssi.mnth_1[subset2.4A]<-rowMaxs(cbind((data$fbr[subset2.4A]+data$ssp_individual[subset2.4A]-data$ssi.income_1[subset2.4A]),0),na.rm=TRUE)
-  # Add ssi.income and value.ssi.mnth from Step 6A to get total household SSI values
-  data$ssi.income[subset2.4A]<-rowSums(cbind(data$ssi.income_1[subset2.4A], data$ssi.income[subset2.4A]),na.rm=TRUE)
-  data$value.ssi.mnth[subset2.4A]<-rowSums(cbind(data$value.ssi.mnth_1[subset2.4A], data$value.ssi.mnth[subset2.4A]),na.rm=TRUE)
+  subset2.4A<-(data$disability5==1 & !is.na(data$disability5)) & (data$agePerson5>18 & !is.na(data$agePerson5)) & data$married==0
+  data$included.unearned.income[subset2.4A]<-rowMaxs(cbind((data$month.unearned.income5[subset2.4A]-data$income_disregard[subset2.4A]),0),na.rm=TRUE) 
+  data$remain.disregard[subset2.4A]<-rowMaxs(cbind((data$income_disregard[subset2.4A]-data$month.unearned.income5[subset2.4A]),0),na.rm=TRUE)
+  data$included.earned.income[subset2.4A]<-(1-data$earnings_disregard_pct[subset2.4A])*rowMaxs(cbind((data$month.earned.income5[subset2.4A]-data$earnings_disregard_amt[subset2.4A]-data$remain.disregard[subset2.4A]),0),na.rm=TRUE)
+  data$ssi.income_5[subset2.4A]<-rowMaxs(cbind((data$included.unearned.income[subset2.4A]+data$included.earned.income[subset2.4A]),0),na.rm=TRUE) 
+  data$value.ssi.mnth_5[subset2.4A]<-rowMaxs(cbind((data$fbr[subset2.4A]+data$ssp_individual[subset2.4A]-data$ssi.income_5[subset2.4A]),0),na.rm=TRUE)
   
-  subset2.5A<-(data$disability6==1 & !is.na(data$disability6)) & (data$agePerson6>18 & !is.na(data$agePerson6)) & subset2.4A==TRUE 
-  data$included.unearned.income[subset2.5A]<-rowMaxs(cbind((data$month.unearned.income1[subset2.5A]+data$month.unearned.income2[subset2.5A]+data$month.unearned.income3[subset2.5A]+data$month.unearned.income4[subset2.5A]+data$month.unearned.income5[subset2.5A]+data$month.unearned.income6[subset2.5A]-data$income_disregard[subset2.5A]),0),na.rm=TRUE) 
-  data$remain.disregard[subset2.5A]<-rowMaxs(cbind((data$income_disregard[subset2.5A]-data$month.unearned.income1[subset2.5A]-data$month.unearned.income2[subset2.5A]-data$month.unearned.income3[subset2.5A]-data$month.unearned.income4[subset2.5A]-data$month.unearned.income5[subset2.5A]-data$month.unearned.income6[subset2.5A]),0),na.rm=TRUE)
-  data$included.earned.income[subset2.5A]<-(1-data$earnings_disregard_pct[subset2.5A])*rowMaxs(cbind((data$month.earned.income1[subset2.5A]+data$month.earned.income2[subset2.5A]+data$month.earned.income3[subset2.5A]+data$month.earned.income4[subset2.5A]+data$month.earned.income5[subset2.5A]+data$month.earned.income6[subset2.5A]-data$earnings_disregard_amt[subset2.5A]-data$remain.disregard[subset2.5A]),0),na.rm=TRUE)
-  data$ssi.income_1[subset2.5A]<-rowMaxs(cbind((data$included.unearned.income[subset2.5A]+data$included.earned.income[subset2.5A]-data$disab.work.exp[subset2.5A]),0),na.rm=TRUE) # Entire mnthly disab work exp
-  data$value.ssi.mnth_1[subset2.5A]<-rowMaxs(cbind((data$fbr[subset2.5A]+data$ssp_individual[subset2.5A]-data$ssi.income_1[subset2.5A]),0),na.rm=TRUE)
-  # Add ssi.income and value.ssi.mnth from Step 6A to get total household SSI values
-  data$ssi.income[subset2.5A]<-rowSums(cbind(data$ssi.income_1[subset2.5A], data$ssi.income[subset2.5A]),na.rm=TRUE)
-  data$value.ssi.mnth[subset2.5A]<-rowSums(cbind(data$value.ssi.mnth_1[subset2.5A], data$value.ssi.mnth[subset2.5A]),na.rm=TRUE)
+  subset2.5A<-(data$disability6==1 & !is.na(data$disability6)) & (data$agePerson6>18 & !is.na(data$agePerson6)) & data$married==0
+  data$included.unearned.income[subset2.5A]<-rowMaxs(cbind((data$month.unearned.income6[subset2.5A]-data$income_disregard[subset2.5A]),0),na.rm=TRUE) 
+  data$remain.disregard[subset2.5A]<-rowMaxs(cbind((data$income_disregard[subset2.5A]-data$month.unearned.income6[subset2.5A]),0),na.rm=TRUE)
+  data$included.earned.income[subset2.5A]<-(1-data$earnings_disregard_pct[subset2.5A])*rowMaxs(cbind((data$month.earned.income6[subset2.5A]-data$earnings_disregard_amt[subset2.5A]-data$remain.disregard[subset2.5A]),0),na.rm=TRUE)
+  data$ssi.income_6[subset2.5A]<-rowMaxs(cbind((data$included.unearned.income[subset2.5A]+data$included.earned.income[subset2.5A]),0),na.rm=TRUE) 
+  data$value.ssi.mnth_6[subset2.5A]<-rowMaxs(cbind((data$fbr[subset2.5A]+data$ssp_individual[subset2.5A]-data$ssi.income_6[subset2.5A]),0),na.rm=TRUE)
   
+  # Add individual SSI values to get monthly household SSI value
+  data$ssi.income<-rowSums(cbind(data$ssi.income,data$ssi.income_2[subset2.1A],data$ssi.income_3[subset2.2A],data$ssi.income_4[subset2.3A],data$ssi.income_5[subset2.4A],data$ssi.income_6[subset2.5A],(-data$disab.work.exp)),na.rm=TRUE)
+  data$value.ssi.mnth<-rowSums(cbind(data$value.ssi.mnth, data$value.ssi.mnth_2, data$value.ssi.mnth_3, data$value.ssi.mnth_4, data$value.ssi.mnth_5, data$value.ssi.mnth_6),na.rm=TRUE)
   
-    # Calculations when all adults in the household have a disability and married is true - extension of Step 6B
-  subset2.1B<-(data$disability3==1 & !is.na(data$disability3)) & (data$agePerson3>18 & !is.na(data$agePerson3)) & subset2==TRUE
-  data$included.unearned.income[subset2.1B]<-rowMaxs(cbind((data$month.unearned.income1[subset2.1B]+data$month.unearned.income2[subset2.1B]+data$month.unearned.income3[subset2.1B]-data$income_disregard[subset2.1B]),0),na.rm=TRUE) 
-  data$remain.disregard[subset2.1B]<-rowMaxs(cbind((data$income_disregard[subset2.1B]-data$month.unearned.income1[subset2.1B]-data$month.unearned.income2[subset2.1B]-data$month.unearned.income3[subset2.1B]),0),na.rm=TRUE)
-  data$included.earned.income[subset2.1B]<-(1-data$earnings_disregard_pct[subset2.1B])*rowMaxs(cbind((data$month.earned.income1[subset2.1B]+data$month.earned.income2[subset2.1B]+data$month.earned.income3[subset2.1B]-data$earnings_disregard_amt[subset2.1B]-data$remain.disregard[subset2.1B]),0),na.rm=TRUE)
-  data$ssi.income_1[subset2.1B]<-rowMaxs(cbind((data$included.unearned.income[subset2.1B]+data$included.earned.income[subset2.1B]-data$disab.work.exp[subset2.1B]),0),na.rm=TRUE) # Entire mnthly disab work exp
-  data$value.ssi.mnth_1[subset2.1B]<-rowMaxs(cbind((data$fbr_individual[subset2.1B]+data$ssp_spouse_as_fbr_individual[subset2.1B]-data$ssi.income_1[subset2.1B]),0),na.rm=TRUE) 
-    # Add ssi.income and value.ssi.mnth from Step 6B to get total household SSI values
-  data$ssi.income[subset2.1B]<-rowSums(cbind(data$ssi.income_1[subset2.1B], data$ssi.income[subset2.1B]),na.rm=TRUE)
-  data$value.ssi.mnth[subset2.1B]<-rowSums(cbind(data$value.ssi.mnth_1[subset2.1B], data$value.ssi.mnth[subset2.1B]),na.rm=TRUE)
-  
-  subset2.2B<-(data$disability4==1 & !is.na(data$disability4)) & (data$agePerson4>18 & !is.na(data$agePerson4)) & subset2.1B==TRUE
-  data$included.unearned.income[subset2.2B]<-rowMaxs(cbind((data$month.unearned.income1[subset2.2B]+data$month.unearned.income2[subset2.2B]+data$month.unearned.income3[subset2.2B]+data$month.unearned.income4[subset2.2B]-data$income_disregard[subset2.2B]),0),na.rm=TRUE) 
-  data$remain.disregard[subset2.2B]<-rowMaxs(cbind((data$income_disregard[subset2.2B]-data$month.unearned.income1[subset2.2B]-data$month.unearned.income2[subset2.2B]-data$month.unearned.income3[subset2.2B]-data$month.unearned.income4[subset2.2B]),0),na.rm=TRUE)
-  data$included.earned.income[subset2.2B]<-(1-data$earnings_disregard_pct[subset2.2B])*rowMaxs(cbind((data$month.earned.income1[subset2.2B]+data$month.earned.income2[subset2.2B]+data$month.earned.income3[subset2.2B]+data$month.earned.income4[subset2.2B]-data$earnings_disregard_amt[subset2.2B]-data$remain.disregard[subset2.2B]),0),na.rm=TRUE)
-  data$ssi.income_1[subset2.2B]<-rowMaxs(cbind((data$included.unearned.income[subset2.2B]+data$included.earned.income[subset2.2B]-data$disab.work.exp[subset2.2B]),0),na.rm=TRUE) # Entire mnthly disab work exp
-  data$value.ssi.mnth_1[subset2.2B]<-rowMaxs(cbind((data$fbr_individual[subset2.2B]+data$ssp_spouse_as_fbr_individual[subset2.2B]-data$ssi.income_1[subset2.2B]),0),na.rm=TRUE) 
-    # Add ssi.income and value.ssi.mnth from Step 6B to get total household SSI values
-  data$ssi.income[subset2.2B]<-rowSums(cbind(data$ssi.income_1[subset2.2B], data$ssi.income[subset2.2B]),na.rm=TRUE)
-  data$value.ssi.mnth[subset2.2B]<-rowSums(cbind(data$value.ssi.mnth_1[subset2.2B], data$value.ssi.mnth[subset2.2B]),na.rm=TRUE)
-  
-  subset2.3B<-(data$disability5==1 & !is.na(data$disability5)) & (data$agePerson5>18 & !is.na(data$agePerson5)) & subset2.2B==TRUE
-  data$included.unearned.income[subset2.3B]<-rowMaxs(cbind((data$month.unearned.income1[subset2.3B]+data$month.unearned.income2[subset2.3B]+data$month.unearned.income3[subset2.3B]+data$month.unearned.income4[subset2.3B]+data$month.unearned.income5[subset2.3B]-data$income_disregard[subset2.3B]),0),na.rm=TRUE) 
-  data$remain.disregard[subset2.3B]<-rowMaxs(cbind((data$income_disregard[subset2.3B]-data$month.unearned.income1[subset2.3B]-data$month.unearned.income2[subset2.3B]-data$month.unearned.income3[subset2.3B]-data$month.unearned.income4[subset2.3B]-data$month.unearned.income5[subset2.3B]),0),na.rm=TRUE)
-  data$included.earned.income[subset2.3B]<-(1-data$earnings_disregard_pct[subset2.3B])*rowMaxs(cbind((data$month.earned.income1[subset2.3B]+data$month.earned.income2[subset2.3B]+data$month.earned.income3[subset2.3B]+data$month.earned.income4[subset2.3B]+data$month.earned.income5[subset2.3B]-data$earnings_disregard_amt[subset2.3B]-data$remain.disregard[subset2.3B]),0),na.rm=TRUE)
-  data$ssi.income_1[subset2.3B]<-rowMaxs(cbind((data$included.unearned.income[subset2.3B]+data$included.earned.income[subset2.3B]-data$disab.work.exp[subset2.3B]),0),na.rm=TRUE) # Entire mnthly disab work exp
-  data$value.ssi.mnth_1[subset2.3B]<-rowMaxs(cbind((data$fbr_individual[subset2.3B]+data$ssp_spouse_as_fbr_individual[subset2.3B]-data$ssi.income_1[subset2.3B]),0),na.rm=TRUE) 
-  # Add ssi.income and value.ssi.mnth from Step 6B to get total household SSI values
-  data$ssi.income[subset2.3B]<-rowSums(cbind(data$ssi.income_1[subset2.3B], data$ssi.income[subset2.3B]),na.rm=TRUE)
-  data$value.ssi.mnth[subset2.3B]<-rowSums(cbind(data$value.ssi.mnth_1[subset2.3B], data$value.ssi.mnth[subset2.3B]),na.rm=TRUE)
-  
-  subset2.4B<-(data$disability6==1 & !is.na(data$disability6)) & (data$agePerson6>18 & !is.na(data$agePerson6)) & subset2.3B==TRUE
-  data$included.unearned.income[subset2.4B]<-rowMaxs(cbind((data$month.unearned.income1[subset2.4B]+data$month.unearned.income2[subset2.4B]+data$month.unearned.income3[subset2.4B]+data$month.unearned.income4[subset2.4B]+data$month.unearned.income5[subset2.4B]+data$month.unearned.income6[subset2.4B]-data$income_disregard[subset2.4B]),0),na.rm=TRUE) 
-  data$remain.disregard[subset2.4B]<-rowMaxs(cbind((data$income_disregard[subset2.4B]-data$month.unearned.income1[subset2.4B]-data$month.unearned.income2[subset2.4B]-data$month.unearned.income3[subset2.4B]-data$month.unearned.income4[subset2.4B]-data$month.unearned.income5[subset2.4B]-data$month.unearned.income6[subset2.4B]),0),na.rm=TRUE)
-  data$included.earned.income[subset2.4B]<-(1-data$earnings_disregard_pct[subset2.4B])*rowMaxs(cbind((data$month.earned.income1[subset2.4B]+data$month.earned.income2[subset2.4B]+data$month.earned.income3[subset2.4B]+data$month.earned.income4[subset2.4B]+data$month.earned.income5[subset2.4B]+data$month.earned.income6[subset2.4B]-data$earnings_disregard_amt[subset2.4B]-data$remain.disregard[subset2.4B]),0),na.rm=TRUE)
-  data$ssi.income_1[subset2.4B]<-rowMaxs(cbind((data$included.unearned.income[subset2.4B]+data$included.earned.income[subset2.4B]-data$disab.work.exp[subset2.4B]),0),na.rm=TRUE) # Entire mnthly disab work exp
-  data$value.ssi.mnth_1[subset2.4B]<-rowMaxs(cbind((data$fbr_individual[subset2.4B]+data$ssp_spouse_as_fbr_individual[subset2.4B]-data$ssi.income_1[subset2.4B]),0),na.rm=TRUE) 
-  # Add ssi.income and value.ssi.mnth from Step 6B to get total household SSI values
-  data$ssi.income[subset2.4B]<-rowSums(cbind(data$ssi.income_1[subset2.4B], data$ssi.income[subset2.4B]),na.rm=TRUE)
-  data$value.ssi.mnth[subset2.4B]<-rowSums(cbind(data$value.ssi.mnth_1[subset2.4B], data$value.ssi.mnth[subset2.4B]),na.rm=TRUE)
-  
-    # Calculations for adults 3-6 with disability if there is a married couple where one spouse has a disability and the other doesn't 
-    # (different rules per Step 7 compared to where both spouses have a disability)
-  subset2.1C<-(data$disability3==1 & !is.na(data$disability3)) & (data$agePerson3>18 & !is.na(data$agePerson3)) & (subset3==TRUE | subset3.1==TRUE)
-  data$included.unearned.income[subset2.1C]<-rowMaxs(cbind((data$month.unearned.income3[subset2.1C]-data$income_disregard[subset2.1C]),0),na.rm=TRUE) 
-  data$remain.disregard[subset2.1C]<-rowMaxs(cbind((data$income_disregard[subset2.1C]-data$month.unearned.income3[subset2.1C]),0),na.rm=TRUE)
-  data$included.earned.income[subset2.1C]<-(1-data$earnings_disregard_pct[subset2.1C])*rowMaxs(cbind((data$month.earned.income3[subset2.1C]-data$earnings_disregard_amt[subset2.1C]-data$remain.disregard[subset2.1C]),0),na.rm=TRUE)
-  data$ssi.income_1[subset2.1C]<-rowMaxs(cbind((data$included.unearned.income[subset2.1C]+data$included.earned.income[subset2.1C]-data$disab.work.exp.distr[subset2.1C]),0),na.rm=TRUE) # Distributed Work expense x 1 other adult in home w/disab
-  data$value.ssi.mnth_1[subset2.1C]<-rowMaxs(cbind((data$fbr_individual[subset2.1C]+data$ssp_spouse_as_fbr_individual[subset2.1C]-data$ssi.income_1[subset2.1C]),0),na.rm=TRUE)
-    # Add ssi.income and value.ssi.mnth from Step 7 to get total household SSI values
-  data$ssi.income[subset2.1C]<-rowSums(cbind(data$ssi.income_1[subset2.1C], data$ssi.income[subset2.1C]),na.rm=TRUE)
-  data$value.ssi.mnth[subset2.1C]<-rowSums(cbind(data$value.ssi.mnth_1[subset2.1C], data$value.ssi.mnth[subset2.1C]),na.rm=TRUE)
-  
-  subset2.2C<-(data$disability4==1 & !is.na(data$disability4)) & (data$agePerson4>18 & !is.na(data$agePerson4)) & subset2.1C==TRUE
-  data$included.unearned.income[subset2.2C]<-rowMaxs(cbind((data$month.unearned.income3[subset2.2C]+data$month.unearned.income4[subset2.2C]-data$income_disregard[subset2.2C]),0),na.rm=TRUE) 
-  data$remain.disregard[subset2.2C]<-rowMaxs(cbind((data$income_disregard[subset2.2C]-data$month.unearned.income3[subset2.2B]-data$month.unearned.income4[subset2.2B]),0),na.rm=TRUE)
-  data$included.earned.income[subset2.2C]<-(1-data$earnings_disregard_pct[subset2.2C])*rowMaxs(cbind((data$month.earned.income3[subset2.2C]+data$month.earned.income4[subset2.2C]-data$earnings_disregard_amt[subset2.2C]-data$remain.disregard[subset2.2C]),0),na.rm=TRUE)
-  data$ssi.income_1[subset2.2C]<-rowMaxs(cbind((data$included.unearned.income[subset2.2C]+data$included.earned.income[subset2.2C]-(2*data$disab.work.exp.distr[subset2.2C])),0),na.rm=TRUE) # Distributed Work expense x 2 other adults in home w/disab
-  data$value.ssi.mnth_1[subset2.2C]<-rowMaxs(cbind((data$fbr_individual[subset2.2C]+data$ssp_spouse_as_fbr_individual[subset2.2C]-data$ssi.income_1[subset2.2C]),0),na.rm=TRUE)
-    # Add ssi.income and value.ssi.mnth from Step 7 to get total household SSI values
-  data$ssi.income[subset2.2C]<-rowSums(cbind(data$ssi.income_1[subset2.2C], data$ssi.income[subset2.2C]),na.rm=TRUE)
-  data$value.ssi.mnth[subset2.2C]<-rowSums(cbind(data$value.ssi.mnth_1[subset2.2C], data$value.ssi.mnth[subset2.2C]),na.rm=TRUE)
-  
-  subset2.3C<-(data$disability5==1 & !is.na(data$disability5)) & (data$agePerson5>18 & !is.na(data$agePerson5)) & subset2.2C==TRUE 
-  data$included.unearned.income[subset2.3C]<-rowMaxs(cbind((data$month.unearned.income3[subset2.3C]+data$month.unearned.income4[subset2.3C]+data$month.unearned.income5[subset2.3C]-data$income_disregard[subset2.3C]),0),na.rm=TRUE) 
-  data$remain.disregard[subset2.3C]<-rowMaxs(cbind((data$income_disregard[subset2.3C]-data$month.unearned.income3[subset2.3C]-data$month.unearned.income4[subset2.2B]-data$month.unearned.income5[subset2.3C]),0),na.rm=TRUE)
-  data$included.earned.income[subset2.3C]<-(1-data$earnings_disregard_pct[subset2.3C])*rowMaxs(cbind((data$month.earned.income3[subset2.3C]+data$month.earned.income4[subset2.3C]+data$month.earned.income5[subset2.3C]-data$earnings_disregard_amt[subset2.3C]-data$remain.disregard[subset2.3C]),0),na.rm=TRUE)
-  data$ssi.income_1[subset2.3C]<-rowMaxs(cbind((data$included.unearned.income[subset2.3C]+data$included.earned.income[subset2.3C]-(3*data$disab.work.exp.distr[subset2.3C])),0),na.rm=TRUE) # Distributed Work expense x 3 other adults in home w/disab
-  data$value.ssi.mnth_1[subset2.3C]<-rowMaxs(cbind((data$fbr_individual[subset2.3C]+data$ssp_spouse_as_fbr_individual[subset2.3C]-data$ssi.income_1[subset2.3C]),0),na.rm=TRUE)
-    # Add ssi.income and value.ssi.mnth from Step 7 to get total household SSI values
-  data$ssi.income[subset2.3C]<-rowSums(cbind(data$ssi.income_1[subset2.3C], data$ssi.income[subset2.3C]),na.rm=TRUE)
-  data$value.ssi.mnth[subset2.3C]<-rowSums(cbind(data$value.ssi.mnth_1[subset2.3C], data$value.ssi.mnth[subset2.3C]),na.rm=TRUE)
-  
-  subset2.4C<-(data$disability6==1 & !is.na(data$disability6)) & (data$agePerson6>18 & !is.na(data$agePerson6)) & subset2.3C==TRUE 
-  data$included.unearned.income[subset2.4C]<-rowMaxs(cbind((data$month.unearned.income3[subset2.4C]+data$month.unearned.income4[subset2.4C]+data$month.unearned.income5[subset2.4C]+data$month.unearned.income6[subset2.4C]-data$income_disregard[subset2.4C]),0),na.rm=TRUE) 
-  data$remain.disregard[subset2.4C]<-rowMaxs(cbind((data$income_disregard[subset2.4C]-data$month.unearned.income3[subset2.4C]-data$month.unearned.income4[subset2.2B]-data$month.unearned.income5[subset2.4C]-data$month.unearned.income6[subset2.4C]),0),na.rm=TRUE)
-  data$included.earned.income[subset2.4C]<-(1-data$earnings_disregard_pct[subset2.4C])*rowMaxs(cbind((data$month.earned.income3[subset2.4C]+data$month.earned.income4[subset2.4C]+data$month.earned.income5[subset2.4C]+data$month.earned.income6[subset2.4C]-data$earnings_disregard_amt[subset2.4C]-data$remain.disregard[subset2.4C]),0),na.rm=TRUE)
-  data$ssi.income_1[subset2.4C]<-rowMaxs(cbind((data$included.unearned.income[subset2.4C]+data$included.earned.income[subset2.4C]-(4*data$disab.work.exp.distr[subset2.4C])),0),na.rm=TRUE) # Distributed Work expense x 3 other adults in home w/disab
-  data$value.ssi.mnth_1[subset2.4C]<-rowMaxs(cbind((data$fbr_individual[subset2.4C]+data$ssp_spouse_as_fbr_individual[subset2.4C]-data$ssi.income_1[subset2.4C]),0),na.rm=TRUE)
-  # Add ssi.income and value.ssi.mnth from Step 7 to get total household SSI values
-  data$ssi.income[subset2.4C]<-rowSums(cbind(data$ssi.income_1[subset2.4C], data$ssi.income[subset2.4C]),na.rm=TRUE)
-  data$value.ssi.mnth[subset2.4C]<-rowSums(cbind(data$value.ssi.mnth_1[subset2.4C], data$value.ssi.mnth[subset2.4C]),na.rm=TRUE)
-  
-  # Calculations for adults 3-6 when Persons 1-2 are married but neither have a disability
-  subset2.4<-data$married==1 & (data$disability1==0 & !is.na(data$disability1)) & (data$disability2==0 & !is.na(data$disability2)) & (data$disability3==1 & !is.na(data$disability3)) & (data$agePerson3>18 & !is.na(data$agePerson3))
-  data$included.unearned.income[subset2.4]<-rowMaxs(cbind((data$month.unearned.income3[subset2.4]-data$income_disregard[subset2.4]),0),na.rm=TRUE) 
-  data$remain.disregard[subset2.4]<-rowMaxs(cbind((data$income_disregard[subset2.4]-data$month.unearned.income3[subset2.4]),0),na.rm=TRUE)
-  data$included.earned.income[subset2.4]<-(1-data$earnings_disregard_pct[subset2.4])*rowMaxs(cbind((data$month.earned.income3[subset2.4]-data$earnings_disregard_amt[subset2.4]-data$remain.disregard[subset2.4]),0),na.rm=TRUE)
-  data$ssi.income[subset2.4]<-rowMaxs(cbind((data$included.unearned.income[subset2.4]+data$included.earned.income[subset2.4]-data$disab.work.exp[subset2.4]),0),na.rm=TRUE) # Entire mnthly disab work exp
-  data$value.ssi.mnth[subset2.4]<-rowMaxs(cbind((data$fbr_individual[subset2.4]+data$ssp_spouse_as_fbr_individual[subset2.4]-data$ssi.income[subset2.4]),0),na.rm=TRUE)
-  
-  subset2.5<-(data$disability4==1 & !is.na(data$disability4)) & (data$agePerson4>18 & !is.na(data$agePerson4)) & subset2.4==TRUE
-  data$included.unearned.income[subset2.5]<-rowMaxs(cbind((data$month.unearned.income3[subset2.5]+data$month.unearned.income4[subset2.5]-data$income_disregard[subset2.5]),0),na.rm=TRUE) 
-  data$remain.disregard[subset2.5]<-rowMaxs(cbind((data$income_disregard[subset2.5]-data$month.unearned.income3[subset2.5]-data$month.unearned.income4[subset2.5]),0),na.rm=TRUE)
-  data$included.earned.income[subset2.5]<-(1-data$earnings_disregard_pct[subset2.5])*rowMaxs(cbind((data$month.earned.income3[subset2.5]+data$month.earned.income4[subset2.5]-data$earnings_disregard_amt[subset2.5]-data$remain.disregard[subset2.5]),0),na.rm=TRUE)
-  data$ssi.income[subset2.5]<-rowMaxs(cbind((data$included.unearned.income[subset2.5]+data$included.earned.income[subset2.5]-data$disab.work.exp[subset2.5]),0),na.rm=TRUE) # Entire mnthly disab work exp
-  data$value.ssi.mnth[subset2.5]<-rowMaxs(cbind((data$fbr_individual[subset2.5]+data$ssp_spouse_as_fbr_individual[subset2.5]-data$ssi.income[subset2.5]),0),na.rm=TRUE)
-  
-  subset2.6<-(data$disability5=1 & !is.na(data$disability5)) & (data$agePerson5>18 & !is.na(data$agePerson5)) & subset2.5==TRUE
-  data$included.unearned.income[subset2.6]<-rowMaxs(cbind((data$month.unearned.income3[subset2.6]+data$month.unearned.income4[subset2.6]+data$month.unearned.income4[subset2.6]+data$month.unearned.income5[subset2.6]-data$income_disregard[subset2.6]),0),na.rm=TRUE) 
-  data$remain.disregard[subset2.6]<-rowMaxs(cbind((data$income_disregard[subset2.6]-data$month.unearned.income3[subset2.6]-data$month.unearned.income4[subset2.6]-data$month.unearned.income5[subset2.6]),0),na.rm=TRUE)
-  data$included.earned.income[subset2.6]<-(1-data$earnings_disregard_pct[subset2.6])*rowMaxs(cbind((data$month.earned.income3[subset2.6]+data$month.earned.income4[subset2.6]+data$month.earned.income5[subset2.6]-data$earnings_disregard_amt[subset2.6]-data$remain.disregard[subset2.6]),0),na.rm=TRUE)
-  data$ssi.income[subset2.6]<-rowMaxs(cbind((data$included.unearned.income[subset2.6]+data$included.earned.income[subset2.6]-data$disab.work.exp[subset2.6]),0),na.rm=TRUE) # Entire mnthly disab work exp
-  data$value.ssi.mnth[subset2.6]<-rowMaxs(cbind((data$fbr_individual[subset2.6]+data$ssp_spouse_as_fbr_individual[subset2.6]-data$ssi.income[subset2.6]),0),na.rm=TRUE)
-  
-  subset2.7<-(data$disability6=1 & !is.na(data$disability6)) & (data$agePerson6>18 & !is.na(data$agePerson6)) & subset2.6==TRUE
-  data$included.unearned.income[subset2.7]<-rowMaxs(cbind((data$month.unearned.income3[subset2.7]+data$month.unearned.income4[subset2.7]+data$month.unearned.income4[subset2.7]+data$month.unearned.income5[subset2.7]+data$month.unearned.income6[subset2.7]-data$income_disregard[subset2.7]),0),na.rm=TRUE) 
-  data$remain.disregard[subset2.7]<-rowMaxs(cbind((data$income_disregard[subset2.7]-data$month.unearned.income3[subset2.7]-data$month.unearned.income4[subset2.7]-data$month.unearned.income5[subset2.7]-data$month.unearned.income6[subset2.7]),0),na.rm=TRUE)
-  data$included.earned.income[subset2.7]<-(1-data$earnings_disregard_pct[subset2.7])*rowMaxs(cbind((data$month.earned.income3[subset2.7]+data$month.earned.income4[subset2.7]+data$month.earned.income5[subset2.7]+data$month.earned.income6[subset2.7]-data$earnings_disregard_amt[subset2.7]-data$remain.disregard[subset2.7]),0),na.rm=TRUE)
-  data$ssi.income[subset2.7]<-rowMaxs(cbind((data$included.unearned.income[subset2.7]+data$included.earned.income[subset2.7]-data$disab.work.exp[subset2.7]),0),na.rm=TRUE) # Entire mnthly disab work exp
-  data$value.ssi.mnth[subset2.7]<-rowMaxs(cbind((data$fbr_individual[subset2.7]+data$ssp_spouse_as_fbr_individual[subset2.7]-data$ssi.income[subset2.7]),0),na.rm=TRUE)
+    # Calculations when all adults in the household have a disability and married is true - extension of Step 6B or 7 which depends on marital status
+  subset2.1B<-(data$disability3==1 & !is.na(data$disability3)) & (data$agePerson3>18 & !is.na(data$agePerson3)) & data$married==1
+  data$included.unearned.income[subset2.1B]<-rowMaxs(cbind((data$month.unearned.income3[subset2.1B]-data$income_disregard[subset2.1B]),0),na.rm=TRUE) 
+  data$remain.disregard[subset2.1B]<-rowMaxs(cbind((data$income_disregard[subset2.1B]-data$month.unearned.income3[subset2.1B]),0),na.rm=TRUE)
+  data$included.earned.income[subset2.1B]<-(1-data$earnings_disregard_pct[subset2.1B])*rowMaxs(cbind((data$month.earned.income3[subset2.1B]-data$earnings_disregard_amt[subset2.1B]-data$remain.disregard[subset2.1B]),0),na.rm=TRUE)
+  data$ssi.income_3[subset2.1B]<-rowMaxs(cbind((data$included.unearned.income[subset2.1B]+data$included.earned.income[subset2.1B]),0),na.rm=TRUE)
+  data$value.ssi.mnth_3[subset2.1B]<-rowMaxs(cbind((data$fbr_individual[subset2.1B]+data$ssp_spouse_as_fbr_individual[subset2.1B]-data$ssi.income_3[subset2.1B]),0),na.rm=TRUE) 
 
-
+  subset2.2B<-(data$disability4==1 & !is.na(data$disability4)) & (data$agePerson4>18 & !is.na(data$agePerson4)) & data$married==1
+  data$included.unearned.income[subset2.2B]<-rowMaxs(cbind((data$month.unearned.income4[subset2.2B]-data$income_disregard[subset2.2B]),0),na.rm=TRUE) 
+  data$remain.disregard[subset2.2B]<-rowMaxs(cbind((data$income_disregard[subset2.2B]-data$month.unearned.income4[subset2.2B]),0),na.rm=TRUE)
+  data$included.earned.income[subset2.2B]<-(1-data$earnings_disregard_pct[subset2.2B])*rowMaxs(cbind((data$month.earned.income4[subset2.2B]-data$earnings_disregard_amt[subset2.2B]-data$remain.disregard[subset2.2B]),0),na.rm=TRUE)
+  data$ssi.income_4[subset2.2B]<-rowMaxs(cbind((data$included.unearned.income[subset2.2B]+data$included.earned.income[subset2.2B]),0),na.rm=TRUE) 
+  data$value.ssi.mnth_4[subset2.2B]<-rowMaxs(cbind((data$fbr_individual[subset2.2B]+data$ssp_spouse_as_fbr_individual[subset2.2B]-data$ssi.income_4[subset2.2B]),0),na.rm=TRUE) 
+  
+  subset2.3B<-(data$disability5==1 & !is.na(data$disability5)) & (data$agePerson5>18 & !is.na(data$agePerson5)) & data$married==1
+  data$included.unearned.income[subset2.3B]<-rowMaxs(cbind((data$month.unearned.income5[subset2.3B]-data$income_disregard[subset2.3B]),0),na.rm=TRUE) 
+  data$remain.disregard[subset2.3B]<-rowMaxs(cbind((data$income_disregard[subset2.3B]-data$month.unearned.income5[subset2.3B]),0),na.rm=TRUE)
+  data$included.earned.income[subset2.3B]<-(1-data$earnings_disregard_pct[subset2.3B])*rowMaxs(cbind((data$month.earned.income5[subset2.3B]-data$earnings_disregard_amt[subset2.3B]-data$remain.disregard[subset2.3B]),0),na.rm=TRUE)
+  data$ssi.income_5[subset2.3B]<-rowMaxs(cbind((data$included.unearned.income[subset2.3B]+data$included.earned.income[subset2.3B]),0),na.rm=TRUE)
+  data$value.ssi.mnth_5[subset2.3B]<-rowMaxs(cbind((data$fbr_individual[subset2.3B]+data$ssp_spouse_as_fbr_individual[subset2.3B]-data$ssi.income_5[subset2.3B]),0),na.rm=TRUE) 
+  
+  subset2.4B<-(data$disability6==1 & !is.na(data$disability6)) & (data$agePerson6>18 & !is.na(data$agePerson6)) & data$married==1
+  data$included.unearned.income[subset2.4B]<-rowMaxs(cbind((data$month.unearned.income6[subset2.4B]-data$income_disregard[subset2.4B]),0),na.rm=TRUE) 
+  data$remain.disregard[subset2.4B]<-rowMaxs(cbind((data$income_disregard[subset2.4B]-data$month.unearned.income6[subset2.4B]),0),na.rm=TRUE)
+  data$included.earned.income[subset2.4B]<-(1-data$earnings_disregard_pct[subset2.4B])*rowMaxs(cbind((data$month.earned.income6[subset2.4B]-data$earnings_disregard_amt[subset2.4B]-data$remain.disregard[subset2.4B]),0),na.rm=TRUE)
+  data$ssi.income_6[subset2.4B]<-rowMaxs(cbind((data$included.unearned.income[subset2.4B]+data$included.earned.income[subset2.4B]),0),na.rm=TRUE)
+  data$value.ssi.mnth_6[subset2.4B]<-rowMaxs(cbind((data$fbr_individual[subset2.4B]+data$ssp_spouse_as_fbr_individual[subset2.4B]-data$ssi.income_6[subset2.4B]),0),na.rm=TRUE) 
+  
+  # Add individual SSI values to get monthly household SSI value
+  data$ssi.income<-rowSums(cbind(data$ssi.income, data$ssi.income_3[subset2.1B], data$ssi.income_4[subset2.2B], data$ssi.income_5[subset2.3B], data$ssi.income_6[subset2.4B],(-data$disab.work.exp)),na.rm=TRUE)
+  data$value.ssi.mnth<-rowSums(cbind(data$value.ssi.mnth, data$value.ssi.mnth_3[subset2.1B], data$value.ssi.mnth_4[subset2.2B], data$value.ssi.mnth_5[subset2.3B], data$value.ssi.mnth_6[subset2.4B]),na.rm=TRUE)
+  
   # Step 8: Determine the total annual SSI amount and ANY person in the household receiving SSI.Whether or not an adult receives SSI is important for determining non-MAGI Medicaid eligibility. 
   data$ssi.recd<-12*data$value.ssi.mnth
   data$adlt1.ssi<-ifelse(data$ssi.recd>0 & (data$disability1==1 & !is.na(data$disability1)), data$adlt1.ssi<-1, data$adlt1.ssi<-0)
@@ -1795,7 +5130,7 @@ function.ssiBenefit<-function(data){
   
   # Step 10: Count number of SSI-eligible parents of eligible child and factor in allocations
   data$num.parents<-ifelse(data$married==1,2,1)
-  data$parent1.tanf<-ifelse(data$value.tanf & data$value.tanf>0, 1, 0) 
+  data$parent1.tanf<-ifelse(data$value.tanf>0 & data$married==1, 1, 0) 
   data$parent2.tanf<-ifelse(data$value.tanf>0 & data$married==1, 1, 0) # If family receives tanf and married, then assume both parents receive tanf
   
   data$deemable.parents.ssi<-rowMaxs(cbind(data$num.parents-rowMaxs(cbind(data$parent1.ssi,data$parent1.tanf,0))-rowMaxs(cbind(data$parent2.ssi,data$parent2.tanf,0)),0))
@@ -1823,8 +5158,8 @@ function.ssiBenefit<-function(data){
   data$deemed.earned.income<-rowMaxs(cbind(1-data$earnings_disregard_pct,0),na.rm=TRUE)*rowMaxs(cbind(data$deemable.earned.income-data$deemed.disregard.remainder-data$earnings_disregard_amt,0),na.rm=TRUE)
   data$deemed.income<-rowMaxs(cbind(data$deemed.unearned.income+data$deemed.earned.income-data$parental_allocation,0),na.rm=TRUE) 
   
-  # Step 11: deem income to disabled children
-  data$deemed.income.perchild<-rowMaxs(cbind((data$deemed.income + ((data$child_support/data$numkids)*.66))/data$disabledkids,0),na.rm=TRUE)
+  # Step 11: Deem income to disabled children
+  data$deemed.income.perchild<-rowMaxs(cbind((data$deemed.income + ((data$income.child_support/data$numkids)*.66))/data$disabledkids,0),na.rm=TRUE)
   
   # Step 12: Calculate SSI benefit for each disabled child in the home
   data$child.ssi.recd<-0
@@ -1932,13 +5267,12 @@ function.ssiBenefit<-function(data){
 # Supplemental Nutrition Assistance Program (SNAP)----
 
 function.snapBenefit<-function(data){
-
+    
+  # We have historical rules
     data<-left_join(data, snapData, by=c("ruleYear","stateFIPS", "famsize"))
     
     # First, calculate total countable income 
-    data$income.gross<-rowSums(cbind(data$income,data$income.gift,data$income.child_support,data$income.investment,data$value.tanf,data$value.ssi,data$value.ssdi),na.rm=TRUE) # ER 7/4/22: I added rowSums, I was getting error without it
-    #data$income.gross<-data$income+data$income.gift+data$income.child_support+data$income.investment+data$value.tanf+data$value.ssi+data$value.ssdi
-    
+    data$income.gross<-rowSums(cbind(data$income,data$income.gift,data$income.child_support,data$income.investment,data$value.tanf,data$value.ssi,data$value.ssdi),na.rm=TRUE)
     # Determine if anyone in the household is elderly (above 60) or has a disability
     data$disabled_count<-rowSums(cbind(data$disability1, data$disability2, data$disability3, data$disability4, data$disability5, data$disability6, data$disability7, data$disability8, data$disability9, data$disability10, data$disability11, data$disability12)==1, na.rm=TRUE)
     data$elderly_count<-rowSums(cbind(data$agePerson1, data$agePerson2, data$agePerson3, data$agePerson4, data$agePerson5, data$agePerson6, data$agePerson7, data$agePerson8, data$agePerson9, data$agePerson10, data$agePerson11, data$agePerson12)>60, na.rm=TRUE)
@@ -1948,43 +5282,42 @@ function.snapBenefit<-function(data){
     data$EarnedIncomeDeduction<-0.2*data$income #earned income only
     
     # Step II: Calculate adjusted income
-    data$adjustedincome<-rowMaxs(cbind(data$income.gross-data$EarnedIncomeDeduction-12*data$StandardDeduction-data$netexp.childcare,0),na.rm=TRUE) #ER 7/4/22: standard deduction and childcare are NULL; I added rowMaxs, I was getting error just without it
-    #data$adjustedincome<-data$income.gross-data$EarnedIncomeDeduction-12*data$StandardDeduction-data$netexp.childcare
+    data$adjustedincome<-rowMaxs(cbind(data$income.gross-data$EarnedIncomeDeduction-12*data$StandardDeduction-data$netexp.childcare,0),na.rm=TRUE) 
     
     # Step III: Calculate Utility Deductions
-    data$UtiilityDeduction<-0
-    subset<-(data$netexp.utilities>0 | data$HeatandEatState=="Yes") & data$HCSUA=="Mandatory" #liheap >0 should be in list of "|" staetments runs after this program so will alwys be 0 
-    data$UtiilityDeduction[subset]<-12*data$HCSUAValue[subset]
+    data$UtilityDeduction<-0
+    subset<-which((data$netexp.utilities>0 | data$HeatandEatState=="Yes") & data$HCSUA=="Mandatory") #liheap >0 should be in list of "|" statements runs after this program so will always be 0 
+    data$UtilityDeduction[subset]<-12*data$HCSUAValue[subset]
     
-    subset<-(data$netexp.utilities>0 |  data$HeatandEatState=="Yes") & data$HCSUA=="Optional" #liheap >0 should be in list of "|" staetments runs after this program so will alwys be 0 
-    data$UtiilityDeduction[subset]<-rowMaxs(cbind(12*data$HCSUAValue[subset],data$netexp.utilities[subset]))
+    subset<-(data$netexp.utilities>0 |  data$HeatandEatState=="Yes") & data$HCSUA=="Optional" #liheap >0 should be in list of "|" statements runs after this program so will always be 0 
+    data$UtilityDeduction[subset]<-rowMaxs(cbind(12*data$HCSUAValue[subset],data$netexp.utilities[subset]))
     
     
     # # Step V: Calculate Medical Expense Deduction (those on SSI,SSDI, and elderly can deduct their medical expenses)
-    data$MedicalDeduction.person1<-case_when( (data$value.ssiAdlt1>0 | data$ssdiPIA1>0 | data$agePerson1 >60) ~ data$exp.special.disability.person1
+    data$MedicalDeduction.person1<-case_when( (data$value.ssiAdlt1>0 | data$ssdiPIA1>0 | data$agePerson1 >60) ~ data$oop.add_for_elderlyordisabled
                                              , TRUE ~ 0)
-    data$MedicalDeduction.person2<-case_when( (data$value.ssiAdlt2>0 | data$ssdiPIA2>0 | data$agePerson2 >60) ~ data$exp.special.disability.person2
+    data$MedicalDeduction.person2<-case_when( (data$value.ssiAdlt2>0 | data$ssdiPIA2>0 | data$agePerson2 >60) ~ data$oop.add_for_elderlyordisabled
                                               , TRUE ~ 0)
-    data$MedicalDeduction.person3<-case_when( (data$value.ssiAdlt3>0 | data$ssdiPIA3>0 | data$agePerson3 >60) ~ data$exp.special.disability.person3
+    data$MedicalDeduction.person3<-case_when( (data$value.ssiAdlt3>0 | data$ssdiPIA3>0 | data$agePerson3 >60) ~ data$oop.add_for_elderlyordisabled
                                               , TRUE ~ 0)
-    data$MedicalDeduction.person4<-case_when( (data$value.ssiAdlt4>0 | data$ssdiPIA4>0 | data$agePerson4 >60) ~ data$exp.special.disability.person4
+    data$MedicalDeduction.person4<-case_when( (data$value.ssiAdlt4>0 | data$ssdiPIA4>0 | data$agePerson4 >60) ~ data$oop.add_for_elderlyordisabled
                                               , TRUE ~ 0)
-    data$MedicalDeduction.person5<-case_when( (data$value.ssiAdlt5>0 | data$ssdiPIA5>0 | data$agePerson5 >60) ~ data$exp.special.disability.person5
+    data$MedicalDeduction.person5<-case_when( (data$value.ssiAdlt5>0 | data$ssdiPIA5>0 | data$agePerson5 >60) ~ data$oop.add_for_elderlyordisabled
                                               , TRUE ~ 0)
-    data$MedicalDeduction.person6<-case_when( (data$value.ssiAdlt6>0 | data$ssdiPIA6>0 | data$agePerson6 >60) ~ data$exp.special.disability.person6
+    data$MedicalDeduction.person6<-case_when( (data$value.ssiAdlt6>0 | data$ssdiPIA6>0 | data$agePerson6 >60) ~ data$oop.add_for_elderlyordisabled
                                               , TRUE ~ 0)
     
-    data$MedicalDeduction.person7<-case_when( (data$value.ssiChild1>0 | data$agePerson7 >60) ~ data$exp.special.disability.person7 # child age > 60 is impossible but it doesn't crash
+    data$MedicalDeduction.person7<-case_when( (data$value.ssiChild1>0 | data$agePerson7 >60) ~ data$oop.add_for_elderlyordisabled # child age > 60 is impossible but it doesn't crash
                                               , TRUE ~ 0)
-    data$MedicalDeduction.person8<-case_when( (data$value.ssiChild2>0 | data$agePerson8 >60) ~ data$exp.special.disability.person8
+    data$MedicalDeduction.person8<-case_when( (data$value.ssiChild2>0 | data$agePerson8 >60) ~ data$oop.add_for_elderlyordisabled
                                               , TRUE ~ 0)
-    data$MedicalDeduction.person9<-case_when( (data$value.ssiChild3>0 | data$agePerson9 >60) ~ data$exp.special.disability.person9
+    data$MedicalDeduction.person9<-case_when( (data$value.ssiChild3>0 | data$agePerson9 >60) ~ data$oop.add_for_elderlyordisabled
                                               , TRUE ~ 0)
-    data$MedicalDeduction.person10<-case_when( (data$value.ssiChild4>0 | data$agePerson10 >60) ~ data$exp.special.disability.person10
+    data$MedicalDeduction.person10<-case_when( (data$value.ssiChild4>0 | data$agePerson10 >60) ~ data$oop.add_for_elderlyordisabled
                                               , TRUE ~ 0)
-    data$MedicalDeduction.person11<-case_when( (data$value.ssiChild5>0 | data$agePerson11 >60) ~ data$exp.special.disability.person11
+    data$MedicalDeduction.person11<-case_when( (data$value.ssiChild5>0 | data$agePerson11 >60) ~ data$oop.add_for_elderlyordisabled
                                               , TRUE ~ 0)
-    data$MedicalDeduction.person12<-case_when( (data$value.ssiChild6>0 | data$agePerson12 >60) ~ data$exp.special.disability.person12
+    data$MedicalDeduction.person12<-case_when( (data$value.ssiChild6>0 | data$agePerson12 >60) ~ data$oop.add_for_elderlyordisabled
                                               , TRUE ~ 0)
 
     data<-data %>%
@@ -1992,10 +5325,8 @@ function.snapBenefit<-function(data){
 
     data$MedicalDeduction<-rowMaxs(cbind(data$MedicalDeduction-data$MedicalExpenseDeductionFloor*12,0)) # Floor
 
-    #data$MedicalDeduction<-0
-    
     # Step IV: Calculate Net Income
-    data$netincome<-rowMaxs(cbind(0,data$adjustedincome-rowMins(cbind(data$netexp.rentormortgage + data$UtiilityDeduction + data$MedicalDeduction - 0.5*data$adjustedincome,data$MaxShelterDeduction*12))))
+    data$netincome<-rowMaxs(cbind(0,data$adjustedincome-rowMins(cbind(data$netexp.rentormortgage + data$UtilityDeduction + data$MedicalDeduction - 0.5*data$adjustedincome,data$MaxShelterDeduction*12))))
     
     # Step V-VI: Determine eligibility and calculate SNAP value
     
@@ -2030,10 +5361,10 @@ function.snapBenefit<-function(data){
     data$fail_assetTest_Elderly_Disabled_over200FPL<-(data$disabled_count>0 | data$elderly_count>0) & data$income.gross > 2*data$FPL & data$totalassets>data$AssetTest_Elder_Dis_over200FPL & (data$not_categ_elig_tanf==TRUE & data$not_categ_elig_ssi==TRUE) # special asset test for families WITH elderly/disabled and income > 200% FPL
     
     # Calculate the benefit if all income and asset tests are satisfied
-    subset<-data$fail_grossIncomeTest==FALSE & data$fail_netIncomeTest_Elder_Dis==FALSE & data$fail_netIncomeTest_nonelddis==FALSE & data$fail_assetTest_regular==FALSE & data$fail_assetTest_Elderly_Disabled_under200FPL==FALSE & data$fail_assetTest_Elderly_Disabled_over200FPL==FALSE
+    subset<-which(data$fail_grossIncomeTest==FALSE & data$fail_netIncomeTest_Elder_Dis==FALSE & data$fail_netIncomeTest_nonelddis==FALSE & data$fail_assetTest_regular==FALSE & data$fail_assetTest_Elderly_Disabled_under200FPL==FALSE & data$fail_assetTest_Elderly_Disabled_over200FPL==FALSE)
     
     data$snapValue<-0
-    data$snapValue[subset]<-rowMins(cbind(rowMaxs(cbind(12*data$MaxBenefit[subset]-0.3*data$netincome[subset],12*data$MinBenefit[subset])),12*data$MaxBenefit[subset]))
+    data$snapValue[subset]<-rowMins(cbind(rowMaxs(cbind(12*data$MaxBenefit[subset]-0.3*data$netincome[subset],12*data$MinBenefit[subset]),na.rm = TRUE),12*data$MaxBenefit[subset]),na.rm = TRUE)
     
     data$snapValue<-round(data$snapValue,0)
     
@@ -2042,11 +5373,11 @@ function.snapBenefit<-function(data){
   }
 
 
-
 # Special Supplemental Nutrition Program for Women, Infanta and Children (WIC)----
 
 function.wicBenefit<-function(data){
-  
+
+  # We have historical rules
   data<-left_join(data, wicData, by=c("famsize", "AKorHI", "ruleYear"))
   
   data$income.countable= data$income + data$income.gift + data$value.ssi + data$value.ssdi
@@ -2073,24 +5404,54 @@ function.wicBenefit<-function(data){
   data$income.eligible[data$categorically.eligible == 1] <-TRUE
   data$income.eligible[data$income.countable < data$IncomeEligibility]<-TRUE
   
-  # Step 5: Calculate WIC value ##NEED TO CHANGE THIS TO USE WIC COSTS 
-  data$value.WIC<- data$numinfants * data$value.infant + data$numkidsage1to4 * data$value.kidsage1to4 + data$mom*data$value.women 
+  # Step 5: Calculate WIC value
+  data$value.WIC<- data$exp.wic
   data$value.WIC[data$income.eligible==FALSE]<-0
-  
-  # Step 6: Inflate Costs, transition to annual & round
-  data$value.WIC<-12*round(data$value.WIC*1.02^(data$ruleYear-data$yearofData),0)
   
   return(data$value.WIC)
   
 }
 
 
-
 # Section 8 Housing Choice Voucher----
 
 function.section8Benefit<-function(data){
-    
-    data<-left_join(data, section8Data, by=c("ruleYear","stateFIPS", "countyortownName", "numadults", "numkids"))
+  
+  # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+  years<-unique(data$ruleYear) # years in data set
+  yearsinexpdata<- unique(section8Data$ruleYear) # rule years in benefit data
+  yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+  yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+  # Create data for the future
+  maxyearofdata<-max(section8Data$ruleYear) # collect latest year of benefit data
+  futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+  if(length(futureYrs)>0){
+    # Create data frame with future years
+    expand<-expand.grid(stcountyfips2010=as.character(unique(section8Data$stcountyfips2010)), numadults=unique(section8Data$numadults), numkids=unique(section8Data$numkids), Year=futureYrs)
+    # Collect latest benefit data there is and merge w/data frame
+    expand2<-section8Data[section8Data$ruleYear==maxyearofdata, ]
+    expand<-expand%>%left_join(expand2, by=c("stcountyfips2010","numadults", "numkids"))%>%drop_na() %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+  }
+  # Create data for past and gap years (missing data) - not the future
+  nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
+  if(length(nonFutureYrs)>0){
+    #Create data frame with past years and year for which we are missing benefit data
+    expandPastMiss<-expand.grid(stcountyfips2010=unique(section8Data$stcountyfips2010),numadults=unique(section8Data$numadults), numkids=unique(section8Data$numkids), Year=nonFutureYrs)
+    # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
+    expandPastMiss2<-left_join(expandPastMiss, section8Data, by=c("stcountyfips2010", "numadults", "numkids"))
+    expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
+    expandPastMiss2<-expandPastMiss2%>%
+      group_by(Year)%>%
+      mutate(minyeardiff = min(yeardiff))
+    expandPastMiss2<-expandPastMiss2 %>%
+      filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+  }  # Attach copied future, historical, and missing benefit data
+  if(length(futureYrs)>0) {section8Data<-section8Data %>% rbind(expand)}
+  if(length(nonFutureYrs)>0) {section8Data<-section8Data %>% rbind(expandPastMiss2)}
+  # Vars in section8Data are already in the data
+  section8Data<-section8Data%>%select(-c("stateName","stateAbbrev","townFIPS","stateFIPS"))
+  
+    data<-left_join(data, section8Data, by=c("ruleYear","stcountyfips2010","countyortownName","numadults", "numkids"))
     
     data$income.countable= data$income + data$income.gift + data$value.tanf + data$value.ssi + data$value.ssdi + data$income.child_support
     
@@ -2101,29 +5462,29 @@ function.section8Benefit<-function(data){
     
     # Calculate Medical Expense Deduction (those on SSI,SSDI, and elderly can deduct their medical expenses)
     # unreimbursed expenses that allow a disabled adult family member to be employed
-    data$exp.disability_work.person1<-case_when( (data$value.ssiAdlt1>0 | data$ssdiPIA1>0 | data$agePerson1 >60) ~ data$exp.special.disability.person1
+    data$exp.disability_work.person1<-case_when( (data$value.ssiAdlt1>0 | data$ssdiPIA1>0 | data$agePerson1 >60) ~ data$oop.add_for_elderlyordisabled
                                               , TRUE ~ 0)
-    data$exp.disability_work.person2<-case_when( (data$value.ssiAdlt2>0 | data$ssdiPIA2>0 | data$agePerson2 >60) ~ data$exp.special.disability.person2
+    data$exp.disability_work.person2<-case_when( (data$value.ssiAdlt2>0 | data$ssdiPIA2>0 | data$agePerson2 >60) ~ data$oop.add_for_elderlyordisabled
                                               , TRUE ~ 0)
-    data$exp.disability_work.person3<-case_when( (data$value.ssiAdlt3>0 | data$ssdiPIA3>0 | data$agePerson3 >60) ~ data$exp.special.disability.person3
+    data$exp.disability_work.person3<-case_when( (data$value.ssiAdlt3>0 | data$ssdiPIA3>0 | data$agePerson3 >60) ~ data$oop.add_for_elderlyordisabled
                                               , TRUE ~ 0)
-    data$exp.disability_work.person4<-case_when( (data$value.ssiAdlt4>0 | data$ssdiPIA4>0 | data$agePerson4 >60) ~ data$exp.special.disability.person4
+    data$exp.disability_work.person4<-case_when( (data$value.ssiAdlt4>0 | data$ssdiPIA4>0 | data$agePerson4 >60) ~ data$oop.add_for_elderlyordisabled
                                               , TRUE ~ 0)
-    data$exp.disability_work.person5<-case_when( (data$value.ssiAdlt5>0 | data$ssdiPIA5>0 | data$agePerson5 >60) ~ data$exp.special.disability.person5
+    data$exp.disability_work.person5<-case_when( (data$value.ssiAdlt5>0 | data$ssdiPIA5>0 | data$agePerson5 >60) ~ data$oop.add_for_elderlyordisabled
                                               , TRUE ~ 0)
-    data$exp.disability_work.person6<-case_when( (data$value.ssiAdlt6>0 | data$ssdiPIA6>0 | data$agePerson6 >60) ~ data$exp.special.disability.person6
+    data$exp.disability_work.person6<-case_when( (data$value.ssiAdlt6>0 | data$ssdiPIA6>0 | data$agePerson6 >60) ~ data$oop.add_for_elderlyordisabled
                                               , TRUE ~ 0)
-    data$exp.disability_work.person7<-case_when( (data$value.ssiChild1>0 | data$agePerson7 >60) ~ data$exp.special.disability.person7 # child age > 60 is impossible but it doesn't crash
+    data$exp.disability_work.person7<-case_when( (data$value.ssiChild1>0 | data$agePerson7 >60) ~ data$oop.add_for_elderlyordisabled # child age > 60 is impossible but it doesn't crash
                                               , TRUE ~ 0)
-    data$exp.disability_work.person8<-case_when( (data$value.ssiChild2>0 | data$agePerson8 >60) ~ data$exp.special.disability.person8
+    data$exp.disability_work.person8<-case_when( (data$value.ssiChild2>0 | data$agePerson8 >60) ~ data$oop.add_for_elderlyordisabled
                                               , TRUE ~ 0)
-    data$exp.disability_work.person9<-case_when( (data$value.ssiChild3>0 | data$agePerson9 >60) ~ data$exp.special.disability.person9
+    data$exp.disability_work.person9<-case_when( (data$value.ssiChild3>0 | data$agePerson9 >60) ~ data$oop.add_for_elderlyordisabled
                                               , TRUE ~ 0)
-    data$exp.disability_work.person10<-case_when( (data$value.ssiChild4>0 | data$agePerson10 >60) ~ data$exp.special.disability.person10
+    data$exp.disability_work.person10<-case_when( (data$value.ssiChild4>0 | data$agePerson10 >60) ~ data$oop.add_for_elderlyordisabled
                                                , TRUE ~ 0)
-    data$exp.disability_work.person11<-case_when( (data$value.ssiChild5>0 | data$agePerson11 >60) ~ data$exp.special.disability.person11
+    data$exp.disability_work.person11<-case_when( (data$value.ssiChild5>0 | data$agePerson11 >60) ~ data$oop.add_for_elderlyordisabled
                                                , TRUE ~ 0)
-    data$exp.disability_work.person12<-case_when( (data$value.ssiChild6>0 | data$agePerson12 >60) ~ data$exp.special.disability.person12
+    data$exp.disability_work.person12<-case_when( (data$value.ssiChild6>0 | data$agePerson12 >60) ~ data$oop.add_for_elderlyordisabled
                                                , TRUE ~ 0)
     data<-data %>%
       mutate(exp.disability_work = exp.disability_work.person1+exp.disability_work.person2+exp.disability_work.person3+exp.disability_work.person4+exp.disability_work.person5+exp.disability_work.person6+exp.disability_work.person7+exp.disability_work.person8+exp.disability_work.person9+exp.disability_work.person10+exp.disability_work.person11+exp.disability_work.person12)
@@ -2140,6 +5501,7 @@ function.section8Benefit<-function(data){
     # Medical deductions is calculated as DisabilityWorkExpDeduction + unreimbursed medical expenses above 3% of gross income
     data$MedicalExpDeduction<-rowMaxs(cbind(data$DisabilityWorkExpDeduction + data$exp.medical.unreimbursed-data$income.countable*.03,0))
     
+    data$netexp.childcare[is.na(data$netexp.childcare)] <- 0 # TURN NAS INTO ZEROES !
     # Step I: Calculate Adjusted Income
     data$adjustedincome<-rowMaxs(cbind(data$income.countable - data$numkids*data$DependentDeduction - data$netexp.childcare - data$disabilityDeduction - data$MedicalExpDeduction,0)) # HERE - subtract $400/m and subtract medical expense like SNAP (everything above 3% of gross income)
     
@@ -2148,7 +5510,7 @@ function.section8Benefit<-function(data){
     
     # Step III: Determine benefit value (voucher also covers GROSS rent, hence add utilities to rent)
     data$section8value<-0
-    data$section8value<-rowMaxs(cbind(rowMins(cbind(data$exp.rentormortgage+data$exp.utilities,data$MaxGrossRent))-data$ttp,0))
+    data$section8value<-rowMaxs(cbind(rowMins(cbind(data$exp.rentormortgage+data$exp.utilities,data$MaxBenefit))-data$ttp,0))
     
     data$section8value[data$ownorrent!="rent"]<-0
     
@@ -2159,12 +5521,44 @@ function.section8Benefit<-function(data){
   }
 
 
-
 # Connecticut Rental Assistance Program (RAP) ----
 
 function.RAPBenefit<-function(data){
-    
-    data<-left_join(data, section8Data, by=c("ruleYear","stateFIPS", "countyortownName", "numadults", "numkids"))
+  
+  # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+  years<-unique(data$ruleYear) # years in data set
+  yearsinexpdata<- unique(section8Data$ruleYear) # rule years in benefit data
+  yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+  yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+  # Create data for the future
+  maxyearofdata<-max(section8Data$ruleYear) # collect latest year of benefit data
+  futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+  if(length(futureYrs)>0){
+    # Create data frame with future years
+    expand<-expand.grid(countyortownName=as.character(unique(section8Data$countyortownName)), stateAbbrev=unique(section8Data$stateAbbrev), numadults=unique(section8Data$numadults), numkids=unique(section8Data$numkids), Year=futureYrs)
+    # Collect latest benefit data there is and merge w/data frame
+    expand2<-section8Data[section8Data$ruleYear==maxyearofdata, ]
+    # For New England townships, grab the one that matches the data
+    expand2<-expand2%>%filter(countyortownName==unique(data$countyortownName), stateAbbrev==unique(data$stateAbbrev))
+    expand<-expand%>%left_join(expand2, by=c("countyortownName","stateAbbrev", "numadults", "numkids"))%>%drop_na() %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+  }
+  # Create data for past and gap years (missing data) - not the future
+  nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
+  if(length(nonFutureYrs)>0){
+    #Create data frame with past years and year for which we are missing benefit data
+    expandPastMiss<-expand.grid(countyortownName=unique(section8Data$countyortownName),stateAbbrev=unique(section8Data$stateAbbrev),numadults=unique(section8Data$numadults), numkids=unique(section8Data$numkids), Year=nonFutureYrs)
+    # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
+    expandPastMiss2<-left_join(expandPastMiss, section8Data, by=c("countyortownName", "stateAbbrev", "numadults", "numkids"))
+    expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
+    expandPastMiss2<-expandPastMiss2%>%
+      group_by(Year)%>%
+      mutate(minyeardiff = min(yeardiff))
+    expandPastMiss2<-expandPastMiss2 %>%
+      filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+  }  # Attach copied future, historical, and missing benefit data
+  if(length(futureYrs)>0) {section8Data<-section8Data %>% rbind(expand)}
+  if(length(nonFutureYrs)>0) {section8Data<-section8Data %>% rbind(expandPastMiss2)}
+  section8Data<-section8Data%>%select(-c("stateName","countyortownName","stateAbbrev","townFIPS","stateFIPS"))
     
     data$income.countable = data$income
     
@@ -2176,7 +5570,7 @@ function.RAPBenefit<-function(data){
     
     # Step III: Determine benefit value
     data$section8value<-0
-    data$section8value<-rowMaxs(cbind(rowMins(cbind(data$exp.rentormortgage,data$MaxGrossRent))-data$ttp,0),na.rm=TRUE)
+    data$section8value<-rowMaxs(cbind(rowMins(cbind(data$exp.rentormortgage,data$MaxBenefit))-data$ttp,0),na.rm=TRUE)
     
     data$section8value[data$ownorrent!="rent"]<-0
     
@@ -2187,14 +5581,45 @@ function.RAPBenefit<-function(data){
   }
   
 
-
 # DC Specific Housing Program - Family Rehousing and Stabilization Program (FRSP) ----
 
 function.FRSPBenefit<-function(data
-                              , shareOfRent = 0.4 # User input - varies from 40 to 60%
-){
+                              , shareOfRent = 0.4){ # User input - varies from 40 to 60%
   
-  data<-left_join(data, section8Data, by=c("stateFIPS", "countyortownName", "numadults", "numkids"))
+  # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+  years<-unique(data$ruleYear) # years in data set
+  yearsinexpdata<- unique(section8Data$ruleYear) # rule years in benefit data
+  yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+  yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+  # Create data for the future
+  maxyearofdata<-max(section8Data$ruleYear) # collect latest year of benefit data
+  futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+  if(length(futureYrs)>0){
+    # Create data frame with future years
+    expand<-expand.grid(countyortownName=as.character(unique(section8Data$countyortownName)), stateAbbrev=unique(section8Data$stateAbbrev), numadults=unique(section8Data$numadults), numkids=unique(section8Data$numkids), Year=futureYrs)
+    # Collect latest benefit data there is and merge w/data frame
+    expand2<-section8Data[section8Data$ruleYear==maxyearofdata, ]
+    # For New England townships, grab the one that matches the data
+    expand2<-expand2%>%filter(countyortownName==unique(data$countyortownName), stateAbbrev==unique(data$stateAbbrev))
+    expand<-expand%>%left_join(expand2, by=c("countyortownName","stateAbbrev", "numadults", "numkids"))%>%drop_na() %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+  }
+  # Create data for past and gap years (missing data) - not the future
+  nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
+  if(length(nonFutureYrs)>0){
+    #Create data frame with past years and year for which we are missing benefit data
+    expandPastMiss<-expand.grid(countyortownName=unique(section8Data$countyortownName),stateAbbrev=unique(section8Data$stateAbbrev),numadults=unique(section8Data$numadults), numkids=unique(section8Data$numkids), Year=nonFutureYrs)
+    # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
+    expandPastMiss2<-left_join(expandPastMiss, section8Data, by=c("countyortownName", "stateAbbrev", "numadults", "numkids"))
+    expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
+    expandPastMiss2<-expandPastMiss2%>%
+      group_by(Year)%>%
+      mutate(minyeardiff = min(yeardiff))
+    expandPastMiss2<-expandPastMiss2 %>%
+      filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+  }  # Attach copied future, historical, and missing benefit data
+  if(length(futureYrs)>0) {section8Data<-section8Data %>% rbind(expand)}
+  if(length(nonFutureYrs)>0) {section8Data<-section8Data %>% rbind(expandPastMiss2)}
+  section8Data<-section8Data%>%select(-c("stateName","countyortownName","stateAbbrev","townFIPS","stateFIPS"))
   
   data$income.countable = data$income
   
@@ -2206,7 +5631,7 @@ function.FRSPBenefit<-function(data
   
   # Step III: Determine benefit value
   data$section8value<-0
-  data$section8value<-rowMaxs(cbind(rowMins(cbind(data$exp.rentormortgage,data$MaxGrossRent))-data$ttp,0))
+  data$section8value<-rowMaxs(cbind(rowMins(cbind(data$exp.rentormortgage,data$MaxBenefit))-data$ttp,0))
   
   data$section8value[data$ownorrent!="rent"]<-0
   
@@ -2216,7 +5641,6 @@ function.FRSPBenefit<-function(data
   
 }
 
-  
 
 # Low Income Home Energy Assistance Program (LIHEAP)----
 
@@ -2293,7 +5717,6 @@ function.liheapBenefit<-function(data){
   return(data$value.liheap)
   
 }
-
 
 
 # CCDF function (new) ----
@@ -2387,7 +5810,37 @@ function.CCDFcopay<-function(data
       temp<-data[data$stateFIPS==1,]
       temp$numkidsInCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
       
-    #  temp$ruleYear<-2022 # always use the most recent year
+      # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+      years<-unique(data$ruleYear) # years in data set
+      yearsinexpdata<- unique(ccdfData_AL$ruleYear) # rule years in benefit data
+      yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+      yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+      # Create data for the future
+      maxyearofdata<-max(ccdfData_AL$ruleYear) # collect latest year of benefit data
+      futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+      if(length(futureYrs)>0){
+        # Create data frame with future years
+        expand<-expand.grid(stateFIPS=unique(ccdfData_AL$stateFIPS), AKorHI=unique(ccdfData_AL$AKorHI), famsize=unique(ccdfData_AL$famsize), numkidsInCare=unique(ccdfData_AL$numkidsInCare), Year=futureYrs)
+        # Collect latest benefit data there is and merge w/data frame
+        expand2<-ccdfData_AL[ccdfData_AL$ruleYear==maxyearofdata, ]
+        expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+      }
+      # Create data for past and gap years (missing data) - not the future
+      nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
+      if(length(nonFutureYrs)>0){
+        #Create data frame with past years and year for which we are missing benefit data
+        expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_AL$stateFIPS), AKorHI=unique(ccdfData_AL$AKorHI), famsize=unique(ccdfData_AL$famsize), numkidsInCare=unique(ccdfData_AL$numkidsInCare), Year=nonFutureYrs)
+        # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
+        expandPastMiss2<-left_join(expandPastMiss, ccdfData_AL, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare"))
+        expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
+        expandPastMiss2<-expandPastMiss2%>%
+          group_by(Year)%>%
+          mutate(minyeardiff = min(yeardiff))
+        expandPastMiss2<-expandPastMiss2 %>%
+          filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+      }  # Attach copied future, historical, and missing benefit data
+      if(length(futureYrs)>0) {ccdfData_AL<-ccdfData_AL %>% rbind(expand)}
+      if(length(nonFutureYrs)>0) {ccdfData_AL<-ccdfData_AL %>% rbind(expandPastMiss2)}
       
       #----------------------------------
       # Step 1: Assign copays
@@ -2454,6 +5907,38 @@ function.CCDFcopay<-function(data
       
       temp<-data[data$stateFIPS==2,]
       
+      # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+      years<-unique(data$ruleYear) # years in data set
+      yearsinexpdata<- unique(ccdfData_AK$ruleYear) # rule years in benefit data
+      yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+      yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+      # Create data for the future
+      maxyearofdata<-max(ccdfData_AK$ruleYear) # collect latest year of benefit data
+      futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+      if(length(futureYrs)>0){
+        # Create data frame with future years
+        expand<-expand.grid(stateFIPS=unique(ccdfData_AK$stateFIPS), AKorHI=unique(ccdfData_AK$AKorHI), famsize=unique(ccdfData_AK$famsize), Year=futureYrs)
+        # Collect latest benefit data there is and merge w/data frame
+        expand2<-ccdfData_AK[ccdfData_AK$ruleYear==maxyearofdata, ]
+        expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+      }
+      # Create data for past and gap years (missing data) - not the future
+      nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
+      if(length(nonFutureYrs)>0){
+        #Create data frame with past years and year for which we are missing benefit data
+        expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_AK$stateFIPS), AKorHI=unique(ccdfData_AK$AKorHI), famsize=unique(ccdfData_AK$famsize), Year=nonFutureYrs)
+        # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
+        expandPastMiss2<-left_join(expandPastMiss, ccdfData_AK, by=c("stateFIPS", "AKorHI", "famsize"))
+        expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
+        expandPastMiss2<-expandPastMiss2%>%
+          group_by(Year)%>%
+          mutate(minyeardiff = min(yeardiff))
+        expandPastMiss2<-expandPastMiss2 %>%
+          filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+      }  # Attach copied future, historical, and missing benefit data
+      if(length(futureYrs)>0) {ccdfData_AK<-ccdfData_AK %>% rbind(expand)}
+      if(length(nonFutureYrs)>0) {ccdfData_AK<-ccdfData_AK %>% rbind(expandPastMiss2)}
+      
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
@@ -2464,91 +5949,91 @@ function.CCDFcopay<-function(data
       
       temp$FTcopay<-NA
       
-      temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1Max]<-temp$CopayBin1[temp$income>=0 & temp$income<=temp$Bin1Max]
-      temp$FTcopay[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]<-temp$CopayBin2[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]
-      temp$FTcopay[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]<-temp$CopayBin3[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]
-      temp$FTcopay[temp$income>temp$Bin3Max & temp$income<=temp$Bin4Max]<-temp$CopayBin4[temp$income>temp$Bin3Max & temp$income<=temp$Bin4Max]
-      temp$FTcopay[temp$income>temp$Bin4Max & temp$income<=temp$Bin5Max]<-temp$CopayBin5[temp$income>temp$Bin4Max & temp$income<=temp$Bin5Max]
-      temp$FTcopay[temp$income>temp$Bin5Max & temp$income<=temp$Bin6Max]<-temp$CopayBin6[temp$income>temp$Bin5Max & temp$income<=temp$Bin6Max]
-      temp$FTcopay[temp$income>temp$Bin6Max & temp$income<=temp$Bin7Max]<-temp$CopayBin7[temp$income>temp$Bin6Max & temp$income<=temp$Bin7Max]
-      temp$FTcopay[temp$income>temp$Bin7Max & temp$income<=temp$Bin8Max]<-temp$CopayBin8[temp$income>temp$Bin7Max & temp$income<=temp$Bin8Max]
-      temp$FTcopay[temp$income>temp$Bin8Max & temp$income<=temp$Bin9Max]<-temp$CopayBin9[temp$income>temp$Bin8Max & temp$income<=temp$Bin9Max]
-      temp$FTcopay[temp$income>temp$Bin9Max & temp$income<=temp$Bin10Max]<-temp$CopayBin10[temp$income>temp$Bin9Max & temp$income<=temp$Bin10Max]
-      temp$FTcopay[temp$income>temp$Bin10Max & temp$income<=temp$Bin11Max]<-temp$CopayBin11[temp$income>temp$Bin10Max & temp$income<=temp$Bin11Max]
-      temp$FTcopay[temp$income>temp$Bin11Max & temp$income<=temp$Bin12Max]<-temp$CopayBin12[temp$income>temp$Bin11Max & temp$income<=temp$Bin12Max]
-      temp$FTcopay[temp$income>temp$Bin12Max & temp$income<=temp$Bin13Max]<-temp$CopayBin13[temp$income>temp$Bin12Max & temp$income<=temp$Bin13Max]
-      temp$FTcopay[temp$income>temp$Bin13Max & temp$income<=temp$Bin14Max]<-temp$CopayBin14[temp$income>temp$Bin13Max & temp$income<=temp$Bin14Max]
-      temp$FTcopay[temp$income>temp$Bin14Max & temp$income<=temp$Bin15Max]<-temp$CopayBin15[temp$income>temp$Bin14Max & temp$income<=temp$Bin15Max]
-      temp$FTcopay[temp$income>temp$Bin15Max & temp$income<=temp$Bin16Max]<-temp$CopayBin16[temp$income>temp$Bin15Max & temp$income<=temp$Bin16Max]
-      temp$FTcopay[temp$income>temp$Bin16Max & temp$income<=temp$Bin17Max]<-temp$CopayBin17[temp$income>temp$Bin16Max & temp$income<=temp$Bin17Max]
-      temp$FTcopay[temp$income>temp$Bin17Max & temp$income<=temp$Bin18Max]<-temp$CopayBin18[temp$income>temp$Bin17Max & temp$income<=temp$Bin18Max]
-      temp$FTcopay[temp$income>temp$Bin18Max & temp$income<=temp$Bin19Max]<-temp$CopayBin19[temp$income>temp$Bin18Max & temp$income<=temp$Bin19Max]
-      temp$FTcopay[temp$income>temp$Bin19Max & temp$income<=temp$Bin20Max]<-temp$CopayBin20[temp$income>temp$Bin19Max & temp$income<=temp$Bin20Max]
-      temp$FTcopay[temp$income>temp$Bin20Max & temp$income<=temp$Bin21Max]<-temp$CopayBin21[temp$income>temp$Bin20Max & temp$income<=temp$Bin21Max]
-      temp$FTcopay[temp$income>temp$Bin21Max & temp$income<=temp$Bin22Max]<-temp$CopayBin22[temp$income>temp$Bin21Max & temp$income<=temp$Bin22Max]
-      temp$FTcopay[temp$income>temp$Bin22Max & temp$income<=temp$Bin23Max]<-temp$CopayBin23[temp$income>temp$Bin22Max & temp$income<=temp$Bin23Max]
-      temp$FTcopay[temp$income>temp$Bin23Max & temp$income<=temp$Bin24Max]<-temp$CopayBin24[temp$income>temp$Bin23Max & temp$income<=temp$Bin24Max]
-      temp$FTcopay[temp$income>temp$Bin24Max & temp$income<=temp$Bin25Max]<-temp$CopayBin25[temp$income>temp$Bin24Max & temp$income<=temp$Bin25Max]
-      temp$FTcopay[temp$income>temp$Bin25Max & temp$income<=temp$Bin26Max]<-temp$CopayBin26[temp$income>temp$Bin25Max & temp$income<=temp$Bin26Max]
-      temp$FTcopay[temp$income>temp$Bin26Max & temp$income<=temp$Bin27Max]<-temp$CopayBin27[temp$income>temp$Bin26Max & temp$income<=temp$Bin27Max]
-      temp$FTcopay[temp$income>temp$Bin27Max & temp$income<=temp$Bin28Max]<-temp$CopayBin28[temp$income>temp$Bin27Max & temp$income<=temp$Bin28Max]
-      temp$FTcopay[temp$income>temp$Bin28Max & temp$income<=temp$Bin29Max]<-temp$CopayBin29[temp$income>temp$Bin28Max & temp$income<=temp$Bin29Max]
-      temp$FTcopay[temp$income>temp$Bin29Max & temp$income<=temp$Bin30Max]<-temp$CopayBin30[temp$income>temp$Bin29Max & temp$income<=temp$Bin30Max]
-      temp$FTcopay[temp$income>temp$Bin30Max & temp$income<=temp$Bin31Max]<-temp$CopayBin31[temp$income>temp$Bin30Max & temp$income<=temp$Bin31Max]
-      temp$FTcopay[temp$income>temp$Bin31Max & temp$income<=temp$Bin32Max]<-temp$CopayBin32[temp$income>temp$Bin31Max & temp$income<=temp$Bin32Max]
-      temp$FTcopay[temp$income>temp$Bin32Max & temp$income<=temp$Bin33Max]<-temp$CopayBin33[temp$income>temp$Bin32Max & temp$income<=temp$Bin33Max]
-      temp$FTcopay[temp$income>temp$Bin33Max & temp$income<=temp$Bin34Max]<-temp$CopayBin34[temp$income>temp$Bin33Max & temp$income<=temp$Bin34Max]
-      temp$FTcopay[temp$income>temp$Bin34Max & temp$income<=temp$Bin35Max]<-temp$CopayBin35[temp$income>temp$Bin34Max & temp$income<=temp$Bin35Max]
-      temp$FTcopay[temp$income>temp$Bin35Max & temp$income<=temp$Bin36Max]<-temp$CopayBin36[temp$income>temp$Bin35Max & temp$income<=temp$Bin36Max]
-      temp$FTcopay[temp$income>temp$Bin36Max & temp$income<=temp$Bin37Max]<-temp$CopayBin37[temp$income>temp$Bin36Max & temp$income<=temp$Bin37Max]
-      temp$FTcopay[temp$income>temp$Bin37Max & temp$income<=temp$Bin38Max]<-temp$CopayBin38[temp$income>temp$Bin37Max & temp$income<=temp$Bin38Max]
-      temp$FTcopay[temp$income>temp$Bin38Max & temp$income<=temp$Bin39Max]<-temp$CopayBin39[temp$income>temp$Bin38Max & temp$income<=temp$Bin39Max]
-      temp$FTcopay[temp$income>temp$Bin39Max & temp$income<=temp$Bin40Max]<-temp$CopayBin40[temp$income>temp$Bin39Max & temp$income<=temp$Bin40Max]
-      temp$FTcopay[temp$income>temp$Bin40Max & temp$income<=temp$Bin41Max]<-temp$CopayBin41[temp$income>temp$Bin40Max & temp$income<=temp$Bin41Max]
-      temp$FTcopay[temp$income>temp$Bin41Max & temp$income<=temp$Bin42Max]<-temp$CopayBin42[temp$income>temp$Bin41Max & temp$income<=temp$Bin42Max]
-      temp$FTcopay[temp$income>temp$Bin42Max & temp$income<=temp$Bin43Max]<-temp$CopayBin43[temp$income>temp$Bin42Max & temp$income<=temp$Bin43Max]
-      temp$FTcopay[temp$income>temp$Bin43Max & temp$income<=temp$Bin44Max]<-temp$CopayBin44[temp$income>temp$Bin43Max & temp$income<=temp$Bin44Max]
-      temp$FTcopay[temp$income>temp$Bin44Max & temp$income<=temp$Bin45Max]<-temp$CopayBin45[temp$income>temp$Bin44Max & temp$income<=temp$Bin45Max]
-      temp$FTcopay[temp$income>temp$Bin45Max & temp$income<=temp$Bin46Max]<-temp$CopayBin46[temp$income>temp$Bin45Max & temp$income<=temp$Bin46Max]
-      temp$FTcopay[temp$income>temp$Bin46Max & temp$income<=temp$Bin47Max]<-temp$CopayBin47[temp$income>temp$Bin46Max & temp$income<=temp$Bin47Max]
-      temp$FTcopay[temp$income>temp$Bin47Max & temp$income<=temp$Bin48Max]<-temp$CopayBin48[temp$income>temp$Bin47Max & temp$income<=temp$Bin48Max]
-      temp$FTcopay[temp$income>temp$Bin48Max & temp$income<=temp$Bin49Max]<-temp$CopayBin49[temp$income>temp$Bin48Max & temp$income<=temp$Bin49Max]
-      temp$FTcopay[temp$income>temp$Bin49Max & temp$income<=temp$Bin50Max]<-temp$CopayBin50[temp$income>temp$Bin49Max & temp$income<=temp$Bin50Max]
-      temp$FTcopay[temp$income>temp$Bin50Max & temp$income<=temp$Bin51Max]<-temp$CopayBin51[temp$income>temp$Bin50Max & temp$income<=temp$Bin51Max]
-      temp$FTcopay[temp$income>temp$Bin51Max & temp$income<=temp$Bin52Max]<-temp$CopayBin52[temp$income>temp$Bin51Max & temp$income<=temp$Bin52Max]
-      temp$FTcopay[temp$income>temp$Bin52Max & temp$income<=temp$Bin53Max]<-temp$CopayBin53[temp$income>temp$Bin52Max & temp$income<=temp$Bin53Max]
-      temp$FTcopay[temp$income>temp$Bin53Max & temp$income<=temp$Bin54Max]<-temp$CopayBin54[temp$income>temp$Bin53Max & temp$income<=temp$Bin54Max]
-      temp$FTcopay[temp$income>temp$Bin54Max & temp$income<=temp$Bin55Max]<-temp$CopayBin55[temp$income>temp$Bin54Max & temp$income<=temp$Bin55Max]
-      temp$FTcopay[temp$income>temp$Bin55Max & temp$income<=temp$Bin56Max]<-temp$CopayBin56[temp$income>temp$Bin55Max & temp$income<=temp$Bin56Max]
-      temp$FTcopay[temp$income>temp$Bin56Max & temp$income<=temp$Bin57Max]<-temp$CopayBin57[temp$income>temp$Bin56Max & temp$income<=temp$Bin57Max]
-      temp$FTcopay[temp$income>temp$Bin57Max & temp$income<=temp$Bin58Max]<-temp$CopayBin58[temp$income>temp$Bin57Max & temp$income<=temp$Bin58Max]
-      temp$FTcopay[temp$income>temp$Bin58Max & temp$income<=temp$Bin59Max]<-temp$CopayBin59[temp$income>temp$Bin58Max & temp$income<=temp$Bin59Max]
-      temp$FTcopay[temp$income>temp$Bin59Max & temp$income<=temp$Bin60Max]<-temp$CopayBin60[temp$income>temp$Bin59Max & temp$income<=temp$Bin60Max]
-      temp$FTcopay[temp$income>temp$Bin60Max & temp$income<=temp$Bin61Max]<-temp$CopayBin61[temp$income>temp$Bin60Max & temp$income<=temp$Bin61Max]
-      temp$FTcopay[temp$income>temp$Bin61Max & temp$income<=temp$Bin62Max]<-temp$CopayBin62[temp$income>temp$Bin61Max & temp$income<=temp$Bin62Max]
-      temp$FTcopay[temp$income>temp$Bin62Max & temp$income<=temp$Bin63Max]<-temp$CopayBin63[temp$income>temp$Bin62Max & temp$income<=temp$Bin63Max]
-      temp$FTcopay[temp$income>temp$Bin63Max & temp$income<=temp$Bin64Max]<-temp$CopayBin64[temp$income>temp$Bin63Max & temp$income<=temp$Bin64Max]
-      temp$FTcopay[temp$income>temp$Bin64Max & temp$income<=temp$Bin65Max]<-temp$CopayBin65[temp$income>temp$Bin64Max & temp$income<=temp$Bin65Max]
-      temp$FTcopay[temp$income>temp$Bin65Max & temp$income<=temp$Bin66Max]<-temp$CopayBin66[temp$income>temp$Bin65Max & temp$income<=temp$Bin66Max]
-      temp$FTcopay[temp$income>temp$Bin66Max & temp$income<=temp$Bin67Max]<-temp$CopayBin67[temp$income>temp$Bin66Max & temp$income<=temp$Bin67Max]
-      temp$FTcopay[temp$income>temp$Bin67Max & temp$income<=temp$Bin68Max]<-temp$CopayBin68[temp$income>temp$Bin67Max & temp$income<=temp$Bin68Max]
-      temp$FTcopay[temp$income>temp$Bin68Max & temp$income<=temp$Bin69Max]<-temp$CopayBin69[temp$income>temp$Bin68Max & temp$income<=temp$Bin69Max]
-      temp$FTcopay[temp$income>temp$Bin69Max & temp$income<=temp$Bin70Max]<-temp$CopayBin70[temp$income>temp$Bin69Max & temp$income<=temp$Bin70Max]
-      temp$FTcopay[temp$income>temp$Bin70Max & temp$income<=temp$Bin71Max]<-temp$CopayBin71[temp$income>temp$Bin70Max & temp$income<=temp$Bin71Max]
-      temp$FTcopay[temp$income>temp$Bin71Max & temp$income<=temp$Bin72Max]<-temp$CopayBin72[temp$income>temp$Bin71Max & temp$income<=temp$Bin72Max]
-      temp$FTcopay[temp$income>temp$Bin72Max & temp$income<=temp$Bin73Max]<-temp$CopayBin73[temp$income>temp$Bin72Max & temp$income<=temp$Bin73Max]
-      temp$FTcopay[temp$income>temp$Bin73Max & temp$income<=temp$Bin74Max]<-temp$CopayBin74[temp$income>temp$Bin73Max & temp$income<=temp$Bin74Max]
-      temp$FTcopay[temp$income>temp$Bin74Max & temp$income<=temp$Bin75Max]<-temp$CopayBin75[temp$income>temp$Bin74Max & temp$income<=temp$Bin75Max]
-      temp$FTcopay[temp$income>temp$Bin75Max & temp$income<=temp$Bin76Max]<-temp$CopayBin76[temp$income>temp$Bin75Max & temp$income<=temp$Bin76Max]
-      temp$FTcopay[temp$income>temp$Bin76Max & temp$income<=temp$Bin77Max]<-temp$CopayBin77[temp$income>temp$Bin76Max & temp$income<=temp$Bin77Max]
-      temp$FTcopay[temp$income>temp$Bin77Max & temp$income<=temp$Bin78Max]<-temp$CopayBin78[temp$income>temp$Bin77Max & temp$income<=temp$Bin78Max]
-      temp$FTcopay[temp$income>temp$Bin78Max & temp$income<=temp$Bin79Max]<-temp$CopayBin79[temp$income>temp$Bin78Max & temp$income<=temp$Bin79Max]
-      temp$FTcopay[temp$income>temp$Bin79Max & temp$income<=temp$Bin80Max]<-temp$CopayBin80[temp$income>temp$Bin79Max & temp$income<=temp$Bin80Max]
-      temp$FTcopay[temp$income>temp$Bin80Max & temp$income<=temp$Bin81Max]<-temp$CopayBin81[temp$income>temp$Bin80Max & temp$income<=temp$Bin81Max]
-      temp$FTcopay[temp$income>temp$Bin81Max & temp$income<=temp$Bin82Max]<-temp$CopayBin82[temp$income>temp$Bin81Max & temp$income<=temp$Bin82Max]
-      temp$FTcopay[temp$income>temp$Bin82Max & temp$income<=temp$Bin83Max]<-temp$CopayBin83[temp$income>temp$Bin82Max & temp$income<=temp$Bin83Max]
-      temp$FTcopay[temp$income>temp$Bin83Max & temp$income<=temp$Bin84Max]<-temp$CopayBin84[temp$income>temp$Bin83Max & temp$income<=temp$Bin84Max]
-      temp$FTcopay[temp$income>temp$Bin84Max & temp$income<=temp$Bin85Max]<-temp$CopayBin85[temp$income>temp$Bin84Max & temp$income<=temp$Bin85Max]
+      temp$FTcopay[which(temp$income>=0 & temp$income<=temp$Bin1Max)]<-temp$CopayBin1[which(temp$income>=0 & temp$income<=temp$Bin1Max)]
+      temp$FTcopay[which(temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max)]<-temp$CopayBin2[which(temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max)]
+      temp$FTcopay[which(temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max)]<-temp$CopayBin3[which(temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max)]
+      temp$FTcopay[which(temp$income>temp$Bin3Max & temp$income<=temp$Bin4Max)]<-temp$CopayBin4[which(temp$income>temp$Bin3Max & temp$income<=temp$Bin4Max)]
+      temp$FTcopay[which(temp$income>temp$Bin4Max & temp$income<=temp$Bin5Max)]<-temp$CopayBin5[which(temp$income>temp$Bin4Max & temp$income<=temp$Bin5Max)]
+      temp$FTcopay[which(temp$income>temp$Bin5Max & temp$income<=temp$Bin6Max)]<-temp$CopayBin6[which(temp$income>temp$Bin5Max & temp$income<=temp$Bin6Max)]
+      temp$FTcopay[which(temp$income>temp$Bin6Max & temp$income<=temp$Bin7Max)]<-temp$CopayBin7[which(temp$income>temp$Bin6Max & temp$income<=temp$Bin7Max)]
+      temp$FTcopay[which(temp$income>temp$Bin7Max & temp$income<=temp$Bin8Max)]<-temp$CopayBin8[which(temp$income>temp$Bin7Max & temp$income<=temp$Bin8Max)]
+      temp$FTcopay[which(temp$income>temp$Bin8Max & temp$income<=temp$Bin9Max)]<-temp$CopayBin9[which(temp$income>temp$Bin8Max & temp$income<=temp$Bin9Max)]
+      temp$FTcopay[which(temp$income>temp$Bin9Max & temp$income<=temp$Bin10Max)]<-temp$CopayBin10[which(temp$income>temp$Bin9Max & temp$income<=temp$Bin10Max)]
+      temp$FTcopay[which(temp$income>temp$Bin10Max & temp$income<=temp$Bin11Max)]<-temp$CopayBin11[which(temp$income>temp$Bin10Max & temp$income<=temp$Bin11Max)]
+      temp$FTcopay[which(temp$income>temp$Bin11Max & temp$income<=temp$Bin12Max)]<-temp$CopayBin12[which(temp$income>temp$Bin11Max & temp$income<=temp$Bin12Max)]
+      temp$FTcopay[which(temp$income>temp$Bin12Max & temp$income<=temp$Bin13Max)]<-temp$CopayBin13[which(temp$income>temp$Bin12Max & temp$income<=temp$Bin13Max)]
+      temp$FTcopay[which(temp$income>temp$Bin13Max & temp$income<=temp$Bin14Max)]<-temp$CopayBin14[which(temp$income>temp$Bin13Max & temp$income<=temp$Bin14Max)]
+      temp$FTcopay[which(temp$income>temp$Bin14Max & temp$income<=temp$Bin15Max)]<-temp$CopayBin15[which(temp$income>temp$Bin14Max & temp$income<=temp$Bin15Max)]
+      temp$FTcopay[which(temp$income>temp$Bin15Max & temp$income<=temp$Bin16Max)]<-temp$CopayBin16[which(temp$income>temp$Bin15Max & temp$income<=temp$Bin16Max)]
+      temp$FTcopay[which(temp$income>temp$Bin16Max & temp$income<=temp$Bin17Max)]<-temp$CopayBin17[which(temp$income>temp$Bin16Max & temp$income<=temp$Bin17Max)]
+      temp$FTcopay[which(temp$income>temp$Bin17Max & temp$income<=temp$Bin18Max)]<-temp$CopayBin18[which(temp$income>temp$Bin17Max & temp$income<=temp$Bin18Max)]
+      temp$FTcopay[which(temp$income>temp$Bin18Max & temp$income<=temp$Bin19Max)]<-temp$CopayBin19[which(temp$income>temp$Bin18Max & temp$income<=temp$Bin19Max)]
+      temp$FTcopay[which(temp$income>temp$Bin19Max & temp$income<=temp$Bin20Max)]<-temp$CopayBin20[which(temp$income>temp$Bin19Max & temp$income<=temp$Bin20Max)]
+      temp$FTcopay[which(temp$income>temp$Bin20Max & temp$income<=temp$Bin21Max)]<-temp$CopayBin21[which(temp$income>temp$Bin20Max & temp$income<=temp$Bin21Max)]
+      temp$FTcopay[which(temp$income>temp$Bin21Max & temp$income<=temp$Bin22Max)]<-temp$CopayBin22[which(temp$income>temp$Bin21Max & temp$income<=temp$Bin22Max)]
+      temp$FTcopay[which(temp$income>temp$Bin22Max & temp$income<=temp$Bin23Max)]<-temp$CopayBin23[which(temp$income>temp$Bin22Max & temp$income<=temp$Bin23Max)]
+      temp$FTcopay[which(temp$income>temp$Bin23Max & temp$income<=temp$Bin24Max)]<-temp$CopayBin24[which(temp$income>temp$Bin23Max & temp$income<=temp$Bin24Max)]
+      temp$FTcopay[which(temp$income>temp$Bin24Max & temp$income<=temp$Bin25Max)]<-temp$CopayBin25[which(temp$income>temp$Bin24Max & temp$income<=temp$Bin25Max)]
+      temp$FTcopay[which(temp$income>temp$Bin25Max & temp$income<=temp$Bin26Max)]<-temp$CopayBin26[which(temp$income>temp$Bin25Max & temp$income<=temp$Bin26Max)]
+      temp$FTcopay[which(temp$income>temp$Bin26Max & temp$income<=temp$Bin27Max)]<-temp$CopayBin27[which(temp$income>temp$Bin26Max & temp$income<=temp$Bin27Max)]
+      temp$FTcopay[which(temp$income>temp$Bin27Max & temp$income<=temp$Bin28Max)]<-temp$CopayBin28[which(temp$income>temp$Bin27Max & temp$income<=temp$Bin28Max)]
+      temp$FTcopay[which(temp$income>temp$Bin28Max & temp$income<=temp$Bin29Max)]<-temp$CopayBin29[which(temp$income>temp$Bin28Max & temp$income<=temp$Bin29Max)]
+      temp$FTcopay[which(temp$income>temp$Bin29Max & temp$income<=temp$Bin30Max)]<-temp$CopayBin30[which(temp$income>temp$Bin29Max & temp$income<=temp$Bin30Max)]
+      temp$FTcopay[which(temp$income>temp$Bin30Max & temp$income<=temp$Bin31Max)]<-temp$CopayBin31[which(temp$income>temp$Bin30Max & temp$income<=temp$Bin31Max)]
+      temp$FTcopay[which(temp$income>temp$Bin31Max & temp$income<=temp$Bin32Max)]<-temp$CopayBin32[which(temp$income>temp$Bin31Max & temp$income<=temp$Bin32Max)]
+      temp$FTcopay[which(temp$income>temp$Bin32Max & temp$income<=temp$Bin33Max)]<-temp$CopayBin33[which(temp$income>temp$Bin32Max & temp$income<=temp$Bin33Max)]
+      temp$FTcopay[which(temp$income>temp$Bin33Max & temp$income<=temp$Bin34Max)]<-temp$CopayBin34[which(temp$income>temp$Bin33Max & temp$income<=temp$Bin34Max)]
+      temp$FTcopay[which(temp$income>temp$Bin34Max & temp$income<=temp$Bin35Max)]<-temp$CopayBin35[which(temp$income>temp$Bin34Max & temp$income<=temp$Bin35Max)]
+      temp$FTcopay[which(temp$income>temp$Bin35Max & temp$income<=temp$Bin36Max)]<-temp$CopayBin36[which(temp$income>temp$Bin35Max & temp$income<=temp$Bin36Max)]
+      temp$FTcopay[which(temp$income>temp$Bin36Max & temp$income<=temp$Bin37Max)]<-temp$CopayBin37[which(temp$income>temp$Bin36Max & temp$income<=temp$Bin37Max)]
+      temp$FTcopay[which(temp$income>temp$Bin37Max & temp$income<=temp$Bin38Max)]<-temp$CopayBin38[which(temp$income>temp$Bin37Max & temp$income<=temp$Bin38Max)]
+      temp$FTcopay[which(temp$income>temp$Bin38Max & temp$income<=temp$Bin39Max)]<-temp$CopayBin39[which(temp$income>temp$Bin38Max & temp$income<=temp$Bin39Max)]
+      temp$FTcopay[which(temp$income>temp$Bin39Max & temp$income<=temp$Bin40Max)]<-temp$CopayBin40[which(temp$income>temp$Bin39Max & temp$income<=temp$Bin40Max)]
+      temp$FTcopay[which(temp$income>temp$Bin40Max & temp$income<=temp$Bin41Max)]<-temp$CopayBin41[which(temp$income>temp$Bin40Max & temp$income<=temp$Bin41Max)]
+      temp$FTcopay[which(temp$income>temp$Bin41Max & temp$income<=temp$Bin42Max)]<-temp$CopayBin42[which(temp$income>temp$Bin41Max & temp$income<=temp$Bin42Max)]
+      temp$FTcopay[which(temp$income>temp$Bin42Max & temp$income<=temp$Bin43Max)]<-temp$CopayBin43[which(temp$income>temp$Bin42Max & temp$income<=temp$Bin43Max)]
+      temp$FTcopay[which(temp$income>temp$Bin43Max & temp$income<=temp$Bin44Max)]<-temp$CopayBin44[which(temp$income>temp$Bin43Max & temp$income<=temp$Bin44Max)]
+      temp$FTcopay[which(temp$income>temp$Bin44Max & temp$income<=temp$Bin45Max)]<-temp$CopayBin45[which(temp$income>temp$Bin44Max & temp$income<=temp$Bin45Max)]
+      temp$FTcopay[which(temp$income>temp$Bin45Max & temp$income<=temp$Bin46Max)]<-temp$CopayBin46[which(temp$income>temp$Bin45Max & temp$income<=temp$Bin46Max)]
+      temp$FTcopay[which(temp$income>temp$Bin46Max & temp$income<=temp$Bin47Max)]<-temp$CopayBin47[which(temp$income>temp$Bin46Max & temp$income<=temp$Bin47Max)]
+      temp$FTcopay[which(temp$income>temp$Bin47Max & temp$income<=temp$Bin48Max)]<-temp$CopayBin48[which(temp$income>temp$Bin47Max & temp$income<=temp$Bin48Max)]
+      temp$FTcopay[which(temp$income>temp$Bin48Max & temp$income<=temp$Bin49Max)]<-temp$CopayBin49[which(temp$income>temp$Bin48Max & temp$income<=temp$Bin49Max)]
+      temp$FTcopay[which(temp$income>temp$Bin49Max & temp$income<=temp$Bin50Max)]<-temp$CopayBin50[which(temp$income>temp$Bin49Max & temp$income<=temp$Bin50Max)]
+      temp$FTcopay[which(temp$income>temp$Bin50Max & temp$income<=temp$Bin51Max)]<-temp$CopayBin51[which(temp$income>temp$Bin50Max & temp$income<=temp$Bin51Max)]
+      temp$FTcopay[which(temp$income>temp$Bin51Max & temp$income<=temp$Bin52Max)]<-temp$CopayBin52[which(temp$income>temp$Bin51Max & temp$income<=temp$Bin52Max)]
+      temp$FTcopay[which(temp$income>temp$Bin52Max & temp$income<=temp$Bin53Max)]<-temp$CopayBin53[which(temp$income>temp$Bin52Max & temp$income<=temp$Bin53Max)]
+      temp$FTcopay[which(temp$income>temp$Bin53Max & temp$income<=temp$Bin54Max)]<-temp$CopayBin54[which(temp$income>temp$Bin53Max & temp$income<=temp$Bin54Max)]
+      temp$FTcopay[which(temp$income>temp$Bin54Max & temp$income<=temp$Bin55Max)]<-temp$CopayBin55[which(temp$income>temp$Bin54Max & temp$income<=temp$Bin55Max)]
+      temp$FTcopay[which(temp$income>temp$Bin55Max & temp$income<=temp$Bin56Max)]<-temp$CopayBin56[which(temp$income>temp$Bin55Max & temp$income<=temp$Bin56Max)]
+      temp$FTcopay[which(temp$income>temp$Bin56Max & temp$income<=temp$Bin57Max)]<-temp$CopayBin57[which(temp$income>temp$Bin56Max & temp$income<=temp$Bin57Max)]
+      temp$FTcopay[which(temp$income>temp$Bin57Max & temp$income<=temp$Bin58Max)]<-temp$CopayBin58[which(temp$income>temp$Bin57Max & temp$income<=temp$Bin58Max)]
+      temp$FTcopay[which(temp$income>temp$Bin58Max & temp$income<=temp$Bin59Max)]<-temp$CopayBin59[which(temp$income>temp$Bin58Max & temp$income<=temp$Bin59Max)]
+      temp$FTcopay[which(temp$income>temp$Bin59Max & temp$income<=temp$Bin60Max)]<-temp$CopayBin60[which(temp$income>temp$Bin59Max & temp$income<=temp$Bin60Max)]
+      temp$FTcopay[which(temp$income>temp$Bin60Max & temp$income<=temp$Bin61Max)]<-temp$CopayBin61[which(temp$income>temp$Bin60Max & temp$income<=temp$Bin61Max)]
+      temp$FTcopay[which(temp$income>temp$Bin61Max & temp$income<=temp$Bin62Max)]<-temp$CopayBin62[which(temp$income>temp$Bin61Max & temp$income<=temp$Bin62Max)]
+      temp$FTcopay[which(temp$income>temp$Bin62Max & temp$income<=temp$Bin63Max)]<-temp$CopayBin63[which(temp$income>temp$Bin62Max & temp$income<=temp$Bin63Max)]
+      temp$FTcopay[which(temp$income>temp$Bin63Max & temp$income<=temp$Bin64Max)]<-temp$CopayBin64[which(temp$income>temp$Bin63Max & temp$income<=temp$Bin64Max)]
+      temp$FTcopay[which(temp$income>temp$Bin64Max & temp$income<=temp$Bin65Max)]<-temp$CopayBin65[which(temp$income>temp$Bin64Max & temp$income<=temp$Bin65Max)]
+      temp$FTcopay[which(temp$income>temp$Bin65Max & temp$income<=temp$Bin66Max)]<-temp$CopayBin66[which(temp$income>temp$Bin65Max & temp$income<=temp$Bin66Max)]
+      temp$FTcopay[which(temp$income>temp$Bin66Max & temp$income<=temp$Bin67Max)]<-temp$CopayBin67[which(temp$income>temp$Bin66Max & temp$income<=temp$Bin67Max)]
+      temp$FTcopay[which(temp$income>temp$Bin67Max & temp$income<=temp$Bin68Max)]<-temp$CopayBin68[which(temp$income>temp$Bin67Max & temp$income<=temp$Bin68Max)]
+      temp$FTcopay[which(temp$income>temp$Bin68Max & temp$income<=temp$Bin69Max)]<-temp$CopayBin69[which(temp$income>temp$Bin68Max & temp$income<=temp$Bin69Max)]
+      temp$FTcopay[which(temp$income>temp$Bin69Max & temp$income<=temp$Bin70Max)]<-temp$CopayBin70[which(temp$income>temp$Bin69Max & temp$income<=temp$Bin70Max)]
+      temp$FTcopay[which(temp$income>temp$Bin70Max & temp$income<=temp$Bin71Max)]<-temp$CopayBin71[which(temp$income>temp$Bin70Max & temp$income<=temp$Bin71Max)]
+      temp$FTcopay[which(temp$income>temp$Bin71Max & temp$income<=temp$Bin72Max)]<-temp$CopayBin72[which(temp$income>temp$Bin71Max & temp$income<=temp$Bin72Max)]
+      temp$FTcopay[which(temp$income>temp$Bin72Max & temp$income<=temp$Bin73Max)]<-temp$CopayBin73[which(temp$income>temp$Bin72Max & temp$income<=temp$Bin73Max)]
+      temp$FTcopay[which(temp$income>temp$Bin73Max & temp$income<=temp$Bin74Max)]<-temp$CopayBin74[which(temp$income>temp$Bin73Max & temp$income<=temp$Bin74Max)]
+      temp$FTcopay[which(temp$income>temp$Bin74Max & temp$income<=temp$Bin75Max)]<-temp$CopayBin75[which(temp$income>temp$Bin74Max & temp$income<=temp$Bin75Max)]
+      temp$FTcopay[which(temp$income>temp$Bin75Max & temp$income<=temp$Bin76Max)]<-temp$CopayBin76[which(temp$income>temp$Bin75Max & temp$income<=temp$Bin76Max)]
+      temp$FTcopay[which(temp$income>temp$Bin76Max & temp$income<=temp$Bin77Max)]<-temp$CopayBin77[which(temp$income>temp$Bin76Max & temp$income<=temp$Bin77Max)]
+      temp$FTcopay[which(temp$income>temp$Bin77Max & temp$income<=temp$Bin78Max)]<-temp$CopayBin78[which(temp$income>temp$Bin77Max & temp$income<=temp$Bin78Max)]
+      temp$FTcopay[which(temp$income>temp$Bin78Max & temp$income<=temp$Bin79Max)]<-temp$CopayBin79[which(temp$income>temp$Bin78Max & temp$income<=temp$Bin79Max)]
+      temp$FTcopay[which(temp$income>temp$Bin79Max & temp$income<=temp$Bin80Max)]<-temp$CopayBin80[which(temp$income>temp$Bin79Max & temp$income<=temp$Bin80Max)]
+      temp$FTcopay[which(temp$income>temp$Bin80Max & temp$income<=temp$Bin81Max)]<-temp$CopayBin81[which(temp$income>temp$Bin80Max & temp$income<=temp$Bin81Max)]
+      temp$FTcopay[which(temp$income>temp$Bin81Max & temp$income<=temp$Bin82Max)]<-temp$CopayBin82[which(temp$income>temp$Bin81Max & temp$income<=temp$Bin82Max)]
+      temp$FTcopay[which(temp$income>temp$Bin82Max & temp$income<=temp$Bin83Max)]<-temp$CopayBin83[which(temp$income>temp$Bin82Max & temp$income<=temp$Bin83Max)]
+      temp$FTcopay[which(temp$income>temp$Bin83Max & temp$income<=temp$Bin84Max)]<-temp$CopayBin84[which(temp$income>temp$Bin83Max & temp$income<=temp$Bin84Max)]
+      temp$FTcopay[which(temp$income>temp$Bin84Max & temp$income<=temp$Bin85Max)]<-temp$CopayBin85[which(temp$income>temp$Bin84Max & temp$income<=temp$Bin85Max)]
 
       # Apply asset test
       subset<-temp$totalassets > temp$AssetTest
@@ -2580,7 +6065,6 @@ function.CCDFcopay<-function(data
     
     
     
-    
     # ARIZONA ----
     
     # Description: 
@@ -2592,6 +6076,37 @@ function.CCDFcopay<-function(data
       
       temp<-data[data$stateFIPS==4,]
       
+      # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+      years<-unique(data$ruleYear) # years in data set
+      yearsinexpdata<- unique(ccdfData_AZ$ruleYear) # rule years in benefit data
+      yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+      yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+      # Create data for the future
+      maxyearofdata<-max(ccdfData_AZ$ruleYear) # collect latest year of benefit data
+      futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+      if(length(futureYrs)>0){
+        # Create data frame with future years
+        expand<-expand.grid(stateFIPS=unique(ccdfData_AZ$stateFIPS), AKorHI=unique(ccdfData_AZ$AKorHI), famsize=unique(ccdfData_AZ$famsize), Year=futureYrs)
+        # Collect latest benefit data there is and merge w/data frame
+        expand2<-ccdfData_AZ[ccdfData_AZ$ruleYear==maxyearofdata, ]
+        expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+      }
+      # Create data for past and gap years (missing data) - not the future
+      nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
+      if(length(nonFutureYrs)>0){
+        #Create data frame with past years and year for which we are missing benefit data
+        expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_AZ$stateFIPS), AKorHI=unique(ccdfData_AZ$AKorHI), famsize=unique(ccdfData_AZ$famsize), Year=nonFutureYrs)
+        # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
+        expandPastMiss2<-left_join(expandPastMiss, ccdfData_AZ, by=c("stateFIPS", "AKorHI", "famsize"))
+        expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
+        expandPastMiss2<-expandPastMiss2%>%
+          group_by(Year)%>%
+          mutate(minyeardiff = min(yeardiff))
+        expandPastMiss2<-expandPastMiss2 %>%
+          filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+      }  # Attach copied future, historical, and missing benefit data
+      if(length(futureYrs)>0) {ccdfData_AZ<-ccdfData_AZ %>% rbind(expand)}
+      if(length(nonFutureYrs)>0) {ccdfData_AZ<-ccdfData_AZ %>% rbind(expandPastMiss2)}
       
       #----------------------------------
       # Step 1: Assign copays
@@ -2643,8 +6158,6 @@ function.CCDFcopay<-function(data
     }
     
     
-    
-    
     # Arkansas ----
    
     # Description:
@@ -2654,8 +6167,38 @@ function.CCDFcopay<-function(data
       
       temp<-data[data$stateFIPS==5,]
       
-     # temp$ruleYear<-2022 # always use the most recent year
-      
+      # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+     years<-unique(data$ruleYear) # years in data set
+     yearsinexpdata<- unique(ccdfData_AR$ruleYear) # rule years in benefit data
+     yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+     yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+      # Create data for the future
+     maxyearofdata<-max(ccdfData_AR$ruleYear) # collect latest year of benefit data
+     futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+     if(length(futureYrs)>0){
+        # Create data frame with future years
+       expand<-expand.grid(stateFIPS=unique(ccdfData_AR$stateFIPS), AKorHI=unique(ccdfData_AR$AKorHI), famsize=unique(ccdfData_AR$famsize), Year=futureYrs)
+        # Collect latest benefit data there is and merge w/data frame
+       expand2<-ccdfData_AR[ccdfData_AR$ruleYear==maxyearofdata, ]
+      expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+     }
+      # Create data for past and gap years (missing data) - not the future
+     nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
+     if(length(nonFutureYrs)>0){
+        #Create data frame with past years and year for which we are missing benefit data
+       expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_AR$stateFIPS), AKorHI=unique(ccdfData_AR$AKorHI), famsize=unique(ccdfData_AR$famsize), Year=nonFutureYrs)
+        # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
+       expandPastMiss2<-left_join(expandPastMiss, ccdfData_AR, by=c("stateFIPS", "AKorHI", "famsize"))
+       expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
+       expandPastMiss2<-expandPastMiss2%>%
+         group_by(Year)%>%
+         mutate(minyeardiff = min(yeardiff))
+       expandPastMiss2<-expandPastMiss2 %>%
+         filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+     }  # Attach copied future, historical, and missing benefit data
+     if(length(futureYrs)>0) {ccdfData_AR<-ccdfData_AR %>% rbind(expand)}
+     if(length(nonFutureYrs)>0) {ccdfData_AR<-ccdfData_AR %>% rbind(expandPastMiss2)}
+         
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
@@ -2699,7 +6242,6 @@ function.CCDFcopay<-function(data
     
     
     
-    
     # CALIFORNIA ----
    
     # Description:
@@ -2712,6 +6254,37 @@ function.CCDFcopay<-function(data
       
       temp<-data[data$stateFIPS==6,]
     
+      # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+      years<-unique(data$ruleYear) # years in data set
+      yearsinexpdata<- unique(ccdfData_CA$ruleYear) # rule years in benefit data
+      yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+      yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+      # Create data for the future
+      maxyearofdata<-max(ccdfData_CA$ruleYear) # collect latest year of benefit data
+      futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+      if(length(futureYrs)>0){
+        # Create data frame with future years
+        expand<-expand.grid(stateFIPS=unique(ccdfData_CA$stateFIPS), AKorHI=unique(ccdfData_CA$AKorHI), famsize=unique(ccdfData_CA$famsize), Year=futureYrs)
+        # Collect latest benefit data there is and merge w/data frame
+        expand2<-ccdfData_CA[ccdfData_CA$ruleYear==maxyearofdata, ]
+        expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+      }
+      # Create data for past and gap years (missing data) - not the future
+      nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
+      if(length(nonFutureYrs)>0){
+        #Create data frame with past years and year for which we are missing benefit data
+        expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_CA$stateFIPS), AKorHI=unique(ccdfData_CA$AKorHI), famsize=unique(ccdfData_CA$famsize), Year=nonFutureYrs)
+        # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
+        expandPastMiss2<-left_join(expandPastMiss, ccdfData_CA, by=c("stateFIPS", "AKorHI", "famsize"))
+        expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
+        expandPastMiss2<-expandPastMiss2%>%
+          group_by(Year)%>%
+          mutate(minyeardiff = min(yeardiff))
+        expandPastMiss2<-expandPastMiss2 %>%
+          filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+      }  # Attach copied future, historical, and missing benefit data
+      if(length(futureYrs)>0) {ccdfData_CA<-ccdfData_CA %>% rbind(expand)}
+      if(length(nonFutureYrs)>0) {ccdfData_CA<-ccdfData_CA %>% rbind(expandPastMiss2)}
       
       #----------------------------------
       # Step 1: Assign copays
@@ -2815,7 +6388,37 @@ function.CCDFcopay<-function(data
       
       temp$numkidsInCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
       
-      
+      # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+      years<-unique(data$ruleYear) # years in data set
+      yearsinexpdata<- unique(ccdfData_CO$ruleYear) # rule years in benefit data
+      yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+      yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+      # Create data for the future
+      maxyearofdata<-max(ccdfData_CO$ruleYear) # collect latest year of benefit data
+      futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+      if(length(futureYrs)>0){
+        # Create data frame with future years
+        expand<-expand.grid(stateFIPS=unique(ccdfData_CO$stateFIPS), AKorHI=unique(ccdfData_CO$AKorHI), famsize=unique(ccdfData_CO$famsize), countyortownName=unique(ccdfData_CO$countyortownName), numkidsInCare=unique(ccdfData_CO$numkidsInCare), Year=futureYrs)
+        # Collect latest benefit data there is and merge w/data frame
+        expand2<-ccdfData_CO[ccdfData_CO$ruleYear==maxyearofdata, ]
+        expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize","countyortownName", "numkidsInCare")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+      }
+      # Create data for past and gap years (missing data) - not the future
+      nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
+      if(length(nonFutureYrs)>0){
+        #Create data frame with past years and year for which we are missing benefit data
+        expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_CO$stateFIPS), AKorHI=unique(ccdfData_CO$AKorHI), famsize=unique(ccdfData_CO$famsize), countyortownName=unique(ccdfData_CO$countyortownName), numkidsInCare=unique(ccdfData_CO$numkidsInCare), Year=nonFutureYrs)
+        # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
+        expandPastMiss2<-left_join(expandPastMiss, ccdfData_CO, by=c("stateFIPS", "AKorHI", "famsize", "countyortownName", "numkidsInCare"))# %>% drop_na()
+        expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
+        expandPastMiss2<-expandPastMiss2%>%
+          group_by(Year)%>%
+          mutate(minyeardiff = min(yeardiff))
+        expandPastMiss2<-expandPastMiss2 %>%
+          filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+      }  # Attach copied future, historical, and missing benefit data
+      if(length(futureYrs)>0) {ccdfData_CO<-ccdfData_CO %>% rbind(expand)}
+      if(length(nonFutureYrs)>0) {ccdfData_CO<-ccdfData_CO %>% rbind(expandPastMiss2)}
       
       #----------------------------------
       # Step 1: Assign copays
@@ -2827,11 +6430,6 @@ function.CCDFcopay<-function(data
       temp$FTcopay<-NA
       temp$COPAY <- 0
       temp$x <- 0
-      
-      # What the fuck is that??
-      #for(i in 1:length(temp$income)){
-      #  temp$x[i] <- max(0, temp$income[i] - temp$Bin1Max[i])
-      #}
       
       temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1Max]<-temp$CopayBin1[temp$income>=0 & temp$income<=temp$Bin1Max]
       temp$FTcopay[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]<-temp$CopayBin2[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max] # Add $15 if user is over 100% FPL and have more than one kid in care
@@ -2886,6 +6484,38 @@ function.CCDFcopay<-function(data
     
       temp<-data[data$stateFIPS==9,]
       
+      # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+      years<-unique(data$ruleYear) # years in data set
+      yearsinexpdata<- unique(ccdfData_CT$ruleYear) # rule years in benefit data
+      yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+      yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+      # Create data for the future
+      maxyearofdata<-max(ccdfData_CT$ruleYear) # collect latest year of benefit data
+      futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+      if(length(futureYrs)>0){
+        # Create data frame with future years
+        expand<-expand.grid(stateFIPS=unique(ccdfData_CT$stateFIPS), AKorHI=unique(ccdfData_CT$AKorHI), famsize=unique(ccdfData_CT$famsize), Year=futureYrs)
+        # Collect latest benefit data there is and merge w/data frame
+        expand2<-ccdfData_CT[ccdfData_CT$ruleYear==maxyearofdata, ]
+        expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+      }
+      # Create data for past and gap years (missing data) - not the future
+      nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
+      if(length(nonFutureYrs)>0){
+        #Create data frame with past years and year for which we are missing benefit data
+        expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_CT$stateFIPS), AKorHI=unique(ccdfData_CT$AKorHI), famsize=unique(ccdfData_CT$famsize), Year=nonFutureYrs)
+        # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
+        expandPastMiss2<-left_join(expandPastMiss, ccdfData_CT, by=c("stateFIPS", "AKorHI", "famsize"))
+        expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
+        expandPastMiss2<-expandPastMiss2%>%
+          group_by(Year)%>%
+          mutate(minyeardiff = min(yeardiff))
+        expandPastMiss2<-expandPastMiss2 %>%
+          filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+      }  # Attach copied future, historical, and missing benefit data
+      if(length(futureYrs)>0) {ccdfData_CT<-ccdfData_CT %>% rbind(expand)}
+      if(length(nonFutureYrs)>0) {ccdfData_CT<-ccdfData_CT %>% rbind(expandPastMiss2)}
+      
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
@@ -2938,6 +6568,38 @@ function.CCDFcopay<-function(data
       
       temp <- data[data$stateFIPS==10,]
       
+      # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+      years<-unique(data$ruleYear) # years in data set
+      yearsinexpdata<- unique(ccdfData_DE$ruleYear) # rule years in benefit data
+      yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+      yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+      # Create data for the future
+      maxyearofdata<-max(ccdfData_DE$ruleYear) # collect latest year of benefit data
+      futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+      if(length(futureYrs)>0){
+        # Create data frame with future years
+        expand<-expand.grid(stateFIPS=unique(ccdfData_DE$stateFIPS), AKorHI=unique(ccdfData_DE$AKorHI), famsize=unique(ccdfData_DE$famsize), Year=futureYrs)
+        # Collect latest benefit data there is and merge w/data frame
+        expand2<-ccdfData_DE[ccdfData_DE$ruleYear==maxyearofdata, ]
+        expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)# %>%drop_na()
+      }
+      # Create data for past and gap years (missing data) - not the future
+      nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
+      if(length(nonFutureYrs)>0){
+        #Create data frame with past years and year for which we are missing benefit data
+        expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_DE$stateFIPS), AKorHI=unique(ccdfData_DE$AKorHI), famsize=unique(ccdfData_DE$famsize), Year=nonFutureYrs)
+        # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
+        expandPastMiss2<-left_join(expandPastMiss, ccdfData_DE, by=c("stateFIPS", "AKorHI", "famsize"))
+        expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
+        expandPastMiss2<-expandPastMiss2%>%
+          group_by(Year)%>%
+          mutate(minyeardiff = min(yeardiff))
+        expandPastMiss2<-expandPastMiss2 %>%
+          filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+      }  # Attach copied future, historical, and missing benefit data
+      if(length(futureYrs)>0) {ccdfData_DE<-ccdfData_DE %>% rbind(expand)}
+      if(length(nonFutureYrs)>0) {ccdfData_DE<-ccdfData_DE %>% rbind(expandPastMiss2)}
+      
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
@@ -2978,9 +6640,6 @@ function.CCDFcopay<-function(data
     }
     
     
-
-    
-    
     # DISTRICT OF COLUMBIA ----
     
     # Description:
@@ -2994,8 +6653,37 @@ function.CCDFcopay<-function(data
       
       temp<-data[data$stateFIPS==11,]
       
-     # temp$ruleYear<-2022 # always use the most recent year
-      
+      # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+      years<-unique(data$ruleYear) # years in data set
+      yearsinexpdata<- unique(ccdfData_DC$ruleYear) # rule years in benefit data
+      yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+      yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+      # Create data for the future
+      maxyearofdata<-max(ccdfData_DC$ruleYear) # collect latest year of benefit data
+      futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+      if(length(futureYrs)>0){
+        # Create data frame with future years
+        expand<-expand.grid(stateFIPS=unique(ccdfData_DC$stateFIPS), AKorHI=unique(ccdfData_DC$AKorHI), famsize=unique(ccdfData_DC$famsize), Year=futureYrs)
+        # Collect latest benefit data there is and merge w/data frame
+        expand2<-ccdfData_DC[ccdfData_DC$ruleYear==maxyearofdata, ]
+        expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+      }
+      # Create data for past and gap years (missing data) - not the future
+      nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
+      if(length(nonFutureYrs)>0){
+        #Create data frame with past years and year for which we are missing benefit data
+        expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_DC$stateFIPS), AKorHI=unique(ccdfData_DC$AKorHI), famsize=unique(ccdfData_DC$famsize), Year=nonFutureYrs)
+        # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
+        expandPastMiss2<-left_join(expandPastMiss, ccdfData_DC, by=c("stateFIPS", "AKorHI", "famsize"))
+        expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
+        expandPastMiss2<-expandPastMiss2%>%
+          group_by(Year)%>%
+          mutate(minyeardiff = min(yeardiff))
+        expandPastMiss2<-expandPastMiss2 %>%
+          filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+      }  # Attach copied future, historical, and missing benefit data
+      if(length(futureYrs)>0) {ccdfData_DC<-ccdfData_DC %>% rbind(expand)}
+      if(length(nonFutureYrs)>0) {ccdfData_DC<-ccdfData_DC %>% rbind(expandPastMiss2)}
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
@@ -3086,6 +6774,14 @@ function.CCDFcopay<-function(data
     
     # FLORIDA ----
     
+    # ORIGINAL LEGISLATION: WHEN FAMILY IS INITIALLY APPLYING TO CCDF, IF CHILD IS 5 OR ABOVE, THEN THEY DON'T QUALIFY. ONCE ON IT, THEN THEY'RE ON CCDF TILL KID IS 13 OR INCOME EXCEEDS LIMIT
+    
+    # NEW LEGISLATION: 
+    
+    # IF FAMILY IS ON TANF, THEN THEY QUALIFY AS LONG AS KID(S) IS BELOW 13
+    # IF FAMILY QUALIFIES SO LONG AS THEY HAVE A CHILD UNDER 5, EVEN IF OTHER KIDS ARE 5 OR ABOVE
+    
+    
     # Description:
     # Variation at the county level
     # Fixed copay per child
@@ -3095,8 +6791,37 @@ function.CCDFcopay<-function(data
       
       temp<-data[data$stateFIPS==12,]
       
-    #  temp$ruleYear<-2022 # always use the most recent year
-      
+      # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+      years<-unique(data$ruleYear) # years in data set
+      yearsinexpdata<- unique(ccdfData_FL$ruleYear) # rule years in benefit data
+      yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+      yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+      # Create data for the future
+      maxyearofdata<-max(ccdfData_FL$ruleYear) # collect latest year of benefit data
+      futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+      if(length(futureYrs)>0){
+        # Create data frame with future years
+        expand<-expand.grid(stateFIPS=unique(ccdfData_FL$stateFIPS), AKorHI=unique(ccdfData_FL$AKorHI), famsize=unique(ccdfData_FL$famsize), countyortownName=unique(ccdfData_FL$countyortownName), Year=futureYrs)
+        # Collect latest benefit data there is and merge w/data frame
+        expand2<-ccdfData_FL[ccdfData_FL$ruleYear==maxyearofdata, ]
+        expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize", "countyortownName")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+      }
+      # Create data for past and gap years (missing data) - not the future
+      nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
+      if(length(nonFutureYrs)>0){
+        #Create data frame with past years and year for which we are missing benefit data
+        expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_FL$stateFIPS), AKorHI=unique(ccdfData_FL$AKorHI), famsize=unique(ccdfData_FL$famsize), countyortownName=unique(ccdfData_FL$countyortownName), Year=nonFutureYrs)
+        # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
+        expandPastMiss2<-left_join(expandPastMiss, ccdfData_FL, by=c("stateFIPS", "AKorHI", "famsize", "countyortownName"))
+        expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
+        expandPastMiss2<-expandPastMiss2%>%
+          group_by(Year)%>%
+          mutate(minyeardiff = min(yeardiff))
+        expandPastMiss2<-expandPastMiss2 %>%
+          filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+      }  # Attach copied future, historical, and missing benefit data
+      if(length(futureYrs)>0) {ccdfData_FL<-ccdfData_FL %>% rbind(expand)}
+      if(length(nonFutureYrs)>0) {ccdfData_FL<-ccdfData_FL %>% rbind(expandPastMiss2)}
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
@@ -3107,23 +6832,23 @@ function.CCDFcopay<-function(data
       
       temp$FTcopay<-NA
       
-      temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1Max]<-temp$CopayBin1[temp$income>=0 & temp$income<=temp$Bin1Max]
-      temp$FTcopay[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]<-temp$CopayBin2[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]
-      temp$FTcopay[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]<-temp$CopayBin3[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]
-      temp$FTcopay[temp$income>temp$Bin3Max & temp$income<=temp$Bin4Max]<-temp$CopayBin4[temp$income>temp$Bin3Max & temp$income<=temp$Bin4Max]
-      temp$FTcopay[temp$income>temp$Bin4Max & temp$income<=temp$Bin5Max]<-temp$CopayBin5[temp$income>temp$Bin4Max & temp$income<=temp$Bin5Max]
-      temp$FTcopay[temp$income>temp$Bin5Max & temp$income<=temp$Bin6Max]<-temp$CopayBin6[temp$income>temp$Bin5Max & temp$income<=temp$Bin6Max]
-      temp$FTcopay[temp$income>temp$Bin6Max & temp$income<=temp$Bin7Max]<-temp$CopayBin7[temp$income>temp$Bin6Max & temp$income<=temp$Bin7Max]
-      temp$FTcopay[temp$income>temp$Bin7Max & temp$income<=temp$Bin8Max]<-temp$CopayBin8[temp$income>temp$Bin7Max & temp$income<=temp$Bin8Max]
-      temp$FTcopay[temp$income>temp$Bin8Max & temp$income<=temp$Bin9Max]<-temp$CopayBin9[temp$income>temp$Bin8Max & temp$income<=temp$Bin9Max]
-      temp$FTcopay[temp$income>temp$Bin9Max & temp$income<=temp$Bin10Max]<-temp$CopayBin10[temp$income>temp$Bin9Max & temp$income<=temp$Bin10Max]
-      temp$FTcopay[temp$income>temp$Bin10Max & temp$income<=temp$Bin11Max]<-temp$CopayBin11[temp$income>temp$Bin10Max & temp$income<=temp$Bin11Max]
-      temp$FTcopay[temp$income>temp$Bin11Max & temp$income<=temp$Bin12Max]<-temp$CopayBin12[temp$income>temp$Bin11Max & temp$income<=temp$Bin12Max]
-      temp$FTcopay[temp$income>temp$Bin12Max & temp$income<=temp$Bin13Max]<-temp$CopayBin13[temp$income>temp$Bin12Max & temp$income<=temp$Bin13Max]
-      temp$FTcopay[temp$income>temp$Bin13Max & temp$income<=temp$Bin14Max]<-temp$CopayBin14[temp$income>temp$Bin13Max & temp$income<=temp$Bin14Max]
-      temp$FTcopay[temp$income>temp$Bin14Max & temp$income<=temp$Bin15Max]<-temp$CopayBin15[temp$income>temp$Bin14Max & temp$income<=temp$Bin15Max]
-      temp$FTcopay[temp$income>temp$Bin15Max & temp$income<=temp$Bin16Max]<-temp$CopayBin16[temp$income>temp$Bin15Max & temp$income<=temp$Bin16Max]
-      temp$FTcopay[temp$income>temp$Bin16Max & temp$income<=temp$Bin17Max]<-temp$CopayBin17[temp$income>temp$Bin16Max & temp$income<=temp$Bin17Max]
+      temp$FTcopay[which(temp$income>=0 & temp$income<=temp$Bin1Max)]<-temp$CopayBin1[which(temp$income>=0 & temp$income<=temp$Bin1Max)]
+      temp$FTcopay[which(temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max)]<-temp$CopayBin2[which(temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max)]
+      temp$FTcopay[which(temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max)]<-temp$CopayBin3[which(temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max)]
+      temp$FTcopay[which(temp$income>temp$Bin3Max & temp$income<=temp$Bin4Max)]<-temp$CopayBin4[which(temp$income>temp$Bin3Max & temp$income<=temp$Bin4Max)]
+      temp$FTcopay[which(temp$income>temp$Bin4Max & temp$income<=temp$Bin5Max)]<-temp$CopayBin5[which(temp$income>temp$Bin4Max & temp$income<=temp$Bin5Max)]
+      temp$FTcopay[which(temp$income>temp$Bin5Max & temp$income<=temp$Bin6Max)]<-temp$CopayBin6[which(temp$income>temp$Bin5Max & temp$income<=temp$Bin6Max)]
+      temp$FTcopay[which(temp$income>temp$Bin6Max & temp$income<=temp$Bin7Max)]<-temp$CopayBin7[which(temp$income>temp$Bin6Max & temp$income<=temp$Bin7Max)]
+      temp$FTcopay[which(temp$income>temp$Bin7Max & temp$income<=temp$Bin8Max)]<-temp$CopayBin8[which(temp$income>temp$Bin7Max & temp$income<=temp$Bin8Max)]
+      temp$FTcopay[which(temp$income>temp$Bin8Max & temp$income<=temp$Bin9Max)]<-temp$CopayBin9[which(temp$income>temp$Bin8Max & temp$income<=temp$Bin9Max)]
+      temp$FTcopay[which(temp$income>temp$Bin9Max & temp$income<=temp$Bin10Max)]<-temp$CopayBin10[which(temp$income>temp$Bin9Max & temp$income<=temp$Bin10Max)]
+      temp$FTcopay[which(temp$income>temp$Bin10Max & temp$income<=temp$Bin11Max)]<-temp$CopayBin11[which(temp$income>temp$Bin10Max & temp$income<=temp$Bin11Max)]
+      temp$FTcopay[which(temp$income>temp$Bin11Max & temp$income<=temp$Bin12Max)]<-temp$CopayBin12[which(temp$income>temp$Bin11Max & temp$income<=temp$Bin12Max)]
+      temp$FTcopay[which(temp$income>temp$Bin12Max & temp$income<=temp$Bin13Max)]<-temp$CopayBin13[which(temp$income>temp$Bin12Max & temp$income<=temp$Bin13Max)]
+      temp$FTcopay[which(temp$income>temp$Bin13Max & temp$income<=temp$Bin14Max)]<-temp$CopayBin14[which(temp$income>temp$Bin13Max & temp$income<=temp$Bin14Max)]
+      temp$FTcopay[which(temp$income>temp$Bin14Max & temp$income<=temp$Bin15Max)]<-temp$CopayBin15[which(temp$income>temp$Bin14Max & temp$income<=temp$Bin15Max)]
+      temp$FTcopay[which(temp$income>temp$Bin15Max & temp$income<=temp$Bin16Max)]<-temp$CopayBin16[which(temp$income>temp$Bin15Max & temp$income<=temp$Bin16Max)]
+      temp$FTcopay[which(temp$income>temp$Bin16Max & temp$income<=temp$Bin17Max)]<-temp$CopayBin17[which(temp$income>temp$Bin16Max & temp$income<=temp$Bin17Max)]
       
       #right now only for fates (function below)... but this may change!
       #IF Martin or St Lucie counties, also assign Bins 18-20:
@@ -3144,14 +6869,20 @@ function.CCDFcopay<-function(data
       # Initialize
       temp$totcopay<-NA
       
-     
+      
       temp$totcopay<-temp$FTcopay*(temp$daysofcareneeded0to4+temp$daysofcareneeded5to12)
       
       # Set copay to zero if no children
       temp$totcopay[temp$numkidsincare0to4+temp$numkidsincare5to12==0]<-0
       
-      # Implement discount for multiple children (only for the youngest child)
-      # UNDER CONSTRUCTION
+     # if(contelig.ccdf == FALSE){
+        
+    #    temp$totcopay[temp$daysofcareneeded0to4 == 0 & temp$daysofcareneeded5to12 != 0 & temp$value.tanf == 0 & temp$Year == min(temp$Year)] <- temp$netexp.childcare[temp$daysofcareneeded0to4 == 0 & temp$daysofcareneeded5to12 != 0 & temp$value.tanf == 0 & temp$Year == min(temp$Year)]
+        
+    #    if(temp$totcopay[temp$Year == min(temp$Year)] == temp$netexp.childcare[temp$Year == min(temp$Year)]){
+    #      temp$totcopay <- temp$netexp.childcare
+    #    }
+    #  }
       
       temp$totcopay[is.na(temp$FTcopay)]<-NA
       # Note: code produces NAs for a good reason, because family is ineligible for CCDF
@@ -3185,7 +6916,44 @@ function.CCDFcopay<-function(data
     #  ccdfData_GA$ContinuousEligibility <- c(33683, 44047, 54411, 64775, 75139, 85503, 95867, 106231, 116595, 126959, 137323, 147687)
     #  ccdfData_GA$Bin4Max <- ccdfData_GA$ContinuousEligibility
       
+      # ER: code below does similar thing
+      # if(min(data$ruleYear)==2021){
+      # ccdfData_GA$ruleYear[ccdfData_GA$ruleYear == min(ccdfData_GA$ruleYear)] <- 2021
+      # }
+      
       temp<-data[data$stateFIPS==13,]
+      
+      # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+      years<-unique(data$ruleYear) # years in data set
+      yearsinexpdata<- unique(ccdfData_GA$ruleYear) # rule years in benefit data
+      yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+      yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+      # Create data for the future
+      maxyearofdata<-max(ccdfData_GA$ruleYear) # collect latest year of benefit data
+      futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+      if(length(futureYrs)>0){
+        # Create data frame with future years
+        expand<-expand.grid(stateFIPS=unique(ccdfData_GA$stateFIPS), AKorHI=unique(ccdfData_GA$AKorHI), famsize=unique(ccdfData_GA$famsize), Year=futureYrs)
+        # Collect latest benefit data there is and merge w/data frame
+        expand2<-ccdfData_GA[ccdfData_GA$ruleYear==maxyearofdata, ]
+        expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+      }
+      # Create data for past and gap years (missing data) - not the future
+      nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
+      if(length(nonFutureYrs)>0){
+        #Create data frame with past years and year for which we are missing benefit data
+        expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_GA$stateFIPS), AKorHI=unique(ccdfData_GA$AKorHI), famsize=unique(ccdfData_GA$famsize), Year=nonFutureYrs)
+        # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
+        expandPastMiss2<-left_join(expandPastMiss, ccdfData_GA, by=c("stateFIPS", "AKorHI", "famsize"))
+        expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
+        expandPastMiss2<-expandPastMiss2%>%
+          group_by(Year)%>%
+          mutate(minyeardiff = min(yeardiff))
+        expandPastMiss2<-expandPastMiss2 %>%
+          filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+      }  # Attach copied future, historical, and missing benefit data
+      if(length(futureYrs)>0) {ccdfData_GA<-ccdfData_GA %>% rbind(expand)}
+      if(length(nonFutureYrs)>0) {ccdfData_GA<-ccdfData_GA %>% rbind(expandPastMiss2)}
       
       #----------------------------------
       # Step 1: Assign copays
@@ -3193,7 +6961,7 @@ function.CCDFcopay<-function(data
       temp<-left_join(temp, ccdfData_GA, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize"))
       
       # Adjust for the income disregard
-      temp$income<-temp$income-12*temp$IncomeDisregard
+    #  temp$income<-temp$income-12*temp$IncomeDisregard
       
       temp$FTcopay<-NA
       
@@ -3230,7 +6998,6 @@ function.CCDFcopay<-function(data
     }
     
     
-    
     # HAWAII ----
     
     # Description:
@@ -3239,13 +7006,39 @@ function.CCDFcopay<-function(data
     # Per family
     if(15 %in% unique(data$stateFIPS)){ # make sure that state is in the list
       
-     # Why do you hardcode this here?
-      ccdfData_HI$stateFIPS <- 15
-      ccdfData_HI$AssetTest <- 1000000
-      
        temp<-data[data$stateFIPS==15,]
       
-     # temp$ruleYear<-2022 # always use the most recent year
+       # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+       years<-unique(data$ruleYear) # years in data set
+       yearsinexpdata<- unique(ccdfData_HI$ruleYear) # rule years in benefit data
+       yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+       yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+       # Create data for the future
+       maxyearofdata<-max(ccdfData_HI$ruleYear) # collect latest year of benefit data
+       futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+       if(length(futureYrs)>0){
+         # Create data frame with future years
+         expand<-expand.grid(stateFIPS=unique(ccdfData_HI$stateFIPS), AKorHI=unique(ccdfData_HI$AKorHI), famsize=unique(ccdfData_HI$famsize), Year=futureYrs)
+         # Collect latest benefit data there is and merge w/data frame
+         expand2<-ccdfData_HI[ccdfData_HI$ruleYear==maxyearofdata, ]
+         expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+       }
+       # Create data for past and gap years (missing data) - not the future
+       nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
+       if(length(nonFutureYrs)>0){
+         #Create data frame with past years and year for which we are missing benefit data
+         expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_HI$stateFIPS), AKorHI=unique(ccdfData_HI$AKorHI), famsize=unique(ccdfData_HI$famsize), Year=nonFutureYrs)
+         # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
+         expandPastMiss2<-left_join(expandPastMiss, ccdfData_HI, by=c("stateFIPS", "AKorHI", "famsize"))
+         expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
+         expandPastMiss2<-expandPastMiss2%>%
+           group_by(Year)%>%
+           mutate(minyeardiff = min(yeardiff))
+         expandPastMiss2<-expandPastMiss2 %>%
+           filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+       }  # Attach copied future, historical, and missing benefit data
+       if(length(futureYrs)>0) {ccdfData_HI<-ccdfData_HI %>% rbind(expand)}
+       if(length(nonFutureYrs)>0) {ccdfData_HI<-ccdfData_HI %>% rbind(expandPastMiss2)}
        
       #----------------------------------
       # Step 1: Assign copays
@@ -3345,6 +7138,37 @@ function.CCDFcopay<-function(data
       
       temp$numkidsInCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
       
+      # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+      years<-unique(data$ruleYear) # years in data set
+      yearsinexpdata<- unique(ccdfData_IA$ruleYear) # rule years in benefit data
+      yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+      yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+      # Create data for the future
+      maxyearofdata<-max(ccdfData_IA$ruleYear) # collect latest year of benefit data
+      futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+      if(length(futureYrs)>0){
+        # Create data frame with future years
+        expand<-expand.grid(stateFIPS=unique(ccdfData_IA$stateFIPS), AKorHI=unique(ccdfData_IA$AKorHI), famsize=unique(ccdfData_IA$famsize), numkidsInCare=unique(ccdfData_IA$numkidsInCare), Year=futureYrs)
+        # Collect latest benefit data there is and merge w/data frame
+        expand2<-ccdfData_IA[ccdfData_IA$ruleYear==maxyearofdata, ]
+        expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+      }
+      # Create data for past and gap years (missing data) - not the future
+      nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
+      if(length(nonFutureYrs)>0){
+        #Create data frame with past years and year for which we are missing benefit data
+        expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_IA$stateFIPS), AKorHI=unique(ccdfData_IA$AKorHI), famsize=unique(ccdfData_IA$famsize), numkidsInCare=unique(ccdfData_IA$numkidsInCare), Year=nonFutureYrs)
+        # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
+        expandPastMiss2<-left_join(expandPastMiss, ccdfData_IA, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare"))
+        expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
+        expandPastMiss2<-expandPastMiss2%>%
+          group_by(Year)%>%
+          mutate(minyeardiff = min(yeardiff))
+        expandPastMiss2<-expandPastMiss2 %>%
+          filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+      }  # Attach copied future, historical, and missing benefit data
+      if(length(futureYrs)>0) {ccdfData_IA<-ccdfData_IA %>% rbind(expand)}
+      if(length(nonFutureYrs)>0) {ccdfData_IA<-ccdfData_IA %>% rbind(expandPastMiss2)}
       
       #----------------------------------
       # Step 1: Assign copays
@@ -3427,6 +7251,38 @@ function.CCDFcopay<-function(data
       
       temp$numkidsInCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
       
+      # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+      years<-unique(data$ruleYear) # years in data set
+      yearsinexpdata<- unique(ccdfData_ID$ruleYear) # rule years in benefit data
+      yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+      yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+      # Create data for the future
+      maxyearofdata<-max(ccdfData_ID$ruleYear) # collect latest year of benefit data
+      futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+      if(length(futureYrs)>0){
+        # Create data frame with future years
+        expand<-expand.grid(stateFIPS=unique(ccdfData_ID$stateFIPS), AKorHI=unique(ccdfData_ID$AKorHI), famsize=unique(ccdfData_ID$famsize), numkidsInCare=unique(ccdfData_ID$numkidsInCare), Year=futureYrs)
+        # Collect latest benefit data there is and merge w/data frame
+        expand2<-ccdfData_ID[ccdfData_ID$ruleYear==maxyearofdata, ]
+        expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+      }
+      # Create data for past and gap years (missing data) - not the future
+      nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
+      if(length(nonFutureYrs)>0){
+        #Create data frame with past years and year for which we are missing benefit data
+        expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_ID$stateFIPS), AKorHI=unique(ccdfData_ID$AKorHI), famsize=unique(ccdfData_ID$famsize), numkidsInCare=unique(ccdfData_ID$numkidsInCare), Year=nonFutureYrs)
+        # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
+        expandPastMiss2<-left_join(expandPastMiss, ccdfData_ID, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare"))
+        expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
+        expandPastMiss2<-expandPastMiss2%>%
+          group_by(Year)%>%
+          mutate(minyeardiff = min(yeardiff))
+        expandPastMiss2<-expandPastMiss2 %>%
+          filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+      }  # Attach copied future, historical, and missing benefit data
+      if(length(futureYrs)>0) {ccdfData_ID<-ccdfData_ID %>% rbind(expand)}
+      if(length(nonFutureYrs)>0) {ccdfData_ID<-ccdfData_ID %>% rbind(expandPastMiss2)}
+      
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
@@ -3484,7 +7340,37 @@ function.CCDFcopay<-function(data
       
       temp<-data[data$stateFIPS==17,]
       
-      #temp$ruleYear<-2022 # always use the most recent year
+      # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+      years<-unique(data$ruleYear) # years in data set
+      yearsinexpdata<- unique(ccdfData_IL$ruleYear) # rule years in benefit data
+      yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+      yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+      # Create data for the future
+      maxyearofdata<-max(ccdfData_IL$ruleYear) # collect latest year of benefit data
+      futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+      if(length(futureYrs)>0){
+        # Create data frame with future years
+        expand<-expand.grid(stateFIPS=unique(ccdfData_IL$stateFIPS), AKorHI=unique(ccdfData_IL$AKorHI), famsize=unique(ccdfData_IL$famsize), Year=futureYrs)
+        # Collect latest benefit data there is and merge w/data frame
+        expand2<-ccdfData_IL[ccdfData_IL$ruleYear==maxyearofdata, ]
+        expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+      }
+      # Create data for past and gap years (missing data) - not the future
+      nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
+      if(length(nonFutureYrs)>0){
+        #Create data frame with past years and year for which we are missing benefit data
+        expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_IL$stateFIPS), AKorHI=unique(ccdfData_IL$AKorHI), famsize=unique(ccdfData_IL$famsize), Year=nonFutureYrs)
+        # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
+        expandPastMiss2<-left_join(expandPastMiss, ccdfData_IL, by=c("stateFIPS", "AKorHI", "famsize"))
+        expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
+        expandPastMiss2<-expandPastMiss2%>%
+          group_by(Year)%>%
+          mutate(minyeardiff = min(yeardiff))
+        expandPastMiss2<-expandPastMiss2 %>%
+          filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+      }  # Attach copied future, historical, and missing benefit data
+      if(length(futureYrs)>0) {ccdfData_IL<-ccdfData_IL %>% rbind(expand)}
+      if(length(nonFutureYrs)>0) {ccdfData_IL<-ccdfData_IL %>% rbind(expandPastMiss2)}
       
       #----------------------------------
       # Step 1: Assign copays
@@ -3561,7 +7447,6 @@ function.CCDFcopay<-function(data
     }
   
     
-    
     # INDIANA ----
     
     # Description:
@@ -3574,6 +7459,38 @@ function.CCDFcopay<-function(data
       #ccdfData_IN <- ccdfData_IN[ccdfData_IN$famsize < 8,]
       
       temp<-data[data$stateFIPS==18,]
+      
+      # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+      years<-unique(data$ruleYear) # years in data set
+      yearsinexpdata<- unique(ccdfData_IN$ruleYear) # rule years in benefit data
+      yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+      yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+      # Create data for the future
+      maxyearofdata<-max(ccdfData_IN$ruleYear) # collect latest year of benefit data
+      futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+      if(length(futureYrs)>0){
+        # Create data frame with future years
+        expand<-expand.grid(stateFIPS=unique(ccdfData_IN$stateFIPS), AKorHI=unique(ccdfData_IN$AKorHI), famsize=unique(ccdfData_IN$famsize), Year=futureYrs)
+        # Collect latest benefit data there is and merge w/data frame
+        expand2<-ccdfData_IN[ccdfData_IN$ruleYear==maxyearofdata, ]
+        expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+      }
+      # Create data for past and gap years (missing data) - not the future
+      nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
+      if(length(nonFutureYrs)>0){
+        #Create data frame with past years and year for which we are missing benefit data
+        expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_IN$stateFIPS), AKorHI=unique(ccdfData_IN$AKorHI), famsize=unique(ccdfData_IN$famsize), Year=nonFutureYrs)
+        # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
+        expandPastMiss2<-left_join(expandPastMiss, ccdfData_IN, by=c("stateFIPS", "AKorHI", "famsize"))
+        expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
+        expandPastMiss2<-expandPastMiss2%>%
+          group_by(Year)%>%
+          mutate(minyeardiff = min(yeardiff))
+        expandPastMiss2<-expandPastMiss2 %>%
+          filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+      }  # Attach copied future, historical, and missing benefit data
+      if(length(futureYrs)>0) {ccdfData_IN<-ccdfData_IN %>% rbind(expand)}
+      if(length(nonFutureYrs)>0) {ccdfData_IN<-ccdfData_IN %>% rbind(expandPastMiss2)}
       
       #----------------------------------
       # Step 1: Assign copays
@@ -3638,6 +7555,38 @@ function.CCDFcopay<-function(data
       
       
       temp<-data[data$stateFIPS==20,]
+      
+      # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+      years<-unique(data$ruleYear) # years in data set
+      yearsinexpdata<- unique(ccdfData_KS$ruleYear) # rule years in benefit data
+      yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+      yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+      # Create data for the future
+      maxyearofdata<-max(ccdfData_KS$ruleYear) # collect latest year of benefit data
+      futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+      if(length(futureYrs)>0){
+        # Create data frame with future years
+        expand<-expand.grid(stateFIPS=unique(ccdfData_KS$stateFIPS), AKorHI=unique(ccdfData_KS$AKorHI), famsize=unique(ccdfData_KS$famsize), Year=futureYrs)
+        # Collect latest benefit data there is and merge w/data frame
+        expand2<-ccdfData_KS[ccdfData_KS$ruleYear==maxyearofdata, ]
+        expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+      }
+      # Create data for past and gap years (missing data) - not the future
+      nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
+      if(length(nonFutureYrs)>0){
+        #Create data frame with past years and year for which we are missing benefit data
+        expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_KS$stateFIPS), AKorHI=unique(ccdfData_KS$AKorHI), famsize=unique(ccdfData_KS$famsize), Year=nonFutureYrs)
+        # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
+        expandPastMiss2<-left_join(expandPastMiss, ccdfData_KS, by=c("stateFIPS", "AKorHI", "famsize"))
+        expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
+        expandPastMiss2<-expandPastMiss2%>%
+          group_by(Year)%>%
+          mutate(minyeardiff = min(yeardiff))
+        expandPastMiss2<-expandPastMiss2 %>%
+          filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+      }  # Attach copied future, historical, and missing benefit data
+      if(length(futureYrs)>0) {ccdfData_KS<-ccdfData_KS %>% rbind(expand)}
+      if(length(nonFutureYrs)>0) {ccdfData_KS<-ccdfData_KS %>% rbind(expandPastMiss2)}
       
       #----------------------------------
       # Step 1: Assign copays
@@ -3709,6 +7658,38 @@ function.CCDFcopay<-function(data
       
       temp$numkidsInCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
       
+      # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+      years<-unique(data$ruleYear) # years in data set
+      yearsinexpdata<- unique(ccdfData_KY$ruleYear) # rule years in benefit data
+      yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+      yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+      # Create data for the future
+      maxyearofdata<-max(ccdfData_KY$ruleYear) # collect latest year of benefit data
+      futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+      if(length(futureYrs)>0){
+        # Create data frame with future years
+        expand<-expand.grid(stateFIPS=unique(ccdfData_KY$stateFIPS), AKorHI=unique(ccdfData_KY$AKorHI), famsize=unique(ccdfData_KY$famsize), numkidsInCare=unique(ccdfData_KY$numkidsInCare),Year=futureYrs)
+        # Collect latest benefit data there is and merge w/data frame
+        expand2<-ccdfData_KY[ccdfData_KY$ruleYear==maxyearofdata, ]
+        expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+      }
+      # Create data for past and gap years (missing data) - not the future
+      nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
+      if(length(nonFutureYrs)>0){
+        #Create data frame with past years and year for which we are missing benefit data
+        expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_KY$stateFIPS), AKorHI=unique(ccdfData_KY$AKorHI), famsize=unique(ccdfData_KY$famsize), numkidsInCare=unique(ccdfData_KY$numkidsInCare), Year=nonFutureYrs)
+        # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
+        expandPastMiss2<-left_join(expandPastMiss, ccdfData_KY, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare"))
+        expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
+        expandPastMiss2<-expandPastMiss2%>%
+          group_by(Year)%>%
+          mutate(minyeardiff = min(yeardiff))
+        expandPastMiss2<-expandPastMiss2 %>%
+          filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+      }  # Attach copied future, historical, and missing benefit data
+      if(length(futureYrs)>0) {ccdfData_KY<-ccdfData_KY %>% rbind(expand)}
+      if(length(nonFutureYrs)>0) {ccdfData_KY<-ccdfData_KY %>% rbind(expandPastMiss2)}
+      
       #----------------------------------``
       # Step 1: Assign copays
       #----------------------------------
@@ -3777,7 +7758,7 @@ function.CCDFcopay<-function(data
     
     
     
-    # LOUSIANA ----
+    # Louisiana ----
     
     # Description:
     # Copay is a dollar amount per child, same for each child
@@ -3801,8 +7782,41 @@ function.CCDFcopay<-function(data
       #ccdfData_LA$Bin2Max[1] <- 0
       #ccdfData_LA$Bin3Max[1] <- 0
       #ccdfData_LA$Bin4Max[1] <- 0
-      
+     
       temp<-data[data$stateFIPS==22,]
+      
+      # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+      years<-unique(data$ruleYear) # years in data set
+      yearsinexpdata<- unique(ccdfData_LA$ruleYear) # rule years in benefit data
+      yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+      yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+      # Create data for the future
+      maxyearofdata<-max(ccdfData_LA$ruleYear) # collect latest year of benefit data
+      futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+      if(length(futureYrs)>0){
+        # Create data frame with future years
+        expand<-expand.grid(stateFIPS=unique(ccdfData_LA$stateFIPS), AKorHI=unique(ccdfData_LA$AKorHI), famsize=unique(ccdfData_LA$famsize), Year=futureYrs)
+        # Collect latest benefit data there is and merge w/data frame
+        expand2<-ccdfData_LA[ccdfData_LA$ruleYear==maxyearofdata, ]
+        expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+      }
+      # Create data for past and gap years (missing data) - not the future
+      nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
+      if(length(nonFutureYrs)>0){
+        #Create data frame with past years and year for which we are missing benefit data
+        expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_LA$stateFIPS), AKorHI=unique(ccdfData_LA$AKorHI), famsize=unique(ccdfData_LA$famsize), Year=nonFutureYrs)
+        # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
+        expandPastMiss2<-left_join(expandPastMiss, ccdfData_LA, by=c("stateFIPS", "AKorHI", "famsize"))
+        expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
+        expandPastMiss2<-expandPastMiss2%>%
+          group_by(Year)%>%
+          mutate(minyeardiff = min(yeardiff))
+        expandPastMiss2<-expandPastMiss2 %>%
+          filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+      }  # Attach copied future, historical, and missing benefit data
+      if(length(futureYrs)>0) {ccdfData_LA<-ccdfData_LA %>% rbind(expand)}
+      if(length(nonFutureYrs)>0) {ccdfData_LA<-ccdfData_LA %>% rbind(expandPastMiss2)}
+      
       
       #----------------------------------
       # Step 1: Assign copays
@@ -3810,7 +7824,7 @@ function.CCDFcopay<-function(data
       temp<-left_join(temp, ccdfData_LA, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize"))
       
       # Adjust for the income disregard
-      temp$income<-temp$income-12*temp$IncomeDisregard
+    #  temp$income<-temp$income-12*temp$IncomeDisregard
       
       temp$FTcopay<-NA
       
@@ -3865,6 +7879,38 @@ function.CCDFcopay<-function(data
       #ccdfData_ME$ContinuousEligibility[11:12] <- c(112662,114960)
       
       temp<-data[data$stateFIPS==23,]
+      
+      # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+      years<-unique(data$ruleYear) # years in data set
+      yearsinexpdata<- unique(ccdfData_ME$ruleYear) # rule years in benefit data
+      yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+      yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+      # Create data for the future
+      maxyearofdata<-max(ccdfData_ME$ruleYear) # collect latest year of benefit data
+      futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+      if(length(futureYrs)>0){
+        # Create data frame with future years
+        expand<-expand.grid(stateFIPS=unique(ccdfData_ME$stateFIPS), AKorHI=unique(ccdfData_ME$AKorHI), famsize=unique(ccdfData_ME$famsize), Year=futureYrs)
+        # Collect latest benefit data there is and merge w/data frame
+        expand2<-ccdfData_ME[ccdfData_ME$ruleYear==maxyearofdata, ]
+        expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+      }
+      # Create data for past and gap years (missing data) - not the future
+      nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
+      if(length(nonFutureYrs)>0){
+        #Create data frame with past years and year for which we are missing benefit data
+        expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_ME$stateFIPS), AKorHI=unique(ccdfData_ME$AKorHI), famsize=unique(ccdfData_ME$famsize), Year=nonFutureYrs)
+        # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
+        expandPastMiss2<-left_join(expandPastMiss, ccdfData_ME, by=c("stateFIPS", "AKorHI", "famsize"))
+        expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
+        expandPastMiss2<-expandPastMiss2%>%
+          group_by(Year)%>%
+          mutate(minyeardiff = min(yeardiff))
+        expandPastMiss2<-expandPastMiss2 %>%
+          filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+      }  # Attach copied future, historical, and missing benefit data
+      if(length(futureYrs)>0) {ccdfData_ME<-ccdfData_ME %>% rbind(expand)}
+      if(length(nonFutureYrs)>0) {ccdfData_ME<-ccdfData_ME %>% rbind(expandPastMiss2)}
       
       #----------------------------------
       # Step 1: Assign copays
@@ -3929,7 +7975,37 @@ function.CCDFcopay<-function(data
       
       temp$numkidsInCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
       
-      #temp$ruleYear<-2022 # always use the most recent year
+      # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+      years<-unique(data$ruleYear) # years in data set
+      yearsinexpdata<- unique(ccdfData_MD$ruleYear) # rule years in benefit data
+      yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+      yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+      # Create data for the future
+      maxyearofdata<-max(ccdfData_MD$ruleYear) # collect latest year of benefit data
+      futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+      if(length(futureYrs)>0){
+        # Create data frame with future years
+        expand<-expand.grid(stateFIPS=unique(ccdfData_MD$stateFIPS), AKorHI=unique(ccdfData_MD$AKorHI), famsize=unique(ccdfData_MD$famsize), numkidsInCare=unique(ccdfData_MD$numkidsInCare), Year=futureYrs)
+        # Collect latest benefit data there is and merge w/data frame
+        expand2<-ccdfData_MD[ccdfData_MD$ruleYear==maxyearofdata, ]
+        expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+      }
+      # Create data for past and gap years (missing data) - not the future
+      nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
+      if(length(nonFutureYrs)>0){
+        #Create data frame with past years and year for which we are missing benefit data
+        expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_MD$stateFIPS), AKorHI=unique(ccdfData_MD$AKorHI), famsize=unique(ccdfData_MD$famsize), numkidsInCare=unique(ccdfData_MD$numkidsInCare), Year=nonFutureYrs)
+        # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
+        expandPastMiss2<-left_join(expandPastMiss, ccdfData_MD, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare"))
+        expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
+        expandPastMiss2<-expandPastMiss2%>%
+          group_by(Year)%>%
+          mutate(minyeardiff = min(yeardiff))
+        expandPastMiss2<-expandPastMiss2 %>%
+          filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+      }  # Attach copied future, historical, and missing benefit data
+      if(length(futureYrs)>0) {ccdfData_MD<-ccdfData_MD %>% rbind(expand)}
+      if(length(nonFutureYrs)>0) {ccdfData_MD<-ccdfData_MD %>% rbind(expandPastMiss2)}
       
       #----------------------------------
       # Step 1: Assign copays
@@ -3937,7 +8013,7 @@ function.CCDFcopay<-function(data
       temp<-left_join(temp, ccdfData_MD, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare", "ruleYear"))
       
       # Adjust for the income disregard
-      temp$income<-temp$income-12*temp$IncomeDisregard
+   #   temp$income<-temp$income-12*temp$IncomeDisregard
       
       temp$FTcopay<-NA
       
@@ -3991,12 +8067,39 @@ function.CCDFcopay<-function(data
     # Monthly frequency 
     if(25 %in% unique(data$stateFIPS)){ # make sure that state is in the list
       
-    #  ccdfData_MA$stateFIPS <- 25
-    #  ccdfData_MA$AssetTest <- 1000000
-      
       temp<-data[data$stateFIPS==25,]
       
-      #temp$ruleYear<-2022 # always use the most recent year
+      # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+      years<-unique(data$ruleYear) # years in data set
+      yearsinexpdata<- unique(ccdfData_MA$ruleYear) # rule years in benefit data
+      yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+      yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+      # Create data for the future
+      maxyearofdata<-max(ccdfData_MA$ruleYear) # collect latest year of benefit data
+      futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+      if(length(futureYrs)>0){
+        # Create data frame with future years
+        expand<-expand.grid(stateFIPS=unique(ccdfData_MA$stateFIPS), AKorHI=unique(ccdfData_MA$AKorHI), famsize=unique(ccdfData_MA$famsize), Year=futureYrs)
+        # Collect latest benefit data there is and merge w/data frame
+        expand2<-ccdfData_MA[ccdfData_MA$ruleYear==maxyearofdata, ]
+        expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+      }
+      # Create data for past and gap years (missing data) - not the future
+      nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
+      if(length(nonFutureYrs)>0){
+        #Create data frame with past years and year for which we are missing benefit data
+        expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_MA$stateFIPS), AKorHI=unique(ccdfData_MA$AKorHI), famsize=unique(ccdfData_MA$famsize), Year=nonFutureYrs)
+        # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
+        expandPastMiss2<-left_join(expandPastMiss, ccdfData_MA, by=c("stateFIPS", "famsize", "AKorHI"))
+        expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
+        expandPastMiss2<-expandPastMiss2%>%
+          group_by(Year)%>%
+          mutate(minyeardiff = min(yeardiff))
+        expandPastMiss2<-expandPastMiss2 %>%
+          filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+      }  # Attach copied future, historical, and missing benefit data
+      if(length(futureYrs)>0) {ccdfData_MA<-ccdfData_MA %>% rbind(expand)}
+      if(length(nonFutureYrs)>0) {ccdfData_MA<-ccdfData_MA %>% rbind(expandPastMiss2)}
       
       #----------------------------------
       # Step 1: Assign copays
@@ -4004,7 +8107,7 @@ function.CCDFcopay<-function(data
       temp<-left_join(temp, ccdfData_MA, by=c("stateFIPS", "AKorHI", "famsize", "ruleYear"))
       
       # Adjust for the income disregard
-      temp$income<-temp$income-12*temp$IncomeDisregard
+    #  temp$income<-temp$income-12*temp$IncomeDisregard
       
       temp$FTcopay<-NA
       
@@ -4086,6 +8189,38 @@ function.CCDFcopay<-function(data
       
       temp<-data[data$stateFIPS==26,]
       
+      # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+      years<-unique(data$ruleYear) # years in data set
+      yearsinexpdata<- unique(ccdfData_MI$ruleYear) # rule years in benefit data
+      yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+      yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+      # Create data for the future
+      maxyearofdata<-max(ccdfData_MI$ruleYear) # collect latest year of benefit data
+      futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+      if(length(futureYrs)>0){
+        # Create data frame with future years
+        expand<-expand.grid(stateFIPS=unique(ccdfData_MI$stateFIPS), AKorHI=unique(ccdfData_MI$AKorHI), famsize=unique(ccdfData_MI$famsize), Year=futureYrs)
+        # Collect latest benefit data there is and merge w/data frame
+        expand2<-ccdfData_MI[ccdfData_MI$ruleYear==maxyearofdata, ]
+        expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+      }
+      # Create data for past and gap years (missing data) - not the future
+      nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
+      if(length(nonFutureYrs)>0){
+        #Create data frame with past years and year for which we are missing benefit data
+        expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_MI$stateFIPS), AKorHI=unique(ccdfData_MI$AKorHI), famsize=unique(ccdfData_MI$famsize), Year=nonFutureYrs)
+        # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
+        expandPastMiss2<-left_join(expandPastMiss, ccdfData_MI, by=c("stateFIPS", "AKorHI", "famsize"))
+        expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
+        expandPastMiss2<-expandPastMiss2%>%
+          group_by(Year)%>%
+          mutate(minyeardiff = min(yeardiff))
+        expandPastMiss2<-expandPastMiss2 %>%
+          filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+      }  # Attach copied future, historical, and missing benefit data
+      if(length(futureYrs)>0) {ccdfData_MI<-ccdfData_MI %>% rbind(expand)}
+      if(length(nonFutureYrs)>0) {ccdfData_MI<-ccdfData_MI %>% rbind(expandPastMiss2)}
+      
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
@@ -4141,6 +8276,38 @@ function.CCDFcopay<-function(data
       ccdfData_MN$stateFIPS <- 27
       
       temp<-data[data$stateFIPS==27,]
+      
+      # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+      years<-unique(data$ruleYear) # years in data set
+      yearsinexpdata<- unique(ccdfData_MN$ruleYear) # rule years in benefit data
+      yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+      yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+      # Create data for the future
+      maxyearofdata<-max(ccdfData_MN$ruleYear) # collect latest year of benefit data
+      futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+      if(length(futureYrs)>0){
+        # Create data frame with future years
+        expand<-expand.grid(stateFIPS=unique(ccdfData_MN$stateFIPS), AKorHI=unique(ccdfData_MN$AKorHI), famsize=unique(ccdfData_MN$famsize), Year=futureYrs)
+        # Collect latest benefit data there is and merge w/data frame
+        expand2<-ccdfData_MN[ccdfData_MN$ruleYear==maxyearofdata, ]
+        expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+      }
+      # Create data for past and gap years (missing data) - not the future
+      nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
+      if(length(nonFutureYrs)>0){
+        #Create data frame with past years and year for which we are missing benefit data
+        expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_MN$stateFIPS), AKorHI=unique(ccdfData_MN$AKorHI), famsize=unique(ccdfData_MN$famsize), Year=nonFutureYrs)
+        # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
+        expandPastMiss2<-left_join(expandPastMiss, ccdfData_MN, by=c("stateFIPS", "AKorHI", "famsize"))
+        expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
+        expandPastMiss2<-expandPastMiss2%>%
+          group_by(Year)%>%
+          mutate(minyeardiff = min(yeardiff))
+        expandPastMiss2<-expandPastMiss2 %>%
+          filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+      }  # Attach copied future, historical, and missing benefit data
+      if(length(futureYrs)>0) {ccdfData_MN<-ccdfData_MN %>% rbind(expand)}
+      if(length(nonFutureYrs)>0) {ccdfData_MN<-ccdfData_MN %>% rbind(expandPastMiss2)}
       
       #----------------------------------
       # Step 1: Assign copays
@@ -4219,12 +8386,30 @@ function.CCDFcopay<-function(data
     
     # MISSISSIPPI
     
-    
     if(28 %in% unique(data$stateFIPS)){ # make sure that state is in the list
       
       ccdfData_MS$stateFIPS <- 28
       
       temp<-data[data$stateFIPS==28,]
+      
+      years<-unique(data$Year)
+      maxYear<-max(ccdfData_MS$ruleYear)
+      for (yr in years){
+        if(yr %notin% ccdfData_MS$ruleYear & yr > maxYear){
+          copyLatestYear<-ccdfData_MS[rep(ccdfData_MS$ruleYear==maxYear), ]
+          copyLatestYear$ruleYear[copyLatestYear$ruleYear == maxYear]<-yr
+          ccdfData_MS<-ccdfData_MS%>%
+            rbind(copyLatestYear) 
+        }}
+      # Adds historical rules if we do not have them
+      minYear<-min(ccdfData_MS$ruleYear)
+      for (yr in years){
+        if(yr %notin% ccdfData_MS$ruleYear & yr < minYear){
+          copyEarliestYear<-ccdfData_MS[rep(ccdfData_MS$ruleYear==minYear), ]
+          copyEarliestYear$ruleYear[copyEarliestYear$ruleYear == minYear]<-yr
+          ccdfData_MS<-ccdfData_MS%>%
+            rbind(copyEarliestYear) 
+        }}
       
       #----------------------------------
       # Step 1: Assign copays
@@ -4350,9 +8535,39 @@ function.CCDFcopay<-function(data
     # Daily frequency 
     if(29 %in% unique(data$stateFIPS)){ # make sure that state is in the list
       
-        
-      
       temp<-data[data$stateFIPS==29,]
+      
+      # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+      years<-unique(data$ruleYear) # years in data set
+      yearsinexpdata<- unique(ccdfData_MO$ruleYear) # rule years in benefit data
+      yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+      yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+      # Create data for the future
+      maxyearofdata<-max(ccdfData_MO$ruleYear) # collect latest year of benefit data
+      futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+      if(length(futureYrs)>0){
+        # Create data frame with future years
+        expand<-expand.grid(stateFIPS=unique(ccdfData_MO$stateFIPS), AKorHI=unique(ccdfData_MO$AKorHI), famsize=unique(ccdfData_MO$famsize), Year=futureYrs)
+        # Collect latest benefit data there is and merge w/data frame
+        expand2<-ccdfData_MO[ccdfData_MO$ruleYear==maxyearofdata, ]
+        expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+      }
+      # Create data for past and gap years (missing data) - not the future
+      nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
+      if(length(nonFutureYrs)>0){
+        #Create data frame with past years and year for which we are missing benefit data
+        expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_MO$stateFIPS), AKorHI=unique(ccdfData_MO$AKorHI), famsize=unique(ccdfData_MO$famsize), Year=nonFutureYrs)
+        # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
+        expandPastMiss2<-left_join(expandPastMiss, ccdfData_MO, by=c("stateFIPS", "AKorHI", "famsize"))
+        expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
+        expandPastMiss2<-expandPastMiss2%>%
+          group_by(Year)%>%
+          mutate(minyeardiff = min(yeardiff))
+        expandPastMiss2<-expandPastMiss2 %>%
+          filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+      }  # Attach copied future, historical, and missing benefit data
+      if(length(futureYrs)>0) {ccdfData_MO<-ccdfData_MO %>% rbind(expand)}
+      if(length(nonFutureYrs)>0) {ccdfData_MO<-ccdfData_MO %>% rbind(expandPastMiss2)}
       
       #----------------------------------
       # Step 1: Assign copays
@@ -4419,6 +8634,38 @@ function.CCDFcopay<-function(data
       ccdfData_MT$stateFIPS <- 30
       
       temp<-data[data$stateFIPS==30,]
+      
+      # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+      years<-unique(data$ruleYear) # years in data set
+      yearsinexpdata<- unique(ccdfData_MT$ruleYear) # rule years in benefit data
+      yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+      yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+      # Create data for the future
+      maxyearofdata<-max(ccdfData_MT$ruleYear) # collect latest year of benefit data
+      futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+      if(length(futureYrs)>0){
+        # Create data frame with future years
+        expand<-expand.grid(stateFIPS=unique(ccdfData_MT$stateFIPS), AKorHI=unique(ccdfData_MT$AKorHI), famsize=unique(ccdfData_MT$famsize), Year=futureYrs)
+        # Collect latest benefit data there is and merge w/data frame
+        expand2<-ccdfData_MT[ccdfData_MT$ruleYear==maxyearofdata, ]
+        expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+      }
+      # Create data for past and gap years (missing data) - not the future
+      nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
+      if(length(nonFutureYrs)>0){
+        #Create data frame with past years and year for which we are missing benefit data
+        expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_MT$stateFIPS), AKorHI=unique(ccdfData_MT$AKorHI), famsize=unique(ccdfData_MT$famsize), Year=nonFutureYrs)
+        # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
+        expandPastMiss2<-left_join(expandPastMiss, ccdfData_MT, by=c("stateFIPS", "AKorHI", "famsize"))
+        expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
+        expandPastMiss2<-expandPastMiss2%>%
+          group_by(Year)%>%
+          mutate(minyeardiff = min(yeardiff))
+        expandPastMiss2<-expandPastMiss2 %>%
+          filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+      }  # Attach copied future, historical, and missing benefit data
+      if(length(futureYrs)>0) {ccdfData_MT<-ccdfData_MT %>% rbind(expand)}
+      if(length(nonFutureYrs)>0) {ccdfData_MT<-ccdfData_MT %>% rbind(expandPastMiss2)}
       
       #----------------------------------
       # Step 1: Assign copays
@@ -4488,6 +8735,38 @@ function.CCDFcopay<-function(data
       
       temp <- data[data$stateFIPS==31,]
       
+      # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+      years<-unique(data$ruleYear) # years in data set
+      yearsinexpdata<- unique(ccdfData_NE$ruleYear) # rule years in benefit data
+      yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+      yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+      # Create data for the future
+      maxyearofdata<-max(ccdfData_NE$ruleYear) # collect latest year of benefit data
+      futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+      if(length(futureYrs)>0){
+        # Create data frame with future years
+        expand<-expand.grid(stateFIPS=unique(ccdfData_NE$stateFIPS), AKorHI=unique(ccdfData_NE$AKorHI), famsize=unique(ccdfData_NE$famsize), Year=futureYrs)
+        # Collect latest benefit data there is and merge w/data frame
+        expand2<-ccdfData_NE[ccdfData_NE$ruleYear==maxyearofdata, ]
+        expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+      }
+      # Create data for past and gap years (missing data) - not the future
+      nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
+      if(length(nonFutureYrs)>0){
+        #Create data frame with past years and year for which we are missing benefit data
+        expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_NE$stateFIPS), AKorHI=unique(ccdfData_NE$AKorHI), famsize=unique(ccdfData_NE$famsize), Year=nonFutureYrs)
+        # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
+        expandPastMiss2<-left_join(expandPastMiss, ccdfData_NE, by=c("stateFIPS", "AKorHI", "famsize"))
+        expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
+        expandPastMiss2<-expandPastMiss2%>%
+          group_by(Year)%>%
+          mutate(minyeardiff = min(yeardiff))
+        expandPastMiss2<-expandPastMiss2 %>%
+          filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+      }  # Attach copied future, historical, and missing benefit data
+      if(length(futureYrs)>0) {ccdfData_NE<-ccdfData_NE %>% rbind(expand)}
+      if(length(nonFutureYrs)>0) {ccdfData_NE<-ccdfData_NE %>% rbind(expandPastMiss2)}
+      
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
@@ -4533,6 +8812,10 @@ function.CCDFcopay<-function(data
     
     if(32 %in% unique(data$stateFIPS)){
       
+      
+     # ccdfData_NV <- ccdfData_NV[ccdfData_NV$ruleYear != 2021,]
+    #  ccdfData_NV$ruleYear <- 2021
+      
       ccdfData_NV$stateFIPS <- 32
       ccdfData_NV$AssetTest <- 1000000
       ccdfData_NV$IncomeDisregard <- 0
@@ -4540,12 +8823,44 @@ function.CCDFcopay<-function(data
       
       temp <- data[data$stateFIPS==32,]
       
-      ##temp$ruleYear<-2022 # always use the most recent year
+      # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+      years<-unique(data$ruleYear) # years in data set
+      yearsinexpdata<- unique(providercost_NV$ruleYear) # rule years in benefit data
+      yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+      yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+      # Create data for the future
+      maxyearofdata<-max(providercost_NV$ruleYear) # collect latest year of benefit data
+      futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+      if(length(futureYrs)>0){
+        # Create data frame with future years
+        expand<-expand.grid(stateFIPS=unique(providercost_NV$stateFIPS), countyortownName=unique(providercost_NV$countyortownName), Year=futureYrs)
+        # Collect latest benefit data there is and merge w/data frame
+        expand2<-providercost_NV[providercost_NV$ruleYear==maxyearofdata, ]
+        expand<-expand%>%left_join(expand2, by=c("stateFIPS", "countyortownName")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+      }
+      # Create data for past and gap years (missing data) - not the future
+      nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
+      if(length(nonFutureYrs)>0){
+        #Create data frame with past years and year for which we are missing benefit data
+        expandPastMiss<-expand.grid(stateFIPS=unique(providercost_NV$stateFIPS), countyortownName=unique(providercost_NV$countyortownName), Year=nonFutureYrs)
+        # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
+        expandPastMiss2<-left_join(expandPastMiss, providercost_NV, by=c("stateFIPS", "countyortownName"))
+        expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
+        expandPastMiss2<-expandPastMiss2%>%
+          group_by(Year)%>%
+          mutate(minyeardiff = min(yeardiff))
+        expandPastMiss2<-expandPastMiss2 %>%
+          filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+      }  # Attach copied future, historical, and missing benefit data
+      if(length(futureYrs)>0) {providercost_NV<-providercost_NV %>% rbind(expand)}
+      if(length(nonFutureYrs)>0) {providercost_NV<-providercost_NV %>% rbind(expandPastMiss2)}
       
-      
+    #  if(ruleYear > 2022){
+     #   temp$ruleYear <- 2022
+   #   }
       #temp<-left_join(temp, providercost_NV, by=c("stateFIPS", "countyortownName", "ruleYear")) # EI: ruleYear is not working here !! 
-      providercost_NV$ruleYear<-providercost_NV$yearofdata
-      temp<-left_join(temp, providercost_NV, by=c("stateFIPS", "countyortownName", "ruleYear")) 
+    #  providercost_NV$ruleYear<-providercost_NV$yearofdata
+      temp<-left_join(temp, providercost_NV, by=c("stateFIPS", "countyortownName", "ruleYear","stateName","stateAbbrev","AKorHI")) 
       
         # Determine Expense based on Age of Children
         temp<-temp %>% 
@@ -4746,9 +9061,45 @@ function.CCDFcopay<-function(data
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
-      temp<-left_join(temp, ccdfData_NV, by=c("stateFIPS", "famsize", "countyortownName", "ruleYear"))
+        # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+        years<-unique(data$ruleYear) # years in data set
+        yearsinexpdata<- unique(ccdfData_NV$ruleYear) # rule years in benefit data
+        yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+        yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+        # Create data for the future
+        maxyearofdata<-max(ccdfData_NV$ruleYear) # collect latest year of benefit data
+        futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+        if(length(futureYrs)>0){
+          # Create data frame with future years
+          expand<-expand.grid(stateFIPS=unique(ccdfData_NV$stateFIPS), famsize=unique(ccdfData_NV$famsize), countyortownName=unique(ccdfData_NV$countyortownName), Year=futureYrs)
+          # Collect latest benefit data there is and merge w/data frame
+          expand2<-ccdfData_NV[ccdfData_NV$ruleYear==maxyearofdata, ]
+          expand<-expand%>%left_join(expand2, by=c("stateFIPS", "famsize", "countyortownName")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+        }
+        # Create data for past and gap years (missing data) - not the future
+        nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
+        if(length(nonFutureYrs)>0){
+          #Create data frame with past years and year for which we are missing benefit data
+          expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_NV$stateFIPS), famsize=unique(ccdfData_NV$famsize), countyortownName=unique(ccdfData_NV$countyortownName), Year=nonFutureYrs)
+          # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
+          expandPastMiss2<-left_join(expandPastMiss, ccdfData_NV, by=c("stateFIPS","famsize", "countyortownName"))
+          expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
+          expandPastMiss2<-expandPastMiss2%>%
+            group_by(Year)%>%
+            mutate(minyeardiff = min(yeardiff))
+          expandPastMiss2<-expandPastMiss2 %>%
+            filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+        }  # Attach copied future, historical, and missing benefit data
+        if(length(futureYrs)>0) {ccdfData_NV<-ccdfData_NV %>% rbind(expand)}
+        if(length(nonFutureYrs)>0) {ccdfData_NV<-ccdfData_NV %>% rbind(expandPastMiss2)}
+        
+     #   if(ruleYear > 2022){
+     #     temp$ruleYear <- 2022
+    #    }
+        
+      temp<-left_join(temp, ccdfData_NV, by=c("stateFIPS","stateName", "famsize", "countyortownName", "ruleYear"))
       
-      temp$income<-temp$income-12*temp$IncomeDisregard
+     # temp$income<-temp$income-12*temp$IncomeDisregard
       
       temp$FTcopay<-NA
       
@@ -4797,9 +9148,41 @@ function.CCDFcopay<-function(data
     # Monthly frequency 
     if(35 %in% unique(data$stateFIPS)){ # make sure that state is in the list
       
-      ccdfData_NV$stateFIPS <- 35
+      ccdfData_NM$stateFIPS <- 35
       
       temp<-data[data$stateFIPS==35,]
+      
+      # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+      years<-unique(data$ruleYear) # years in data set
+      yearsinexpdata<- unique(ccdfData_NM$ruleYear) # rule years in benefit data
+      yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+      yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+      # Create data for the future
+      maxyearofdata<-max(ccdfData_NM$ruleYear) # collect latest year of benefit data
+      futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+      if(length(futureYrs)>0){
+        # Create data frame with future years
+        expand<-expand.grid(stateFIPS=unique(ccdfData_NM$stateFIPS), AKorHI=unique(ccdfData_NM$AKorHI), famsize=unique(ccdfData_NM$famsize), Year=futureYrs)
+        # Collect latest benefit data there is and merge w/data frame
+        expand2<-ccdfData_NM[ccdfData_NM$ruleYear==maxyearofdata, ]
+        expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+      }
+      # Create data for past and gap years (missing data) - not the future
+      nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
+      if(length(nonFutureYrs)>0){
+        #Create data frame with past years and year for which we are missing benefit data
+        expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_NM$stateFIPS), AKorHI=unique(ccdfData_NM$AKorHI), famsize=unique(ccdfData_NM$famsize), Year=nonFutureYrs)
+        # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
+        expandPastMiss2<-left_join(expandPastMiss, ccdfData_NM, by=c("stateFIPS", "AKorHI", "famsize"))
+        expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
+        expandPastMiss2<-expandPastMiss2%>%
+          group_by(Year)%>%
+          mutate(minyeardiff = min(yeardiff))
+        expandPastMiss2<-expandPastMiss2 %>%
+          filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+      }  # Attach copied future, historical, and missing benefit data
+      if(length(futureYrs)>0) {ccdfData_NM<-ccdfData_NM %>% rbind(expand)}
+      if(length(nonFutureYrs)>0) {ccdfData_NM<-ccdfData_NM %>% rbind(expandPastMiss2)}
       
       #----------------------------------
       # Step 1: Assign copays
@@ -4972,6 +9355,37 @@ function.CCDFcopay<-function(data
         
       temp <- data[data$stateFIPS==33,]
       
+      # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+      years<-unique(data$ruleYear) # years in data set
+      yearsinexpdata<- unique(ccdfData_NH$ruleYear) # rule years in benefit data
+      yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+      yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+      # Create data for the future
+      maxyearofdata<-max(ccdfData_NH$ruleYear) # collect latest year of benefit data
+      futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+      if(length(futureYrs)>0){
+        # Create data frame with future years
+        expand<-expand.grid(stateFIPS=unique(ccdfData_NH$stateFIPS), AKorHI=unique(ccdfData_NH$AKorHI), famsize=unique(ccdfData_NH$famsize), Year=futureYrs)
+        # Collect latest benefit data there is and merge w/data frame
+        expand2<-ccdfData_NH[ccdfData_NH$ruleYear==maxyearofdata, ]
+        expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+      }
+      # Create data for past and gap years (missing data) - not the future
+      nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
+      if(length(nonFutureYrs)>0){
+        #Create data frame with past years and year for which we are missing benefit data
+        expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_NH$stateFIPS), AKorHI=unique(ccdfData_NH$AKorHI), famsize=unique(ccdfData_NH$famsize), Year=nonFutureYrs)
+        # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
+        expandPastMiss2<-left_join(expandPastMiss, ccdfData_NH, by=c("stateFIPS", "AKorHI", "famsize"))
+        expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
+        expandPastMiss2<-expandPastMiss2%>%
+          group_by(Year)%>%
+          mutate(minyeardiff = min(yeardiff))
+        expandPastMiss2<-expandPastMiss2 %>%
+          filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+      }  # Attach copied future, historical, and missing benefit data
+      if(length(futureYrs)>0) {ccdfData_NH<-ccdfData_NH %>% rbind(expand)}
+      if(length(nonFutureYrs)>0) {ccdfData_NH<-ccdfData_NH %>% rbind(expandPastMiss2)}
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
@@ -5015,9 +9429,6 @@ function.CCDFcopay<-function(data
     }
     
     
-    
-    
-    
     # NEW JERSEY ----
     
     if(34 %in% unique(data$stateFIPS)){ # make sure that state is in the list
@@ -5026,10 +9437,39 @@ function.CCDFcopay<-function(data
       
       temp<-data[data$stateFIPS==34,]
       
-      #temp$ruleYear<-2022 # always use the most recent year
-      
       temp$numkidsInCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
       
+      # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+      years<-unique(data$ruleYear) # years in data set
+      yearsinexpdata<- unique(ccdfData_NJ$ruleYear) # rule years in benefit data
+      yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+      yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+      # Create data for the future
+      maxyearofdata<-max(ccdfData_NJ$ruleYear) # collect latest year of benefit data
+      futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+      if(length(futureYrs)>0){
+        # Create data frame with future years
+        expand<-expand.grid(stateFIPS=unique(ccdfData_NJ$stateFIPS), AKorHI=unique(ccdfData_NJ$AKorHI), famsize=unique(ccdfData_NJ$famsize), numkidsInCare=unique(ccdfData_NJ$numkidsInCare), Year=futureYrs)
+        # Collect latest benefit data there is and merge w/data frame
+        expand2<-ccdfData_NJ[ccdfData_NJ$ruleYear==maxyearofdata, ]
+        expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+      }
+      # Create data for past and gap years (missing data) - not the future
+      nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
+      if(length(nonFutureYrs)>0){
+        #Create data frame with past years and year for which we are missing benefit data
+        expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_NJ$stateFIPS), AKorHI=unique(ccdfData_NJ$AKorHI), famsize=unique(ccdfData_NJ$famsize), numkidsInCare=unique(ccdfData_NJ$numkidsInCare), Year=nonFutureYrs)
+        # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
+        expandPastMiss2<-left_join(expandPastMiss, ccdfData_NJ, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare"))
+        expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
+        expandPastMiss2<-expandPastMiss2%>%
+          group_by(Year)%>%
+          mutate(minyeardiff = min(yeardiff))
+        expandPastMiss2<-expandPastMiss2 %>%
+          filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+      }  # Attach copied future, historical, and missing benefit data
+      if(length(futureYrs)>0) {ccdfData_NJ<-ccdfData_NJ %>% rbind(expand)}
+      if(length(nonFutureYrs)>0) {ccdfData_NJ<-ccdfData_NJ %>% rbind(expandPastMiss2)}
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
@@ -5117,6 +9557,37 @@ function.CCDFcopay<-function(data
       
       temp<-data[data$stateFIPS==37,]
       
+      # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+      years<-unique(data$ruleYear) # years in data set
+      yearsinexpdata<- unique(ccdfData_NC$ruleYear) # rule years in benefit data
+      yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+      yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+      # Create data for the future
+      maxyearofdata<-max(ccdfData_NC$ruleYear) # collect latest year of benefit data
+      futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+      if(length(futureYrs)>0){
+        # Create data frame with future years
+        expand<-expand.grid(stateFIPS=unique(ccdfData_NC$stateFIPS), AKorHI=unique(ccdfData_NC$AKorHI), famsize=unique(ccdfData_NC$famsize), Year=futureYrs)
+        # Collect latest benefit data there is and merge w/data frame
+        expand2<-ccdfData_NC[ccdfData_NC$ruleYear==maxyearofdata, ]
+        expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+      }
+      # Create data for past and gap years (missing data) - not the future
+      nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
+      if(length(nonFutureYrs)>0){
+        #Create data frame with past years and year for which we are missing benefit data
+        expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_NC$stateFIPS), AKorHI=unique(ccdfData_NC$AKorHI), famsize=unique(ccdfData_NC$famsize), Year=nonFutureYrs)
+        # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
+        expandPastMiss2<-left_join(expandPastMiss, ccdfData_NC, by=c("stateFIPS", "AKorHI", "famsize"))
+        expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
+        expandPastMiss2<-expandPastMiss2%>%
+          group_by(Year)%>%
+          mutate(minyeardiff = min(yeardiff))
+        expandPastMiss2<-expandPastMiss2 %>%
+          filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+      }  # Attach copied future, historical, and missing benefit data
+      if(length(futureYrs)>0) {ccdfData_NC<-ccdfData_NC %>% rbind(expand)}
+      if(length(nonFutureYrs)>0) {ccdfData_NC<-ccdfData_NC %>% rbind(expandPastMiss2)}
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
@@ -5161,11 +9632,40 @@ function.CCDFcopay<-function(data
     # NORTH DAKOTA ----
     
     if(38 %in% unique(data$stateFIPS)){
-      
-   
-      
+
       temp <- data[data$stateFIPS==38,]
       
+      # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+      years<-unique(data$ruleYear) # years in data set
+      yearsinexpdata<- unique(ccdfData_ND$ruleYear) # rule years in benefit data
+      yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+      yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+      # Create data for the future
+      maxyearofdata<-max(ccdfData_ND$ruleYear) # collect latest year of benefit data
+      futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+      if(length(futureYrs)>0){
+        # Create data frame with future years
+        expand<-expand.grid(stateFIPS=unique(ccdfData_ND$stateFIPS), AKorHI=unique(ccdfData_ND$AKorHI), famsize=unique(ccdfData_ND$famsize), Year=futureYrs)
+        # Collect latest benefit data there is and merge w/data frame
+        expand2<-ccdfData_ND[ccdfData_ND$ruleYear==maxyearofdata, ]
+        expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+      }
+      # Create data for past and gap years (missing data) - not the future
+      nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
+      if(length(nonFutureYrs)>0){
+        #Create data frame with past years and year for which we are missing benefit data
+        expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_ND$stateFIPS), AKorHI=unique(ccdfData_ND$AKorHI), famsize=unique(ccdfData_ND$famsize), Year=nonFutureYrs)
+        # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
+        expandPastMiss2<-left_join(expandPastMiss, ccdfData_ND, by=c("stateFIPS", "AKorHI", "famsize"))
+        expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
+        expandPastMiss2<-expandPastMiss2%>%
+          group_by(Year)%>%
+          mutate(minyeardiff = min(yeardiff))
+        expandPastMiss2<-expandPastMiss2 %>%
+          filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+      }  # Attach copied future, historical, and missing benefit data
+      if(length(futureYrs)>0) {ccdfData_ND<-ccdfData_ND %>% rbind(expand)}
+      if(length(nonFutureYrs)>0) {ccdfData_ND<-ccdfData_ND %>% rbind(expandPastMiss2)}
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
@@ -5221,6 +9721,38 @@ function.CCDFcopay<-function(data
       ccdfData_NY$stateFIPS <- 36
       temp<-data[data$stateFIPS==36,]
 
+      # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+      years<-unique(data$ruleYear) # years in data set
+      yearsinexpdata<- unique(ccdfData_NY$ruleYear) # rule years in benefit data
+      yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+      yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+      # Create data for the future
+      maxyearofdata<-max(ccdfData_NY$ruleYear) # collect latest year of benefit data
+      futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+      if(length(futureYrs)>0){
+        # Create data frame with future years
+        expand<-expand.grid(stateFIPS=unique(ccdfData_NY$stateFIPS), AKorHI=unique(ccdfData_NY$AKorHI), famsize=unique(ccdfData_NY$famsize), countyortownName=unique(ccdfData_NY$countyortownName), Year=futureYrs)
+        # Collect latest benefit data there is and merge w/data frame
+        expand2<-ccdfData_NY[ccdfData_NY$ruleYear==maxyearofdata, ]
+        expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize", "countyortownName")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+      }
+      # Create data for past and gap years (missing data) - not the future
+      nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
+      if(length(nonFutureYrs)>0){
+        #Create data frame with past years and year for which we are missing benefit data
+        expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_NY$stateFIPS), AKorHI=unique(ccdfData_NY$AKorHI), famsize=unique(ccdfData_NY$famsize), countyortownName=unique(ccdfData_NY$countyortownName), Year=nonFutureYrs)
+        # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
+        expandPastMiss2<-left_join(expandPastMiss, ccdfData_NY, by=c("stateFIPS", "AKorHI", "famsize", "countyortownName"))
+        expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
+        expandPastMiss2<-expandPastMiss2%>%
+          group_by(Year)%>%
+          mutate(minyeardiff = min(yeardiff))
+        expandPastMiss2<-expandPastMiss2 %>%
+          filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+      }  # Attach copied future, historical, and missing benefit data
+      if(length(futureYrs)>0) {ccdfData_NY<-ccdfData_NY %>% rbind(expand)}
+      if(length(nonFutureYrs)>0) {ccdfData_NY<-ccdfData_NY %>% rbind(expandPastMiss2)}
+      
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
@@ -5280,6 +9812,37 @@ function.CCDFcopay<-function(data
       
       temp<-data[data$stateFIPS==39,]
       
+      # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+      years<-unique(data$ruleYear) # years in data set
+      yearsinexpdata<- unique(ccdfData_OH$ruleYear) # rule years in benefit data
+      yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+      yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+      # Create data for the future
+      maxyearofdata<-max(ccdfData_OH$ruleYear) # collect latest year of benefit data
+      futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+      if(length(futureYrs)>0){
+        # Create data frame with future years
+        expand<-expand.grid(stateFIPS=unique(ccdfData_OH$stateFIPS), AKorHI=unique(ccdfData_OH$AKorHI), famsize=unique(ccdfData_OH$famsize), Year=futureYrs)
+        # Collect latest benefit data there is and merge w/data frame
+        expand2<-ccdfData_OH[ccdfData_OH$ruleYear==maxyearofdata, ]
+        expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+      }
+      # Create data for past and gap years (missing data) - not the future
+      nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
+      if(length(nonFutureYrs)>0){
+        #Create data frame with past years and year for which we are missing benefit data
+        expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_OH$stateFIPS), AKorHI=unique(ccdfData_OH$AKorHI), famsize=unique(ccdfData_OH$famsize), Year=nonFutureYrs)
+        # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
+        expandPastMiss2<-left_join(expandPastMiss, ccdfData_OH, by=c("stateFIPS", "AKorHI", "famsize"))
+        expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
+        expandPastMiss2<-expandPastMiss2%>%
+          group_by(Year)%>%
+          mutate(minyeardiff = min(yeardiff))
+        expandPastMiss2<-expandPastMiss2 %>%
+          filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+      }  # Attach copied future, historical, and missing benefit data
+      if(length(futureYrs)>0) {ccdfData_OH<-ccdfData_OH %>% rbind(expand)}
+      if(length(nonFutureYrs)>0) {ccdfData_OH<-ccdfData_OH %>% rbind(expandPastMiss2)}
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
@@ -5360,6 +9923,37 @@ function.CCDFcopay<-function(data
       
       temp<-data[data$stateFIPS==40,]
 
+      # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+      years<-unique(data$ruleYear) # years in data set
+      yearsinexpdata<- unique(ccdfData_OK$ruleYear) # rule years in benefit data
+      yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+      yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+      # Create data for the future
+      maxyearofdata<-max(ccdfData_OK$ruleYear) # collect latest year of benefit data
+      futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+      if(length(futureYrs)>0){
+        # Create data frame with future years
+        expand<-expand.grid(stateFIPS=unique(ccdfData_OK$stateFIPS), AKorHI=unique(ccdfData_OK$AKorHI), famsize=unique(ccdfData_OK$famsize), Year=futureYrs)
+        # Collect latest benefit data there is and merge w/data frame
+        expand2<-ccdfData_OK[ccdfData_OK$ruleYear==maxyearofdata, ]
+        expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+      }
+      # Create data for past and gap years (missing data) - not the future
+      nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
+      if(length(nonFutureYrs)>0){
+        #Create data frame with past years and year for which we are missing benefit data
+        expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_OK$stateFIPS), AKorHI=unique(ccdfData_OK$AKorHI), famsize=unique(ccdfData_OK$famsize), Year=nonFutureYrs)
+        # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
+        expandPastMiss2<-left_join(expandPastMiss, ccdfData_OK, by=c("stateFIPS", "AKorHI", "famsize"))
+        expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
+        expandPastMiss2<-expandPastMiss2%>%
+          group_by(Year)%>%
+          mutate(minyeardiff = min(yeardiff))
+        expandPastMiss2<-expandPastMiss2 %>%
+          filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+      }  # Attach copied future, historical, and missing benefit data
+      if(length(futureYrs)>0) {ccdfData_OK<-ccdfData_OK %>% rbind(expand)}
+      if(length(nonFutureYrs)>0) {ccdfData_OK<-ccdfData_OK %>% rbind(expandPastMiss2)}
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
@@ -5414,10 +10008,41 @@ function.CCDFcopay<-function(data
     
     # OREGON ----
     
-    
     if(41 %in% unique(data$stateFIPS)){
       
       temp <- data[data$stateFIPS==41,]
+      
+      # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+      years<-unique(data$ruleYear) # years in data set
+      yearsinexpdata<- unique(ccdfData_OR$ruleYear) # rule years in benefit data
+      yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+      yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+      # Create data for the future
+      maxyearofdata<-max(ccdfData_OR$ruleYear) # collect latest year of benefit data
+      futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+      if(length(futureYrs)>0){
+        # Create data frame with future years
+        expand<-expand.grid(stateFIPS=unique(ccdfData_OR$stateFIPS), AKorHI=unique(ccdfData_OR$AKorHI), famsize=unique(ccdfData_OR$famsize), Year=futureYrs)
+        # Collect latest benefit data there is and merge w/data frame
+        expand2<-ccdfData_OR[ccdfData_OR$ruleYear==maxyearofdata, ]
+        expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+      }
+      # Create data for past and gap years (missing data) - not the future
+      nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
+      if(length(nonFutureYrs)>0){
+        #Create data frame with past years and year for which we are missing benefit data
+        expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_OR$stateFIPS), AKorHI=unique(ccdfData_OR$AKorHI), famsize=unique(ccdfData_OR$famsize), Year=nonFutureYrs)
+        # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
+        expandPastMiss2<-left_join(expandPastMiss, ccdfData_OR, by=c("stateFIPS", "AKorHI", "famsize"))
+        expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
+        expandPastMiss2<-expandPastMiss2%>%
+          group_by(Year)%>%
+          mutate(minyeardiff = min(yeardiff))
+        expandPastMiss2<-expandPastMiss2 %>%
+          filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+      }  # Attach copied future, historical, and missing benefit data
+      if(length(futureYrs)>0) {ccdfData_OR<-ccdfData_OR %>% rbind(expand)}
+      if(length(nonFutureYrs)>0) {ccdfData_OR<-ccdfData_OR %>% rbind(expandPastMiss2)}
       
       #----------------------------------
       # Step 1: Assign copays
@@ -5464,10 +10089,41 @@ function.CCDFcopay<-function(data
     
     # PENNSYLVANIA ----
     
-    
     if(42 %in% unique(data$stateFIPS)){
       
       temp <- data[data$stateFIPS==42,]
+      
+      # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+      years<-unique(data$ruleYear) # years in data set
+      yearsinexpdata<- unique(ccdfData_PA$ruleYear) # rule years in benefit data
+      yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+      yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+      # Create data for the future
+      maxyearofdata<-max(ccdfData_PA$ruleYear) # collect latest year of benefit data
+      futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+      if(length(futureYrs)>0){
+        # Create data frame with future years
+        expand<-expand.grid(stateFIPS=unique(ccdfData_PA$stateFIPS), AKorHI=unique(ccdfData_PA$AKorHI), famsize=unique(ccdfData_PA$famsize), Year=futureYrs)
+        # Collect latest benefit data there is and merge w/data frame
+        expand2<-ccdfData_PA[ccdfData_PA$ruleYear==maxyearofdata, ]
+        expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+      }
+      # Create data for past and gap years (missing data) - not the future
+      nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
+      if(length(nonFutureYrs)>0){
+        #Create data frame with past years and year for which we are missing benefit data
+        expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_PA$stateFIPS), AKorHI=unique(ccdfData_PA$AKorHI), famsize=unique(ccdfData_PA$famsize), Year=nonFutureYrs)
+        # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
+        expandPastMiss2<-left_join(expandPastMiss, ccdfData_PA, by=c("stateFIPS", "AKorHI", "famsize"))
+        expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
+        expandPastMiss2<-expandPastMiss2%>%
+          group_by(Year)%>%
+          mutate(minyeardiff = min(yeardiff))
+        expandPastMiss2<-expandPastMiss2 %>%
+          filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+      }  # Attach copied future, historical, and missing benefit data
+      if(length(futureYrs)>0) {ccdfData_PA<-ccdfData_PA %>% rbind(expand)}
+      if(length(nonFutureYrs)>0) {ccdfData_PA<-ccdfData_PA %>% rbind(expandPastMiss2)}
       
       #----------------------------------
       # Step 1: Assign copays
@@ -5575,9 +10231,40 @@ function.CCDFcopay<-function(data
     # Copay is a percentage of total income
     # Monthly frequency
     if(44 %in% unique(data$stateFIPS)){
-      
        
       temp <- data[data$stateFIPS==44,]
+      
+      # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+      years<-unique(data$ruleYear) # years in data set
+      yearsinexpdata<- unique(ccdfData_RI$ruleYear) # rule years in benefit data
+      yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+      yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+      # Create data for the future
+      maxyearofdata<-max(ccdfData_RI$ruleYear) # collect latest year of benefit data
+      futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+      if(length(futureYrs)>0){
+        # Create data frame with future years
+        expand<-expand.grid(stateFIPS=unique(ccdfData_RI$stateFIPS), AKorHI=unique(ccdfData_RI$AKorHI), famsize=unique(ccdfData_RI$famsize), Year=futureYrs)
+        # Collect latest benefit data there is and merge w/data frame
+        expand2<-ccdfData_RI[ccdfData_RI$ruleYear==maxyearofdata, ]
+        expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+      }
+      # Create data for past and gap years (missing data) - not the future
+      nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
+      if(length(nonFutureYrs)>0){
+        #Create data frame with past years and year for which we are missing benefit data
+        expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_RI$stateFIPS), AKorHI=unique(ccdfData_RI$AKorHI), famsize=unique(ccdfData_RI$famsize), Year=nonFutureYrs)
+        # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
+        expandPastMiss2<-left_join(expandPastMiss, ccdfData_RI, by=c("stateFIPS", "AKorHI", "famsize"))
+        expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
+        expandPastMiss2<-expandPastMiss2%>%
+          group_by(Year)%>%
+          mutate(minyeardiff = min(yeardiff))
+        expandPastMiss2<-expandPastMiss2 %>%
+          filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+      }  # Attach copied future, historical, and missing benefit data
+      if(length(futureYrs)>0) {ccdfData_RI<-ccdfData_RI %>% rbind(expand)}
+      if(length(nonFutureYrs)>0) {ccdfData_RI<-ccdfData_RI %>% rbind(expandPastMiss2)}
       
       #----------------------------------
       # Step 1: Assign copays
@@ -5630,6 +10317,38 @@ function.CCDFcopay<-function(data
       
       temp<-data[data$stateFIPS==45,]
       
+      # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+      years<-unique(data$ruleYear) # years in data set
+      yearsinexpdata<- unique(ccdfData_SC$ruleYear) # rule years in benefit data
+      yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+      yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+      # Create data for the future
+      maxyearofdata<-max(ccdfData_SC$ruleYear) # collect latest year of benefit data
+      futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+      if(length(futureYrs)>0){
+        # Create data frame with future years
+        expand<-expand.grid(stateFIPS=unique(ccdfData_SC$stateFIPS), AKorHI=unique(ccdfData_SC$AKorHI), famsize=unique(ccdfData_SC$famsize), Year=futureYrs)
+        # Collect latest benefit data there is and merge w/data frame
+        expand2<-ccdfData_SC[ccdfData_SC$ruleYear==maxyearofdata, ]
+        expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+      }
+      # Create data for past and gap years (missing data) - not the future
+      nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
+      if(length(nonFutureYrs)>0){
+        #Create data frame with past years and year for which we are missing benefit data
+        expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_SC$stateFIPS), AKorHI=unique(ccdfData_SC$AKorHI), famsize=unique(ccdfData_SC$famsize), Year=nonFutureYrs)
+        # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
+        expandPastMiss2<-left_join(expandPastMiss, ccdfData_SC, by=c("stateFIPS", "AKorHI", "famsize"))
+        expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
+        expandPastMiss2<-expandPastMiss2%>%
+          group_by(Year)%>%
+          mutate(minyeardiff = min(yeardiff))
+        expandPastMiss2<-expandPastMiss2 %>%
+          filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+      }  # Attach copied future, historical, and missing benefit data
+      if(length(futureYrs)>0) {ccdfData_SC<-ccdfData_SC %>% rbind(expand)}
+      if(length(nonFutureYrs)>0) {ccdfData_SC<-ccdfData_SC %>% rbind(expandPastMiss2)}
+      
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
@@ -5674,8 +10393,8 @@ function.CCDFcopay<-function(data
     }
     
     
-    
     # SOUTH DAKOTA ----
+    
     # Description:
     # Fixed copay dollar amount per family
     # Monthly frequency 
@@ -5683,7 +10402,37 @@ function.CCDFcopay<-function(data
       
       temp<-data[data$stateFIPS==46,]
       
-    
+      # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+      years<-unique(data$ruleYear) # years in data set
+      yearsinexpdata<- unique(ccdfData_SD$ruleYear) # rule years in benefit data
+      yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+      yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+      # Create data for the future
+      maxyearofdata<-max(ccdfData_SD$ruleYear) # collect latest year of benefit data
+      futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+      if(length(futureYrs)>0){
+        # Create data frame with future years
+        expand<-expand.grid(stateFIPS=unique(ccdfData_SD$stateFIPS), AKorHI=unique(ccdfData_SD$AKorHI), famsize=unique(ccdfData_SD$famsize), Year=futureYrs)
+        # Collect latest benefit data there is and merge w/data frame
+        expand2<-ccdfData_SD[ccdfData_SD$ruleYear==maxyearofdata, ]
+        expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+      }
+      # Create data for past and gap years (missing data) - not the future
+      nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
+      if(length(nonFutureYrs)>0){
+        #Create data frame with past years and year for which we are missing benefit data
+        expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_SD$stateFIPS), AKorHI=unique(ccdfData_SD$AKorHI), famsize=unique(ccdfData_SD$famsize), Year=nonFutureYrs)
+        # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
+        expandPastMiss2<-left_join(expandPastMiss, ccdfData_SD, by=c("stateFIPS", "AKorHI", "famsize"))
+        expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
+        expandPastMiss2<-expandPastMiss2%>%
+          group_by(Year)%>%
+          mutate(minyeardiff = min(yeardiff))
+        expandPastMiss2<-expandPastMiss2 %>%
+          filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+      }  # Attach copied future, historical, and missing benefit data
+      if(length(futureYrs)>0) {ccdfData_SD<-ccdfData_SD %>% rbind(expand)}
+      if(length(nonFutureYrs)>0) {ccdfData_SD<-ccdfData_SD %>% rbind(expandPastMiss2)}
       
       #----------------------------------
       # Step 1: Assign copays
@@ -5750,10 +10499,42 @@ function.CCDFcopay<-function(data
       ccdfData_TN$stateFIPS <- 47
       
       temp<-data[data$stateFIPS==47,]
-      
       #  temp$numkidsInCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
       #temp$numkidsInCare<-temp$numkidsincare0to4
       temp$numkidsInCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
+      
+      # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+      years<-unique(data$ruleYear) # years in data set
+      yearsinexpdata<- unique(ccdfData_TN$ruleYear) # rule years in benefit data
+      yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+      yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+      # Create data for the future
+      maxyearofdata<-max(ccdfData_TN$ruleYear) # collect latest year of benefit data
+      futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+      if(length(futureYrs)>0){
+        # Create data frame with future years
+        expand<-expand.grid(stateFIPS=unique(ccdfData_TN$stateFIPS), AKorHI=unique(ccdfData_TN$AKorHI), famsize=unique(ccdfData_TN$famsize), numkidsInCare=unique(ccdfData_TN$numkidsInCare), Year=futureYrs)
+        # Collect latest benefit data there is and merge w/data frame
+        expand2<-ccdfData_TN[ccdfData_TN$ruleYear==maxyearofdata, ]
+        expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+      }
+      # Create data for past and gap years (missing data) - not the future
+      nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
+      if(length(nonFutureYrs)>0){
+        #Create data frame with past years and year for which we are missing benefit data
+        expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_TN$stateFIPS), AKorHI=unique(ccdfData_TN$AKorHI), famsize=unique(ccdfData_TN$famsize), numkidsInCare=unique(ccdfData_TN$numkidsInCare), Year=nonFutureYrs)
+        # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
+        expandPastMiss2<-left_join(expandPastMiss, ccdfData_TN, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare"))
+        expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
+        expandPastMiss2<-expandPastMiss2%>%
+          group_by(Year)%>%
+          mutate(minyeardiff = min(yeardiff))
+        expandPastMiss2<-expandPastMiss2 %>%
+          filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+      }  # Attach copied future, historical, and missing benefit data
+      if(length(futureYrs)>0) {ccdfData_TN<-ccdfData_TN %>% rbind(expand)}
+      if(length(nonFutureYrs)>0) {ccdfData_TN<-ccdfData_TN %>% rbind(expandPastMiss2)}
+      
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
@@ -5839,10 +10620,40 @@ function.CCDFcopay<-function(data
     # Monthly frequency 
     # 2nd+ kids in care have reduced price
     if(48 %in% unique(data$stateFIPS)){
-    
-        
       temp<-data[data$stateFIPS==48,]
 
+      # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+      years<-unique(data$ruleYear) # years in data set
+      yearsinexpdata<- unique(ccdfData_TX$ruleYear) # rule years in benefit data
+      yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+      yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+      # Create data for the future
+      maxyearofdata<-max(ccdfData_TX$ruleYear) # collect latest year of benefit data
+      futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+      if(length(futureYrs)>0){
+        # Create data frame with future years
+        expand<-expand.grid(stateFIPS=unique(ccdfData_TX$stateFIPS), AKorHI=unique(ccdfData_TX$AKorHI), famsize=unique(ccdfData_TX$famsize), Year=futureYrs)
+        # Collect latest benefit data there is and merge w/data frame
+        expand2<-ccdfData_TX[ccdfData_TX$ruleYear==maxyearofdata, ]
+        expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+      }
+      # Create data for past and gap years (missing data) - not the future
+      nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
+      if(length(nonFutureYrs)>0){
+        #Create data frame with past years and year for which we are missing benefit data
+        expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_TX$stateFIPS), AKorHI=unique(ccdfData_TX$AKorHI), famsize=unique(ccdfData_TX$famsize), Year=nonFutureYrs)
+        # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
+        expandPastMiss2<-left_join(expandPastMiss, ccdfData_TX, by=c("stateFIPS", "AKorHI", "famsize"))
+        expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
+        expandPastMiss2<-expandPastMiss2%>%
+          group_by(Year)%>%
+          mutate(minyeardiff = min(yeardiff))
+        expandPastMiss2<-expandPastMiss2 %>%
+          filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+      }  # Attach copied future, historical, and missing benefit data
+      if(length(futureYrs)>0) {ccdfData_TX<-ccdfData_TX %>% rbind(expand)}
+      if(length(nonFutureYrs)>0) {ccdfData_TX<-ccdfData_TX %>% rbind(expandPastMiss2)}
+      
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
@@ -5919,7 +10730,6 @@ function.CCDFcopay<-function(data
     }
     
     
-    
     # UTAH ----
     # Description:
     # Copay is a fixed amount per child
@@ -5933,6 +10743,38 @@ function.CCDFcopay<-function(data
       temp<-data[data$stateFIPS==49,]
       
       temp$numkidsInCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
+      
+      # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+      years<-unique(data$ruleYear) # years in data set
+      yearsinexpdata<- unique(ccdfData_UT$ruleYear) # rule years in benefit data
+      yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+      yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+      # Create data for the future
+      maxyearofdata<-max(ccdfData_UT$ruleYear) # collect latest year of benefit data
+      futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+      if(length(futureYrs)>0){
+        # Create data frame with future years
+        expand<-expand.grid(stateFIPS=unique(ccdfData_UT$stateFIPS), AKorHI=unique(ccdfData_UT$AKorHI), famsize=unique(ccdfData_UT$famsize), numkidsInCare=unique(ccdfData_UT$numkidsInCare), Year=futureYrs)
+        # Collect latest benefit data there is and merge w/data frame
+        expand2<-ccdfData_UT[ccdfData_UT$ruleYear==maxyearofdata, ]
+        expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+      }
+      # Create data for past and gap years (missing data) - not the future
+      nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
+      if(length(nonFutureYrs)>0){
+        #Create data frame with past years and year for which we are missing benefit data
+        expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_UT$stateFIPS), AKorHI=unique(ccdfData_UT$AKorHI), famsize=unique(ccdfData_UT$famsize), numkidsInCare=unique(ccdfData_UT$numkidsInCare), Year=nonFutureYrs)
+        # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
+        expandPastMiss2<-left_join(expandPastMiss, ccdfData_UT, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare"))
+        expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
+        expandPastMiss2<-expandPastMiss2%>%
+          group_by(Year)%>%
+          mutate(minyeardiff = min(yeardiff))
+        expandPastMiss2<-expandPastMiss2 %>%
+          filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+      }  # Attach copied future, historical, and missing benefit data
+      if(length(futureYrs)>0) {ccdfData_UT<-ccdfData_UT %>% rbind(expand)}
+      if(length(nonFutureYrs)>0) {ccdfData_UT<-ccdfData_UT %>% rbind(expandPastMiss2)}
       
       #----------------------------------
       # Step 1: Assign copays
@@ -5991,236 +10833,289 @@ function.CCDFcopay<-function(data
     }
     
     
-    
-    
     # VERMONT ----
-    
-    
     if(50 %in% unique(data$stateFIPS)){
       
       temp <- data[data$stateFIPS==50,]
       
-      providercost_VT$stateFIPS <- 50
-      
-     # if(temp$rule < 2022){
-        temp<-left_join(temp, providercost_VT, by=c("stateFIPS", "ruleYear"))
-      
-      # Determine Expense based on Age of Children
-       temp<-temp %>% 
-          mutate(sprPerson1=(case_when(agePerson1 %in% c(0)~ftdailyrate.infant,
-                                       agePerson1 %in% c(1:2)~ftdailyrate.toddler,
-                                       agePerson1 %in% c(3:5)~ftdailyrate.preschool,  
-                                       agePerson1 %in% c(6:12)~ftdailyrate.schoolage,
-                                       agePerson1 > 12 ~ 0,
-                                       TRUE~0)
-          )
-          )
-        temp<-temp %>% 
-            mutate(sprPerson2=(case_when(agePerson2 %in% c(0)~ftdailyrate.infant,
-                                         agePerson2 %in% c(1:2)~ftdailyrate.toddler,
-                                         agePerson2 %in% c(3:5)~ftdailyrate.preschool,  
-                                         agePerson2 %in% c(6:12)~ftdailyrate.schoolage,
-                                         agePerson2 > 12 ~ 0,
-                                         TRUE~0)
-            )
-            )
-          temp<-temp %>% 
-            mutate(sprPerson3=(case_when(agePerson3 %in% c(0)~ftdailyrate.infant,
-                                         agePerson3 %in% c(1:2)~ftdailyrate.toddler,
-                                         agePerson3 %in% c(3:5)~ftdailyrate.preschool,  
-                                         agePerson3 %in% c(6:12)~ftdailyrate.schoolage,
-                                         agePerson3 > 12 ~ 0,
-                                         TRUE~0)
-            )
-            )
-      
-         temp<-temp %>% 
-            mutate(sprPerson4=(case_when(agePerson4 %in% c(0)~ftdailyrate.infant,
-                                         agePerson4 %in% c(1:2)~ftdailyrate.toddler,
-                                         agePerson4 %in% c(3:5)~ftdailyrate.preschool,  
-                                         agePerson4 %in% c(6:12)~ftdailyrate.schoolage,
-                                         agePerson4 > 12 ~ 0,
-                                         TRUE~0)
-            )
-            )
-      
-          temp<-temp %>% 
-            mutate(sprPerson5=(case_when(agePerson5 %in% c(0)~ftdailyrate.infant,
-                                         agePerson5 %in% c(1:2)~ftdailyrate.toddler,
-                                         agePerson5 %in% c(3:5)~ftdailyrate.preschool,  
-                                         agePerson5 %in% c(6:12)~ftdailyrate.schoolage,
-                                         agePerson5 > 12 ~ 0,
-                                         TRUE~0)
-            )
-            )
-      
-         temp<-temp %>% 
-            mutate(sprPerson6=(case_when(agePerson6 %in% c(0)~ftdailyrate.infant,
-                                         agePerson6 %in% c(1:2)~ftdailyrate.toddler,
-                                         agePerson6 %in% c(3:5)~ftdailyrate.preschool,  
-                                         agePerson6 %in% c(6:12)~ftdailyrate.schoolage,
-                                         agePerson6 > 12 ~ 0,
-                                         TRUE~0)
-            )
-            )
-      
-          temp<-temp %>% 
-            mutate(sprPerson7=(case_when(agePerson7 %in% c(0)~ftdailyrate.infant,
-                                         agePerson7 %in% c(1:2)~ftdailyrate.toddler,
-                                         agePerson7 %in% c(3:5)~ftdailyrate.preschool,  
-                                         agePerson7 %in% c(6:12)~ftdailyrate.schoolage,
-                                         agePerson7 > 12 ~ 0,
-                                         TRUE~0)
-            )
-            )
-      
-          temp<-temp %>% 
-            mutate(sprPerson8=(case_when(agePerson8 %in% c(0)~ftdailyrate.infant,
-                                         agePerson8 %in% c(1:2)~ftdailyrate.toddler,
-                                         agePerson8 %in% c(3:5)~ftdailyrate.preschool,  
-                                         agePerson8 %in% c(6:12)~ftdailyrate.schoolage,
-                                         TRUE~0)
-            )
-            )
-      
-          temp<-temp %>% 
-            mutate(sprPerson9=(case_when(agePerson9 %in% c(0)~ftdailyrate.infant,
-                                         agePerson9 %in% c(1:2)~ftdailyrate.toddler,
-                                         agePerson9 %in% c(3:5)~ftdailyrate.preschool,  
-                                         agePerson9 %in% c(6:12)~ftdailyrate.schoolage,
-                                         TRUE~0)
-            )
-            )
-      
-        temp<-temp %>% 
-          mutate(sprPerson10=(case_when(agePerson10 %in% c(0)~ftdailyrate.infant,
-                                        agePerson10 %in% c(1:2)~ftdailyrate.toddler,
-                                        agePerson10 %in% c(3:5)~ftdailyrate.preschool,  
-                                        agePerson10 %in% c(6:12)~ftdailyrate.schoolage,
-                                        TRUE~0)
-          )
-          )
-      
-       temp<-temp %>% 
-          mutate(sprPerson11=(case_when(agePerson11 %in% c(0)~ftdailyrate.infant,
-                                        agePerson11 %in% c(1:2)~ftdailyrate.toddler,
-                                        agePerson11 %in% c(3:5)~ftdailyrate.preschool,  
-                                        agePerson11 %in% c(6:12)~ftdailyrate.schoolage,
-                                        TRUE~0)
-          )
-          )
-      
-        temp<-temp %>% 
-          mutate(sprPerson12=(case_when(agePerson12 %in% c(0)~ftdailyrate.infant,
-                                        agePerson12 %in% c(1:2)~ftdailyrate.toddler,
-                                        agePerson12 %in% c(3:5)~ftdailyrate.preschool,  
-                                        agePerson12 %in% c(6:12)~ftdailyrate.schoolage,
-                                        TRUE~0)
-          )
-          )
-        
-        temp<-temp %>%
-          mutate(sprTotal=sprPerson1+sprPerson2+sprPerson3+sprPerson4+sprPerson5+sprPerson6+sprPerson7+sprPerson8+sprPerson9+sprPerson10+sprPerson11+sprPerson12)
-       
-         temp<-temp %>% 
-            mutate(annualcost1=(case_when(agePerson1 < 5 ~ sprPerson1*daysofcareneeded0to4,
-                                          agePerson1 > 4 & agePerson1 < 13 ~ sprPerson1*daysofcareneeded5to12,
-                                          agePerson1 > 12 ~ 0,
-                                          TRUE~0)
-            )
-            )
-      
-          temp<-temp %>% 
-            mutate(annualcost2=(case_when(agePerson2 < 5 ~ sprPerson2*daysofcareneeded0to4,
-                                         agePerson2 > 4 & agePerson2 < 13 ~ sprPerson2*daysofcareneeded5to12,
-                                          agePerson2 > 12 ~ 0,
-                                          TRUE~0)
-           )
-          )
-      
-        temp<-temp %>% 
-          mutate(annualcost3=(case_when(agePerson3 < 5 ~ sprPerson3*daysofcareneeded0to4,
-                                        agePerson3 > 4 & agePerson3 < 13 ~ sprPerson3*daysofcareneeded5to12,
-                                       agePerson3 > 12 ~ 0,
-                                        TRUE~0)
-          )
-          )
-      
-        temp<-temp %>% 
-          mutate(annualcost4=(case_when(agePerson4 < 5 ~ sprPerson4*daysofcareneeded0to4,
-                                        agePerson4 > 4 & agePerson4 < 13 ~ sprPerson4*daysofcareneeded5to12,
-                                        agePerson4 > 12 ~ 0,
-                                        TRUE~0)
-          )
-          )
-      
-        temp<-temp %>% 
-          mutate(annualcost5=(case_when(agePerson5 < 5 ~ sprPerson5*daysofcareneeded0to4,
-                                        agePerson5 > 4 & agePerson5 < 13 ~ sprPerson5*daysofcareneeded5to12,
-                                        agePerson5 > 12 ~ 0,
-                                        TRUE~0)
-          )
-          )
-      
-       temp<-temp %>% 
-          mutate(annualcost6=(case_when(agePerson6 < 5 ~ sprPerson6*daysofcareneeded0to4,
-                                        agePerson6 > 4 & agePerson6 < 13 ~ sprPerson6*daysofcareneeded5to12,
-                                        agePerson6 > 12 ~ 0,
-                                        TRUE~0)
-          )
-          )
-      
-        temp<-temp %>% 
-          mutate(annualcost7=(case_when(agePerson7 < 5 ~ sprPerson7*daysofcareneeded0to4,
-                                        agePerson7 > 4 & agePerson7 < 13 ~ sprPerson7*daysofcareneeded5to12,
-                                        agePerson7 > 12 ~ 0,
-                                        TRUE~0)
-          )
-          )
-      
-          temp<-temp %>% 
-            mutate(annualcost8=(case_when(agePerson8 < 5 ~ sprPerson8*daysofcareneeded0to4,
-                                          agePerson8 > 4 & agePerson8 < 13 ~ sprPerson8*daysofcareneeded5to12,
-                                          TRUE~0)
-            )
-            )
-      
-         temp<-temp %>% 
-            mutate(annualcost9=(case_when(agePerson9 < 5 ~ sprPerson9*daysofcareneeded0to4,
-                                         agePerson9 > 4 & agePerson9 < 13 ~ sprPerson9*daysofcareneeded5to12,
-                                        TRUE~0)
-         )
-        )
-      
-        temp<-temp %>% 
-          mutate(annualcost10=(case_when(agePerson10 < 5 ~ sprPerson10*daysofcareneeded0to4,
-                                        agePerson10 > 4 & agePerson10 < 13 ~ sprPerson10*daysofcareneeded5to12,
-                                       TRUE~0)
-        )
-        )
-      
-      temp<-temp %>% 
-              mutate(annualcost11=(case_when(agePerson11 < 5 ~ sprPerson11*daysofcareneeded0to4,
-                                             agePerson11 > 4 & agePerson11 < 13 ~ sprPerson11*daysofcareneeded5to12,
-                                             TRUE~0)
-             )
-              )
-      
-           temp<-temp %>% 
-              mutate(annualcost12=(case_when(agePerson12 < 5 ~ sprPerson12*daysofcareneeded0to4,
-                                             agePerson12 > 4 & agePerson12 < 13 ~ sprPerson12*daysofcareneeded5to12,
-                                             TRUE~0)
-              )
-              )
-      
-           temp$annualCost<-temp$annualcost1+temp$annualcost2+temp$annualcost3+temp$annualcost4+temp$annualcost5+temp$annualcost6+temp$annualcost7+temp$annualcost8+temp$annualcost9+temp$annualcost10+temp$annualcost11+temp$annualcost12
+      # providercost_VT$stateFIPS <- 50
+      # 
+      # #if(temp$ruleYear < 2022){
+      #   # Uses most current rules in PRD and imputes them for years in the data set
+      #   maxYear<-max(providercost_VT$ruleYear)
+      #   for (yr in c(2011:2021)){
+      #     if(yr %notin% providercost_VT$ruleYear){
+      #       copyLatestYear<-providercost_VT[rep(providercost_VT$ruleYear==maxYear), ]
+      #       copyLatestYear$ruleYear[copyLatestYear$ruleYear == maxYear]<-yr
+      #       providercost_VT<-providercost_VT%>%
+      #         rbind(copyLatestYear) 
+      #     }}
+      # 
+      # # Adds historical rules if we do not have them
+      # minYear<-min(providercost_VT$ruleYear)
+      # for (yr in c(2011:2021)){
+      #   if(yr %notin% providercost_VT$ruleYear){
+      #     copyEarliestYear<-providercost_VT[rep(providercost_VT$ruleYear==minYear), ]
+      #     copyEarliestYear$ruleYear[copyEarliestYear$ruleYear == minYear]<-yr
+      #     providercost_VT<-providercost_VT%>%
+      #       rbind(copyEarliestYear) 
+      #   }}
+      # 
+      #   temp<-left_join(temp, providercost_VT, by=c("stateFIPS", "ruleYear"))
+      # 
+      # # Determine Expense based on Age of Children
+      #  temp<-temp %>% 
+      #     mutate(sprPerson1=(case_when(agePerson1 %in% c(0)~ftdailyrate.infant,
+      #                                  agePerson1 %in% c(1:2)~ftdailyrate.toddler,
+      #                                  agePerson1 %in% c(3:5)~ftdailyrate.preschool,  
+      #                                  agePerson1 %in% c(6:12)~ftdailyrate.schoolage,
+      #                                  agePerson1 > 12 ~ 0,
+      #                                  TRUE~0)
+      #     )
+      #     )
+      #   temp<-temp %>% 
+      #       mutate(sprPerson2=(case_when(agePerson2 %in% c(0)~ftdailyrate.infant,
+      #                                    agePerson2 %in% c(1:2)~ftdailyrate.toddler,
+      #                                    agePerson2 %in% c(3:5)~ftdailyrate.preschool,  
+      #                                    agePerson2 %in% c(6:12)~ftdailyrate.schoolage,
+      #                                    agePerson2 > 12 ~ 0,
+      #                                    TRUE~0)
+      #       )
+      #       )
+      #     temp<-temp %>% 
+      #       mutate(sprPerson3=(case_when(agePerson3 %in% c(0)~ftdailyrate.infant,
+      #                                    agePerson3 %in% c(1:2)~ftdailyrate.toddler,
+      #                                    agePerson3 %in% c(3:5)~ftdailyrate.preschool,  
+      #                                    agePerson3 %in% c(6:12)~ftdailyrate.schoolage,
+      #                                    agePerson3 > 12 ~ 0,
+      #                                    TRUE~0)
+      #       )
+      #       )
+      # 
+      #    temp<-temp %>% 
+      #       mutate(sprPerson4=(case_when(agePerson4 %in% c(0)~ftdailyrate.infant,
+      #                                    agePerson4 %in% c(1:2)~ftdailyrate.toddler,
+      #                                    agePerson4 %in% c(3:5)~ftdailyrate.preschool,  
+      #                                    agePerson4 %in% c(6:12)~ftdailyrate.schoolage,
+      #                                    agePerson4 > 12 ~ 0,
+      #                                    TRUE~0)
+      #       )
+      #       )
+      # 
+      #     temp<-temp %>% 
+      #       mutate(sprPerson5=(case_when(agePerson5 %in% c(0)~ftdailyrate.infant,
+      #                                    agePerson5 %in% c(1:2)~ftdailyrate.toddler,
+      #                                    agePerson5 %in% c(3:5)~ftdailyrate.preschool,  
+      #                                    agePerson5 %in% c(6:12)~ftdailyrate.schoolage,
+      #                                    agePerson5 > 12 ~ 0,
+      #                                    TRUE~0)
+      #       )
+      #       )
+      # 
+      #    temp<-temp %>% 
+      #       mutate(sprPerson6=(case_when(agePerson6 %in% c(0)~ftdailyrate.infant,
+      #                                    agePerson6 %in% c(1:2)~ftdailyrate.toddler,
+      #                                    agePerson6 %in% c(3:5)~ftdailyrate.preschool,  
+      #                                    agePerson6 %in% c(6:12)~ftdailyrate.schoolage,
+      #                                    agePerson6 > 12 ~ 0,
+      #                                    TRUE~0)
+      #       )
+      #       )
+      # 
+      #     temp<-temp %>% 
+      #       mutate(sprPerson7=(case_when(agePerson7 %in% c(0)~ftdailyrate.infant,
+      #                                    agePerson7 %in% c(1:2)~ftdailyrate.toddler,
+      #                                    agePerson7 %in% c(3:5)~ftdailyrate.preschool,  
+      #                                    agePerson7 %in% c(6:12)~ftdailyrate.schoolage,
+      #                                    agePerson7 > 12 ~ 0,
+      #                                    TRUE~0)
+      #       )
+      #       )
+      # 
+      #     temp<-temp %>% 
+      #       mutate(sprPerson8=(case_when(agePerson8 %in% c(0)~ftdailyrate.infant,
+      #                                    agePerson8 %in% c(1:2)~ftdailyrate.toddler,
+      #                                    agePerson8 %in% c(3:5)~ftdailyrate.preschool,  
+      #                                    agePerson8 %in% c(6:12)~ftdailyrate.schoolage,
+      #                                    TRUE~0)
+      #       )
+      #       )
+      # 
+      #     temp<-temp %>% 
+      #       mutate(sprPerson9=(case_when(agePerson9 %in% c(0)~ftdailyrate.infant,
+      #                                    agePerson9 %in% c(1:2)~ftdailyrate.toddler,
+      #                                    agePerson9 %in% c(3:5)~ftdailyrate.preschool,  
+      #                                    agePerson9 %in% c(6:12)~ftdailyrate.schoolage,
+      #                                    TRUE~0)
+      #       )
+      #       )
+      # 
+      #   temp<-temp %>% 
+      #     mutate(sprPerson10=(case_when(agePerson10 %in% c(0)~ftdailyrate.infant,
+      #                                   agePerson10 %in% c(1:2)~ftdailyrate.toddler,
+      #                                   agePerson10 %in% c(3:5)~ftdailyrate.preschool,  
+      #                                   agePerson10 %in% c(6:12)~ftdailyrate.schoolage,
+      #                                   TRUE~0)
+      #     )
+      #     )
+      # 
+      #  temp<-temp %>% 
+      #     mutate(sprPerson11=(case_when(agePerson11 %in% c(0)~ftdailyrate.infant,
+      #                                   agePerson11 %in% c(1:2)~ftdailyrate.toddler,
+      #                                   agePerson11 %in% c(3:5)~ftdailyrate.preschool,  
+      #                                   agePerson11 %in% c(6:12)~ftdailyrate.schoolage,
+      #                                   TRUE~0)
+      #     )
+      #     )
+      # 
+      #   temp<-temp %>% 
+      #     mutate(sprPerson12=(case_when(agePerson12 %in% c(0)~ftdailyrate.infant,
+      #                                   agePerson12 %in% c(1:2)~ftdailyrate.toddler,
+      #                                   agePerson12 %in% c(3:5)~ftdailyrate.preschool,  
+      #                                   agePerson12 %in% c(6:12)~ftdailyrate.schoolage,
+      #                                   TRUE~0)
+      #     )
+      #     )
+      #   
+      #   temp<-temp %>%
+      #     mutate(sprTotal=sprPerson1+sprPerson2+sprPerson3+sprPerson4+sprPerson5+sprPerson6+sprPerson7+sprPerson8+sprPerson9+sprPerson10+sprPerson11+sprPerson12)
+      #  
+      #    temp<-temp %>% 
+      #       mutate(annualcost1=(case_when(agePerson1 < 5 ~ sprPerson1*daysofcareneeded0to4,
+      #                                     agePerson1 > 4 & agePerson1 < 13 ~ sprPerson1*daysofcareneeded5to12,
+      #                                     agePerson1 > 12 ~ 0,
+      #                                     TRUE~0)
+      #       )
+      #       )
+      # 
+      #     temp<-temp %>% 
+      #       mutate(annualcost2=(case_when(agePerson2 < 5 ~ sprPerson2*daysofcareneeded0to4,
+      #                                    agePerson2 > 4 & agePerson2 < 13 ~ sprPerson2*daysofcareneeded5to12,
+      #                                     agePerson2 > 12 ~ 0,
+      #                                     TRUE~0)
+      #      )
+      #     )
+      # 
+      #   temp<-temp %>% 
+      #     mutate(annualcost3=(case_when(agePerson3 < 5 ~ sprPerson3*daysofcareneeded0to4,
+      #                                   agePerson3 > 4 & agePerson3 < 13 ~ sprPerson3*daysofcareneeded5to12,
+      #                                  agePerson3 > 12 ~ 0,
+      #                                   TRUE~0)
+      #     )
+      #     )
+      # 
+      #   temp<-temp %>% 
+      #     mutate(annualcost4=(case_when(agePerson4 < 5 ~ sprPerson4*daysofcareneeded0to4,
+      #                                   agePerson4 > 4 & agePerson4 < 13 ~ sprPerson4*daysofcareneeded5to12,
+      #                                   agePerson4 > 12 ~ 0,
+      #                                   TRUE~0)
+      #     )
+      #     )
+      # 
+      #   temp<-temp %>% 
+      #     mutate(annualcost5=(case_when(agePerson5 < 5 ~ sprPerson5*daysofcareneeded0to4,
+      #                                   agePerson5 > 4 & agePerson5 < 13 ~ sprPerson5*daysofcareneeded5to12,
+      #                                   agePerson5 > 12 ~ 0,
+      #                                   TRUE~0)
+      #     )
+      #     )
+      # 
+      #  temp<-temp %>% 
+      #     mutate(annualcost6=(case_when(agePerson6 < 5 ~ sprPerson6*daysofcareneeded0to4,
+      #                                   agePerson6 > 4 & agePerson6 < 13 ~ sprPerson6*daysofcareneeded5to12,
+      #                                   agePerson6 > 12 ~ 0,
+      #                                   TRUE~0)
+      #     )
+      #     )
+      # 
+      #   temp<-temp %>% 
+      #     mutate(annualcost7=(case_when(agePerson7 < 5 ~ sprPerson7*daysofcareneeded0to4,
+      #                                   agePerson7 > 4 & agePerson7 < 13 ~ sprPerson7*daysofcareneeded5to12,
+      #                                   agePerson7 > 12 ~ 0,
+      #                                   TRUE~0)
+      #     )
+      #     )
+      # 
+      #     temp<-temp %>% 
+      #       mutate(annualcost8=(case_when(agePerson8 < 5 ~ sprPerson8*daysofcareneeded0to4,
+      #                                     agePerson8 > 4 & agePerson8 < 13 ~ sprPerson8*daysofcareneeded5to12,
+      #                                     TRUE~0)
+      #       )
+      #       )
+      # 
+      #    temp<-temp %>% 
+      #       mutate(annualcost9=(case_when(agePerson9 < 5 ~ sprPerson9*daysofcareneeded0to4,
+      #                                    agePerson9 > 4 & agePerson9 < 13 ~ sprPerson9*daysofcareneeded5to12,
+      #                                   TRUE~0)
+      #    )
+      #   )
+      # 
+      #   temp<-temp %>% 
+      #     mutate(annualcost10=(case_when(agePerson10 < 5 ~ sprPerson10*daysofcareneeded0to4,
+      #                                   agePerson10 > 4 & agePerson10 < 13 ~ sprPerson10*daysofcareneeded5to12,
+      #                                  TRUE~0)
+      #   )
+      #   )
+      # 
+      # temp<-temp %>% 
+      #         mutate(annualcost11=(case_when(agePerson11 < 5 ~ sprPerson11*daysofcareneeded0to4,
+      #                                        agePerson11 > 4 & agePerson11 < 13 ~ sprPerson11*daysofcareneeded5to12,
+      #                                        TRUE~0)
+      #        )
+      #         )
+      # 
+      #      temp<-temp %>% 
+      #         mutate(annualcost12=(case_when(agePerson12 < 5 ~ sprPerson12*daysofcareneeded0to4,
+      #                                        agePerson12 > 4 & agePerson12 < 13 ~ sprPerson12*daysofcareneeded5to12,
+      #                                        TRUE~0)
+      #         )
+      #         )
+      # 
+      #      temp$annualCost<-temp$annualcost1+temp$annualcost2+temp$annualcost3+temp$annualcost4+temp$annualcost5+temp$annualcost6+temp$annualcost7+temp$annualcost8+temp$annualcost9+temp$annualcost10+temp$annualcost11+temp$annualcost12
      # }
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
+     # Uses most current rules in PRD and imputes them for years in the data set
+      
+    #  ccdfData_VT <- ccdfData_VT[ccdfData_VT$ruleYear == 2022,]
+    #  ccdfData_VT$ruleYear <- 2021
+      
+      # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+      years<-unique(data$ruleYear) # years in data set
+      yearsinexpdata<- unique(ccdfData_VT$ruleYear) # rule years in benefit data
+      yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+      yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+      # Create data for the future
+      maxyearofdata<-max(ccdfData_VT$ruleYear) # collect latest year of benefit data
+      futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+      if(length(futureYrs)>0){
+        # Create data frame with future years
+        expand<-expand.grid(stateFIPS=unique(ccdfData_VT$stateFIPS), AKorHI=unique(ccdfData_VT$AKorHI), famsize=unique(ccdfData_VT$famsize), Year=futureYrs)
+        # Collect latest benefit data there is and merge w/data frame
+        expand2<-ccdfData_VT[ccdfData_VT$ruleYear==maxyearofdata, ]
+        expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+      }
+      # Create data for past and gap years (missing data) - not the future
+      nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
+      if(length(nonFutureYrs)>0){
+        #Create data frame with past years and year for which we are missing benefit data
+        expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_VT$stateFIPS), AKorHI=unique(ccdfData_VT$AKorHI), famsize=unique(ccdfData_VT$famsize), Year=nonFutureYrs)
+        # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
+        expandPastMiss2<-left_join(expandPastMiss, ccdfData_VT, by=c("stateFIPS", "AKorHI", "famsize"))
+        expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
+        expandPastMiss2<-expandPastMiss2%>%
+          group_by(Year)%>%
+          mutate(minyeardiff = min(yeardiff))
+        expandPastMiss2<-expandPastMiss2 %>%
+          filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+      }  # Attach copied future, historical, and missing benefit data
+      if(length(futureYrs)>0) {ccdfData_VT<-ccdfData_VT %>% rbind(expand)}
+      if(length(nonFutureYrs)>0) {ccdfData_VT<-ccdfData_VT %>% rbind(expandPastMiss2)}
+           
       temp<-left_join(temp, ccdfData_VT, by=c("stateFIPS", "famsize", "ruleYear"))
       
-      temp$income<-temp$income-12*temp$IncomeDisregard
+     # temp$income<-temp$income-12*temp$IncomeDisregard
       
       temp$FTcopay<-NA
       
@@ -6255,9 +11150,9 @@ function.CCDFcopay<-function(data
       temp$totcopay[subset]<-NA_real_
       
      
-      temp$totcopay[temp$ruleYear!=2022] <- temp$annualCost[temp$ruleYear!=2022]*(1-temp$FTcopay[temp$ruleYear!=2022])
-      
-      temp$totcopay[temp$ruleYear!=2022]<-rowMins(cbind(temp$annualCost[temp$ruleYear!=2022]*(1-temp$FTcopay[temp$ruleYear!=2022]),temp$netexp.childcare[temp$ruleYear!=2022]))
+      # temp$totcopay[temp$ruleYear!=2022] <- temp$annualCost[temp$ruleYear!=2022]*(1-temp$FTcopay[temp$ruleYear!=2022])
+      # 
+      # temp$totcopay[temp$ruleYear!=2022]<-rowMins(cbind(temp$annualCost[temp$ruleYear!=2022]*(1-temp$FTcopay[temp$ruleYear!=2022]),temp$netexp.childcare[temp$ruleYear!=2022]))
       
    
       #----------------------------------
@@ -6265,9 +11160,11 @@ function.CCDFcopay<-function(data
       #----------------------------------
       #temp$totcopay <- temp$FTcopay*52
       
-      temp$totcopay[temp$ruleYear==2022]<-rowMins(cbind(temp$FTcopay[temp$ruleYear==2022]*52,temp$netexp.childcare[temp$ruleYear==2022]))
+      # temp$totcopay[temp$ruleYear==2022]<-rowMins(cbind(temp$FTcopay[temp$ruleYear==2022]*52,temp$netexp.childcare[temp$ruleYear==2022]))
       
-        
+      
+      # ER 2/7/23: Commented out Condition for ruleYear<2022. Wasn't working for 'all' locations.
+      temp$totcopay<-rowMins(cbind(temp$FTcopay*52,temp$netexp.childcare))
       
     
       
@@ -6289,8 +11186,6 @@ function.CCDFcopay<-function(data
     
     
     
-    
-    
     # VIRGINIA ----
     # Description:
     # Copay is a percentage of total income
@@ -6300,7 +11195,38 @@ function.CCDFcopay<-function(data
       ccdfData_VA$stateFIPS <- 51
       
       temp<-data[data$stateFIPS==51,]
-
+      
+      # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+      years<-unique(data$ruleYear) # years in data set
+      yearsinexpdata<- unique(ccdfData_VA$ruleYear) # rule years in benefit data
+      yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+      yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+      # Create data for the future
+      maxyearofdata<-max(ccdfData_VA$ruleYear) # collect latest year of benefit data
+      futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+      if(length(futureYrs)>0){
+        # Create data frame with future years
+        expand<-expand.grid(stateFIPS=unique(ccdfData_VA$stateFIPS), AKorHI=unique(ccdfData_VA$AKorHI), famsize=unique(ccdfData_VA$famsize), countyortownName=unique(ccdfData_VA$countyortownName), Year=futureYrs)
+        # Collect latest benefit data there is and merge w/data frame
+        expand2<-ccdfData_VA[ccdfData_VA$ruleYear==maxyearofdata, ]
+        expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize", "countyortownName")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+      }
+      # Create data for past and gap years (missing data) - not the future
+      nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
+      if(length(nonFutureYrs)>0){
+        #Create data frame with past years and year for which we are missing benefit data
+        expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_VA$stateFIPS), AKorHI=unique(ccdfData_VA$AKorHI), famsize=unique(ccdfData_VA$famsize), countyortownName=unique(ccdfData_VA$countyortownName), Year=nonFutureYrs)
+        # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
+        expandPastMiss2<-left_join(expandPastMiss, ccdfData_VA, by=c("stateFIPS", "AKorHI", "famsize", "countyortownName"))
+        expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
+        expandPastMiss2<-expandPastMiss2%>%
+          group_by(Year)%>%
+          mutate(minyeardiff = min(yeardiff))
+        expandPastMiss2<-expandPastMiss2 %>%
+          filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+      }  # Attach copied future, historical, and missing benefit data
+      if(length(futureYrs)>0) {ccdfData_VA<-ccdfData_VA %>% rbind(expand)}
+      if(length(nonFutureYrs)>0) {ccdfData_VA<-ccdfData_VA %>% rbind(expandPastMiss2)}
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
@@ -6348,18 +11274,46 @@ function.CCDFcopay<-function(data
     
     
     
-    # WAHINGTON  ----
+    # WASHINGTON  ----
     # Description:
     # Variation at the state level
     # Fixed copay per family
     # Monthly frequency 
     if(53 %in% unique(data$stateFIPS)){ # make sure that state is in the list
       
-      ccdfData_WA$stateFIPS <- 53
-      
       temp<-data[data$stateFIPS==53,]
       
-      #temp$ruleYear<-2022 # always use the most recent year
+      # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+      years<-unique(data$ruleYear) # years in data set
+      yearsinexpdata<- unique(ccdfData_WA$ruleYear) # rule years in benefit data
+      yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+      yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+      # Create data for the future
+      maxyearofdata<-max(ccdfData_WA$ruleYear) # collect latest year of benefit data
+      futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+      if(length(futureYrs)>0){
+        # Create data frame with future years
+        expand<-expand.grid(stateFIPS=unique(ccdfData_WA$stateFIPS), AKorHI=unique(ccdfData_WA$AKorHI), famsize=unique(ccdfData_WA$famsize), Year=futureYrs)
+        # Collect latest benefit data there is and merge w/data frame
+        expand2<-ccdfData_WA[ccdfData_WA$ruleYear==maxyearofdata, ]
+        expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+      }
+      # Create data for past and gap years (missing data) - not the future
+      nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
+      if(length(nonFutureYrs)>0){
+        #Create data frame with past years and year for which we are missing benefit data
+        expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_WA$stateFIPS), AKorHI=unique(ccdfData_WA$AKorHI), famsize=unique(ccdfData_WA$famsize), Year=nonFutureYrs)
+        # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
+        expandPastMiss2<-left_join(expandPastMiss, ccdfData_WA, by=c("stateFIPS", "AKorHI", "famsize"))
+        expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
+        expandPastMiss2<-expandPastMiss2%>%
+          group_by(Year)%>%
+          mutate(minyeardiff = min(yeardiff))
+        expandPastMiss2<-expandPastMiss2 %>%
+          filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+      }  # Attach copied future, historical, and missing benefit data
+      if(length(futureYrs)>0) {ccdfData_WA<-ccdfData_WA %>% rbind(expand)}
+      if(length(nonFutureYrs)>0) {ccdfData_WA<-ccdfData_WA %>% rbind(expandPastMiss2)}
       
       #----------------------------------
       # Step 1: Assign copays
@@ -6407,8 +11361,6 @@ function.CCDFcopay<-function(data
         temp$totcopay[temp$ruleYear==2010]<-temp_2011$totcopay
         
       }
-      
-      
       
       
       # APPLY 2011 RULES
@@ -6834,9 +11786,15 @@ function.CCDFcopay<-function(data
         temp_2021<-temp[temp$ruleYear==2021,]
         
         # Adjust for the income disregard
-        temp_2021$income<-temp_2021$income-12*temp_2021$IncomeDisregard
+        #temp_2021$income<-temp_2021$income-12*temp_2021$IncomeDisregard
         
         temp_2021$FTcopay<-NA
+        
+        temp_2021$CopayBin1 <- 15
+        temp_2021$CopayBin2 <- 65
+        temp_2021$CopayBin3 <- 90
+        temp_2021$CopayBin4 <- 115
+        temp_2021$CopayBin5 <- 215
         
         temp_2021$FTcopay[temp_2021$income>=0 & temp_2021$income<=temp_2021$Bin1Max]<-temp_2021$CopayBin1[temp_2021$income>=0 & temp_2021$income<=temp_2021$Bin1Max]
         temp_2021$FTcopay[temp_2021$income>temp_2021$Bin1Max & temp_2021$income<=temp_2021$Bin2Max]<-temp_2021$CopayBin2[temp_2021$income>temp_2021$Bin1Max & temp_2021$income<=temp_2021$Bin2Max]
@@ -6917,6 +11875,53 @@ function.CCDFcopay<-function(data
         
       }
       
+      
+      
+      if(2023 %in% unique(temp$ruleYear)){
+        
+        
+        temp_2022<-temp[temp$ruleYear==2023,]
+        
+        # Adjust for the income disregard
+        temp_2022$income<-temp_2022$income-12*temp_2022$IncomeDisregard
+        
+        temp_2022$FTcopay<-NA
+        
+        temp_2022$FTcopay[temp_2022$income>=0 & temp_2022$income<=temp_2022$Bin1Max]<-temp_2022$CopayBin1[temp_2022$income>=0 & temp_2022$income<=temp_2022$Bin1Max]
+        temp_2022$FTcopay[temp_2022$income>temp_2022$Bin1Max & temp_2022$income<=temp_2022$Bin2Max]<-temp_2022$CopayBin2[temp_2022$income>temp_2022$Bin1Max & temp_2022$income<=temp_2022$Bin2Max]
+        temp_2022$FTcopay[temp_2022$income>temp_2022$Bin2Max & temp_2022$income<=temp_2022$Bin3Max]<-temp_2022$CopayBin3[temp_2022$income>temp_2022$Bin2Max & temp_2022$income<=temp_2022$Bin3Max]
+        temp_2022$FTcopay[temp_2022$income>temp_2022$Bin3Max & temp_2022$income<=temp_2022$Bin4Max]<-temp_2022$CopayBin4[temp_2022$income>temp_2022$Bin3Max & temp_2022$income<=temp_2022$Bin4Max]
+        temp_2022$FTcopay[temp_2022$income>temp_2022$Bin4Max & temp_2022$income<=temp_2022$Bin5Max]<-temp_2022$CopayBin5[temp_2022$income>temp_2022$Bin4Max & temp_2022$income<=temp_2022$Bin5Max]
+        
+        temp_2022$FTcopay<-as.numeric(temp_2022$FTcopay)
+        
+        # Apply asset test
+        subset<-temp_2022$totalassets > temp_2022$AssetTest
+        temp_2022$totcopay[subset]<-NA_real_
+        
+        #----------------------------------
+        # Step 2: Calculate total copays
+        #----------------------------------
+        
+        # Calculate total copay (12 months needed)
+        temp_2022$totcopay<-temp_2022$FTcopay*12
+        
+        # Set copay to zero if no children
+        temp_2022$totcopay[temp_2022$numkidsincare0to4+temp_2022$numkidsincare5to12==0]<-0
+        
+        temp_2022$totcopay[is.na(temp_2022$FTcopay)]<-NA
+        # Note: code produces NAs for a good reason, because family is ineligible for CCDF
+        # Copay is NOT zero for ineligible, but there are people who pay 0 copay
+        
+        # Adjust overage depending on whether states allow to charge it
+        temp_2022$childcare.overage[temp_2022$OverageOption=="No"]<-0
+        
+        temp$childcare.overage[temp$ruleYear==2023]<-temp_2022$childcare.overage
+        temp$totcopay[temp$ruleYear==2023]<-temp_2022$totcopay
+        
+        
+      }
+      
       # Merge back
       data$childcare.overage[data$stateFIPS==53]<-temp$childcare.overage
       data$totcopay[data$stateFIPS==53]<-temp$totcopay
@@ -6935,7 +11940,37 @@ function.CCDFcopay<-function(data
       
       temp<-data[data$stateFIPS==54,]
       
-     # #temp$ruleYear<-2022 # always use the most recent year
+      # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+      years<-unique(data$ruleYear) # years in data set
+      yearsinexpdata<- unique(ccdfData_WV$ruleYear) # rule years in benefit data
+      yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+      yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+      # Create data for the future
+      maxyearofdata<-max(ccdfData_WV$ruleYear) # collect latest year of benefit data
+      futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+      if(length(futureYrs)>0){
+        # Create data frame with future years
+        expand<-expand.grid(stateFIPS=unique(ccdfData_WV$stateFIPS), AKorHI=unique(ccdfData_WV$AKorHI), famsize=unique(ccdfData_WV$famsize), Year=futureYrs)
+        # Collect latest benefit data there is and merge w/data frame
+        expand2<-ccdfData_WV[ccdfData_WV$ruleYear==maxyearofdata, ]
+        expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+      }
+      # Create data for past and gap years (missing data) - not the future
+      nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
+      if(length(nonFutureYrs)>0){
+        #Create data frame with past years and year for which we are missing benefit data
+        expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_WV$stateFIPS), AKorHI=unique(ccdfData_WV$AKorHI), famsize=unique(ccdfData_WV$famsize), Year=nonFutureYrs)
+        # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
+        expandPastMiss2<-left_join(expandPastMiss, ccdfData_WV, by=c("stateFIPS", "AKorHI", "famsize"))
+        expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
+        expandPastMiss2<-expandPastMiss2%>%
+          group_by(Year)%>%
+          mutate(minyeardiff = min(yeardiff))
+        expandPastMiss2<-expandPastMiss2 %>%
+          filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+      }  # Attach copied future, historical, and missing benefit data
+      if(length(futureYrs)>0) {ccdfData_WV<-ccdfData_WV %>% rbind(expand)}
+      if(length(nonFutureYrs)>0) {ccdfData_WV<-ccdfData_WV %>% rbind(expandPastMiss2)}
       
       #----------------------------------
       # Step 1: Assign copays
@@ -7007,6 +12042,38 @@ function.CCDFcopay<-function(data
       
       temp$numkidsInCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
       
+      # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+      years<-unique(data$ruleYear) # years in data set
+      yearsinexpdata<- unique(ccdfData_WY$ruleYear) # rule years in benefit data
+      yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+      yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+      # Create data for the future
+      maxyearofdata<-max(ccdfData_WY$ruleYear) # collect latest year of benefit data
+      futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+      if(length(futureYrs)>0){
+        # Create data frame with future years
+        expand<-expand.grid(stateFIPS=unique(ccdfData_WY$stateFIPS), AKorHI=unique(ccdfData_WY$AKorHI), famsize=unique(ccdfData_WY$famsize), numkidsInCare=unique(ccdfData_WY$numkidsInCare), Year=futureYrs)
+        # Collect latest benefit data there is and merge w/data frame
+        expand2<-ccdfData_WY[ccdfData_WY$ruleYear==maxyearofdata, ]
+        expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+      }
+      # Create data for past and gap years (missing data) - not the future
+      nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
+      if(length(nonFutureYrs)>0){
+        #Create data frame with past years and year for which we are missing benefit data
+        expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_WY$stateFIPS), AKorHI=unique(ccdfData_WY$AKorHI), famsize=unique(ccdfData_WY$famsize), numkidsInCare=unique(ccdfData_WY$numkidsInCare), Year=nonFutureYrs)
+        # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
+        expandPastMiss2<-left_join(expandPastMiss, ccdfData_WY, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare"))
+        expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
+        expandPastMiss2<-expandPastMiss2%>%
+          group_by(Year)%>%
+          mutate(minyeardiff = min(yeardiff))
+        expandPastMiss2<-expandPastMiss2 %>%
+          filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+      }  # Attach copied future, historical, and missing benefit data
+      if(length(futureYrs)>0) {ccdfData_WY<-ccdfData_WY %>% rbind(expand)}
+      if(length(nonFutureYrs)>0) {ccdfData_WY<-ccdfData_WY %>% rbind(expandPastMiss2)}
+      
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
@@ -7057,7 +12124,6 @@ function.CCDFcopay<-function(data
     
     
     
-    
     # WISCONSIN ----
     
     # Description:
@@ -7066,12 +12132,42 @@ function.CCDFcopay<-function(data
     # Hourly frequency 
     # ! Need to adjust definition of countable income
     if(55 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-      
-   
+
       temp<-data[data$stateFIPS==55,]
-      
-      
+
       temp$numkidsInCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
+      
+      # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+      years<-unique(data$ruleYear) # years in data set
+      yearsinexpdata<- unique(ccdfData_WI$ruleYear) # rule years in benefit data
+      yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+      yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+      # Create data for the future
+      maxyearofdata<-max(ccdfData_WI$ruleYear) # collect latest year of benefit data
+      futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+      if(length(futureYrs)>0){
+        # Create data frame with future years
+        expand<-expand.grid(stateFIPS=unique(ccdfData_WI$stateFIPS), AKorHI=unique(ccdfData_WI$AKorHI), famsize=unique(ccdfData_WI$famsize), numkidsInCare=unique(ccdfData_WI$numkidsInCare), Year=futureYrs)
+        # Collect latest benefit data there is and merge w/data frame
+        expand2<-ccdfData_WI[ccdfData_WI$ruleYear==maxyearofdata, ]
+        expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+      }
+      # Create data for past and gap years (missing data) - not the future
+      nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
+      if(length(nonFutureYrs)>0){
+        #Create data frame with past years and year for which we are missing benefit data
+        expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_WI$stateFIPS), AKorHI=unique(ccdfData_WI$AKorHI), famsize=unique(ccdfData_WI$famsize), numkidsInCare=unique(ccdfData_WI$numkidsInCare), Year=nonFutureYrs)
+        # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
+        expandPastMiss2<-left_join(expandPastMiss, ccdfData_WI, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare"))
+        expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
+        expandPastMiss2<-expandPastMiss2%>%
+          group_by(Year)%>%
+          mutate(minyeardiff = min(yeardiff))
+        expandPastMiss2<-expandPastMiss2 %>%
+          filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+      }  # Attach copied future, historical, and missing benefit data
+      if(length(futureYrs)>0) {ccdfData_WI<-ccdfData_WI %>% rbind(expand)}
+      if(length(nonFutureYrs)>0) {ccdfData_WI<-ccdfData_WI %>% rbind(expandPastMiss2)}
       
       #----------------------------------
       # Step 1: Assign copays
@@ -7112,9 +12208,11 @@ function.CCDFcopay<-function(data
       temp$FTcopay[temp$income>temp$Bin25Max & temp$income<=temp$Bin26Max]<-temp$CopayBin26[temp$income>temp$Bin25Max & temp$income<=temp$Bin26Max]
       temp$FTcopay[temp$income>temp$Bin26Max & temp$income<=temp$Bin27Max]<-temp$CopayBin27[temp$income>temp$Bin26Max & temp$income<=temp$Bin27Max]
       temp$FTcopay[temp$income>temp$Bin27Max & temp$income<=temp$Bin28Max]<-temp$CopayBin28[temp$income>temp$Bin27Max & temp$income<=temp$Bin28Max]
-      
-      # On purpose assign copay from the 28th bin. Adjust later
       temp$FTcopay[temp$income>temp$Bin28Max & temp$income<=temp$Bin29Max]<-temp$CopayBin28[temp$income>temp$Bin28Max & temp$income<=temp$Bin29Max]
+      
+        
+      # On purpose assign copay from the 28th bin. Adjust later
+      #temp$FTcopay[temp$income>temp$Bin28Max & temp$income<=temp$Bin29Max]<-temp$CopayBin28[temp$income>temp$Bin28Max & temp$income<=temp$Bin29Max]
       
       # Apply asset test
       subset<-temp$totalassets > temp$AssetTest
@@ -7135,7 +12233,8 @@ function.CCDFcopay<-function(data
       
       # For the last income bin the AG (total monthly) copay is increasing by $1 for every $3 that the income exceeds IncomeBin 27
       subset<-temp$income>temp$Bin28Max & temp$income<=temp$Bin29Max
-      temp$totcopay[subset]<-temp$totcopay[subset]+1*12*(temp$income[subset]-temp$Bin28Max[subset])/3
+      temp$totcopay[subset]<-temp$totcopay[subset]+((1/3)*(temp$income[subset]-temp$Bin28Max[subset])#*12
+                                                    )
       
       # Adjust overage depending on whether states allow to charge it
       temp$childcare.overage[temp$OverageOption=="No"]<-0
@@ -7146,17 +12245,18 @@ function.CCDFcopay<-function(data
       data$InitialEligibility[data$stateFIPS==55]<-temp$InitialEligibility.y
     }
     
-    
-    
-    
     data$totcopay<-as.numeric(data$totcopay)
+    
+    data$childcare.overage <- 0
     
     # Calculate value of CCDF as a portion of remaining net expenses covered by the subsidy
     data$value.CCDF<-rowMaxs(cbind(data$netexp.childcare-data$totcopay-data$childcare.overage,0))
     
- 
     data$value.CCDF[is.na(data$value.CCDF)]<-0
     
+    data$numkidsunder13=rowSums(cbind(data$agePerson1, data$agePerson2, data$agePerson3, data$agePerson4, data$agePerson5, data$agePerson6, data$agePerson7, data$agePerson8, data$agePerson9, data$agePerson10, data$agePerson11, data$agePerson12)<=12,na.rm=TRUE)
+    
+    data$value.CCDF[data$numkidsunder13 == 0 | is.na(data$numkidsunder13)] <- 0
    
     #determine initial elig  & use this elig if contelig=FALSE & its the first yr receivng the program
     #NOTE! need to do this by unique id if using a larger dataset w/ multiple ppl   
@@ -7172,19 +12272,16 @@ function.CCDFcopay<-function(data
   } #end function.CCDF
   
   
- 
 # FATES CCDF ----
 
 function.CCDFcopayFATES<-function(data
-                                   , contelig.ccdf = TRUE
- ){
+                                   , contelig.ccdf = TRUE){
    
    data$income <- data$income+data$income.gift
    
    data$totcopay<-NA
    
    data$InitialEligibility<-NA
-   
    
    #count number of kids who still need childcare, after head start & preK taken into account
    # Calculate number of children in care (separately for age < 5 & age b/w 5 and 12)
@@ -7201,7 +12298,6 @@ function.CCDFcopayFATES<-function(data
                                          ,data$netexp.childcareperson11 > 0 & data$agePerson11<=4
                                          ,data$netexp.childcareperson12 > 0 & data$agePerson12<=4),na.rm=TRUE)
    
-   
    data$numkidsincare5to12<-rowSums(cbind(data$netexp.childcareperson1>0 & data$agePerson1>=5 & data$agePerson1<=12
                                           ,data$netexp.childcareperson2>0 & data$agePerson2>=5 & data$agePerson2<=12
                                           ,data$netexp.childcareperson3>0 & data$agePerson3>=5 & data$agePerson3<=12
@@ -7214,7 +12310,6 @@ function.CCDFcopayFATES<-function(data
                                           ,data$netexp.childcareperson10>0 & data$agePerson10>=5 & data$agePerson10<=12
                                           ,data$netexp.childcareperson11>0 & data$agePerson11>=5 & data$agePerson11<=12
                                           ,data$netexp.childcareperson12>0 & data$agePerson12>=5 & data$agePerson12<=12),na.rm=TRUE)
-   
    
    data<- data %>% 
      
@@ -7253,7 +12348,6 @@ function.CCDFcopayFATES<-function(data
    data$daysofcareneeded0to4[is.na(data$daysofcareneeded0to4)]<-0
    data$daysofcareneeded5to12[is.na(data$daysofcareneeded5to12)]<-0
    
-   
    # Florida -----
    # Description:
    # Variation at the county level
@@ -7263,6 +12357,38 @@ function.CCDFcopayFATES<-function(data
    if(12 %in% unique(data$stateFIPS)){ # make sure that state is in the list
      
      temp<-data[data$stateFIPS==12,]
+     
+     # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+     years<-unique(data$ruleYear) # years in data set
+     yearsinexpdata<- unique(ccdfData_FL$ruleYear) # rule years in benefit data
+     yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+     yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+     # Create data for the future
+     maxyearofdata<-max(ccdfData_FL$ruleYear) # collect latest year of benefit data
+     futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+     if(length(futureYrs)>0){
+       # Create data frame with future years
+       expand<-expand.grid(stateFIPS=unique(ccdfData_FL$stateFIPS), AKorHI=unique(ccdfData_FL$AKorHI), famsize=unique(ccdfData_FL$famsize), countyortownName=unique(ccdfData_FL$countyortownName), Year=futureYrs)
+       # Collect latest benefit data there is and merge w/data frame
+       expand2<-ccdfData_FL[ccdfData_FL$ruleYear==maxyearofdata, ]
+       expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize", "countyortownName")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+     }
+     # Create data for past and gap years (missing data) - not the future
+     nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
+     if(length(nonFutureYrs)>0){
+       #Create data frame with past years and year for which we are missing benefit data
+       expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_FL$stateFIPS), AKorHI=unique(ccdfData_FL$AKorHI), famsize=unique(ccdfData_FL$famsize), countyortownName=unique(ccdfData_FL$countyortownName), Year=nonFutureYrs)
+       # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
+       expandPastMiss2<-left_join(expandPastMiss, ccdfData_FL, by=c("stateFIPS", "AKorHI", "famsize", "countyortownName"))
+       expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
+       expandPastMiss2<-expandPastMiss2%>%
+         group_by(Year)%>%
+         mutate(minyeardiff = min(yeardiff))
+       expandPastMiss2<-expandPastMiss2 %>%
+         filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+     }  # Attach copied future, historical, and missing benefit data
+     if(length(futureYrs)>0) {ccdfData_FL<-ccdfData_FL %>% rbind(expand)}
+     if(length(nonFutureYrs)>0) {ccdfData_FL<-ccdfData_FL %>% rbind(expandPastMiss2)}
      
      #----------------------------------
      # Step 1: Assign copays
@@ -7384,6 +12510,38 @@ function.headstart<-function(data
     colnames(data)[colnames(data)==ageofPersonvar]<-"ageofchild"
     colnames(data)[colnames(data)==expchildcarevar]<-"exp.child"
     
+    # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+    years<-unique(data$ruleYear) # years in data set
+    yearsinexpdata<- unique(headstartData$ruleYear) # rule years in benefit data
+    yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+    yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+    # Create data for the future
+    maxyearofdata<-max(headstartData$ruleYear) # collect latest year of benefit data
+    futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+    if(length(futureYrs)>0){
+      # Create data frame with future years
+      expand<-expand.grid(famsize=unique(headstartData$famsize), AKorHI=unique(headstartData$AKorHI), Year=futureYrs)
+      # Collect latest benefit data there is and merge w/data frame
+      expand2<-headstartData[headstartData$ruleYear==maxyearofdata, ]
+      expand<-expand%>%left_join(expand2, by=c("famsize", "AKorHI"))%>%drop_na() %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+    }
+    # Create data for past and gap years (missing data) - not the future
+    nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
+    if(length(nonFutureYrs)>0){
+      #Create data frame with past years and year for which we are missing benefit data
+      expandPastMiss<-expand.grid(famsize=unique(headstartData$famsize), AKorHI=unique(headstartData$AKorHI), Year=nonFutureYrs)
+      # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
+      expandPastMiss2<-left_join(expandPastMiss, headstartData, by=c("famsize", "AKorHI"))
+      expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
+      expandPastMiss2<-expandPastMiss2%>%
+        group_by(Year)%>%
+        mutate(minyeardiff = min(yeardiff))
+      expandPastMiss2<-expandPastMiss2 %>%
+        filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+    }  # Attach copied future, historical, and missing benefit data
+    if(length(futureYrs)>0) {headstartData<-headstartData %>% rbind(expand)}
+    if(length(nonFutureYrs)>0) {headstartData<-headstartData %>% rbind(expandPastMiss2)}
+    
     data<-data %>% 
       left_join(headstartData, by=c("ruleYear", "famsize", "AKorHI"))
       
@@ -7391,7 +12549,6 @@ function.headstart<-function(data
       #initial eligibility vs cont eligiblity limit
       mutate(countableincome=income + value.ssi + value.ssdi + value.tanf) # + value.socsec (after we'll add social security)
 
-      
      # Early Head Start Eligibility         
       #Ditto for early  head start, except care is in summer too
      data<- data %>%  
@@ -7409,15 +12566,12 @@ function.headstart<-function(data
                    earlyheadstart=earlyheadstart*incomeeligible_earlyheadstart,
                    value.earlyheadstart=earlyheadstart*exp.child)   
      
-     
      # Head Start Eligibility  
-     
      data<-data %>% 
        #initial eligibility vs cont eligiblity limit
        mutate(
          #head start for 3 &4 yr olds typpically provides care during school year but not summer. 
          #person can choose if the care during the school year is 'PT' or 'FT'
-         
          ageeligible_headstart=case_when(!is.na(ageofchild) & ageofchild %in% c(3,4)~1,TRUE~0),
          
          headstart=case_when(ageeligible_headstart==1  & `headstart_ftorpt` == "FT" ~ 
@@ -7425,8 +12579,6 @@ function.headstart<-function(data
                              ageeligible_headstart==1 & `headstart_ftorpt` == "PT" ~ 
                                (parameters.defaults$numberofSchoolDays[1]*.5/(parameters.defaults$numberofSummerChildcareDays[1]+parameters.defaults$numberofSchoolDays[1])), #part time durign school yr covered, not summer
                              TRUE ~ 0))
-     
-    
      data<-data %>% 
        #determine initial elig  & use this elig if contelig=FALSE & its the first yr receivng the program
        #NOTE! need to do this by unique id if using a larger dataset w/ multiple records per person   
@@ -7438,15 +12590,12 @@ function.headstart<-function(data
               headstart=headstart*incomeeligible_headstart,
               value.headstart=headstart*exp.child) 
      
-          
       returnData<-data %>% 
               select(value.earlyheadstart, value.headstart)
       
       return(returnData)
   }
     
-
-
 
 #Pre K program -----
 
@@ -7467,21 +12616,17 @@ function.prek<-function(data
            ,"childcare.exp.person"=childcare.expvar
     )
   
-  
-  #in dashboards need to add discalimer "PreK, Head Start, and Early Head Start are not available in all locations or may have wait lists."
-  
+  # We have historical rules for school meals
   data<-data %>% 
     left_join(preKData, by=c("stateName", "famsize"))  %>% 
     left_join(schoolmealData, by=c("ruleYear","AKorHI","famsize")) %>%
     mutate(preKPerson=0) #initiate each person not to be eligible for preK
-  
   
   #From UW:
   #180	average number of instruction days	https://nces.ed.gov/programs/statereform/tab5_14.asp
   #262	average number of workdays	https://www.opm.gov/policy-data-oversight/pay-leave/pay-administration/fact-sheets/computing-hourly-rates-of-pay-using-the-2087-hour-divisor/
   # 69%	Percentage of workdays in school (before/after school care assumed)	
   #31%	Percentage of summer/vacation school days (full time care assumed)	
-  
   
   #FOR Cat elig later: determine if person is income elig for head start (regardles if they click the button):
   
@@ -7556,7 +12701,6 @@ function.prek<-function(data
 }
 
 
-
 # Medicaid ----
 
 function.medicaid<-function(data
@@ -7575,7 +12719,7 @@ function.medicaid<-function(data
     data$ageofperson[data$ageofperson==2 & data$stateFIPS==27]<-0
     data$ageofperson[data$ageofperson==1 & data$stateFIPS==27]<-0
     
-    
+    # We have historical rules
     data<-data %>% 
       left_join(medicaidData, by=c("ruleYear", "famsize", "stateFIPS")) %>% 
       mutate(incomelimit=case_when(ageofperson==0~ incomelimit.child.Age0,
@@ -7604,39 +12748,54 @@ function.medicaid<-function(data
   }
     
     
-
 # Employer Sponsored Health Insurance ----
 
-function.EmployerHealthcare<-function(data
-                                        , famsizevar
-                                        , currentyr = 2021){
-    
-    # Rename variables if necessary
-    colnames(data)[colnames(data)==famsizevar]<-"famsize.enrolled"
-    colnames(employerHealthcareData)[colnames(employerHealthcareData)=="famsize"]<-"famsize.enrolled"
-    
-    data<-left_join(data, employerHealthcareData, by=c("stateFIPS", "famsize.enrolled"))
-    
-    data$premium.healthcare.byfamsize<-data$premium.healthcare.byfamsize*(1+parameters.defaults$inflationrate[1])^(currentyr-data$yearofdata)
-    
-    #annualize and round
-    data$premium.healthcare.byfamsize<-round(data$premium.healthcare.byfamsize,0)*12
-    
-    return(data$premium.healthcare.byfamsize)
-  }
+# function.EmployerHealthcare<-function(data
+#                                         , famsizevar
+#                                         , currentyr = 2021){
+#     
+#     # Rename variables if necessary
+#     colnames(data)[colnames(data)==famsizevar]<-"famsize.enrolled"
+#     colnames(employerHealthcareData)[colnames(employerHealthcareData)=="famsize"]<-"famsize.enrolled"
+#     
+#     data<-left_join(data, employerHealthcareData, by=c("stateFIPS", "famsize.enrolled"))
+#     
+#     data$premium.healthcare.byfamsize<-data$premium.healthcare.byfamsize*(1+parameters.defaults$inflationrate[1])^(currentyr-data$yearofdata)
+#     
+#     #annualize and round
+#     data$premium.healthcare.byfamsize<-round(data$premium.healthcare.byfamsize,0)*12
+#     
+#     return(data$premium.healthcare.byfamsize)
+#   }
   
   
 
 #  Affordable Care Act ACA ----
 
-function.aca<-function(data
-                       , currentyr = 2014){
-    
+function.aca<-function(data){
+  
+    # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+    years<-unique(data$ruleYear) # years in data set
+    yearsinexpdata<- unique(acaData$ruleYear) # rule years in benefit data
+    yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+    yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+    # Create data for the future
+    maxyearofdata<-max(acaData$ruleYear) # collect latest year of benefit data
+    futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+    if(length(futureYrs)>0){
+      # Create data frame with future years
+      expand<-expand.grid(famsize=unique(acaData$famsize), AKorHI=unique(acaData$AKorHI), Year=futureYrs)
+      # Collect latest benefit data there is and merge w/data frame
+      expand2<-acaData[acaData$ruleYear==maxyearofdata, ]
+      expand<-expand%>%left_join(expand2, by=c("famsize", "AKorHI")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+    }# Attach copied future, historical, and missing benefit data
+    if(length(futureYrs)>0) {acaData<-acaData %>% rbind(expand)}
+
     data<-left_join(data, acaData, by=c("ruleYear", "famsize", "AKorHI"))
     data<-left_join(data,employerHealthcareData, by=c("stateFIPS", "famsize")) # Merge empl healthcare to obtain costs of the individual plan
     
     # Inflate/deflate
-    data$premium.healthcare.individual<-12*data$premium.healthcare.individual*(1+parameters.defaults$inflationrate[1])^(currentyr-data$yearofdata)
+    data$premium.healthcare.individual<-12*data$premium.healthcare.individual*(1+parameters.defaults$inflationrate[1])^(data$Year-data$ruleYear)
     
     data$premium.aca<-NA_real_
     
@@ -7690,10 +12849,8 @@ function.aca<-function(data
     return(data$premium.aca)
   }
   
-  
 
-
-# Medicare
+# Medicare - IN PROGRESS
 function.medicare<-function(data){
   
   # for testing - already done in Benefitscalcuator_functions file
@@ -7815,19 +12972,21 @@ function.medicare<-function(data){
 # Value of School Meals ----
 
 function.schoolmeals<-function(data){
-    
+  
     data<-left_join(data, schoolmealData, by=c("ruleYear", "famsize", "AKorHI"))
 
     data$value.schoolmeals<-0
     
     data$copay<-NA
     
+    
     #value of school lunch depends on income
-    data$income.countable=data$income+data$income.gift + data$income.child_support + data$value.ssdi + data$value.ssi + data$value.tanf
+    data$income.countable=data$income+data$income.gift + data$income.child_support+data$value.ssdi + data$value.ssi + data$value.tanf
     data$copay[data$income.countable<=data$IncomeBin1Max]<-data$CopayBin1[data$income.countable<=data$IncomeBin1Max]
     data$copay[data$income.countable>data$IncomeBin1Max & data$income.countable<=data$IncomeBin2Max]<-data$CopayBin2[data$income.countable>data$IncomeBin1Max & data$income.countable<=data$IncomeBin2Max]
     data$copay<-data$copay*parameters.defaults$numberofSchoolDays[1] #Annualize
-    
+  
+
     #categorical elibiblity: 
     
     #Step2: Determine categorical eligibility
@@ -7840,23 +12999,21 @@ function.schoolmeals<-function(data){
     
     data$copay[data$categorically.eligible==1]<-0
     
-    data$value.schoolmeals<-data$exp.schoolMeals-data$copay
+    data$copay<-data$copay*data$numkidsinschool
+    data$value.schoolmeals<-data$exp.schoolMeals-data$copay 
       
     data$value.schoolmeals[is.na(data$value.schoolmeals)]<-0
+
+    data$value.schoolmeals[data$value.schoolmeals<0]<-0
     
-    data$value.schoolmeals<-data$value.schoolmeals*data$numkidsinschool
-      
+    data$value.schoolmeals<-ifelse(data$numkidsinschool==0, 0, data$value.schoolmeals)
+    
     data$value.schoolmeals<-round(data$value.schoolmeals,2)
     
     return(data$value.schoolmeals)
   }
   
-function.summerschoolmeals<-function(data){
-  
-  data<-left_join(data)
-}
-  
-  
+
 # TAXES AND TAX CREDITS----
   
 # State Sales Tax ----
@@ -7875,12 +13032,10 @@ function.statesalestax<-function(data
     return(data$value.salestax)
   }
   
-  
-  
 
 # Federal Personal Income Tax ----
 
-calculate_taxableamtofSSDI=function(value.ssdi
+calculate_taxableamtofSSDI<-function(value.ssdi
                                       , income.base
                                       , baseamount
                                       , ssdi_taxable_test){  
@@ -7892,10 +13047,10 @@ calculate_taxableamtofSSDI=function(value.ssdi
       Line16_ssdi = Line12_ssdi*.85
       Line17_ssdi = Line15_ssdi  + Line16_ssdi 
       TaxableamtofSSDI = min(Line17_ssdi, .5 * (value.ssdi))
-    } 
-    else{
+    }else{
       TaxableamtofSSDI = 0
     }
+    
     return(TaxableamtofSSDI) 
   } 
   
@@ -7923,18 +13078,20 @@ function.fedinctax<-function(data
     data$value.tax7<-0
     
     #step 1: Determine taxable amount of SSDI benefits
-
     
+    data$TaxableamtofSSDI<-0
+    if(sum(data$value.ssdi)>0 & !is.na(sum(data$value.ssdi))){
+      
+      data$TaxableamtofSSDI<- apply(data[,c("value.ssdi"
+                                            , "income.base"
+                                            , "baseAmount_SSDI"
+                                            , "SSDI_taxable_test"
+      )], 1, function(x) calculate_taxableamtofSSDI(x[1],x[2],x[3],x[4]))
+      
+    }
     
-    data$TaxableamtofSSDI<- apply(data[,c("value.ssdi"
-                                          , "income.base"
-                                          , "baseAmount_SSDI"
-                                          , "SSDI_taxable_test")], 1, function(x) calculate_taxableamtofSSDI(x[1],x[2],x[3],x[4]))
+    data$income.base<-rowMaxs(cbind((data$income.base+data$TaxableamtofSSDI-data$Standard),0),na.rm=TRUE) # adjust countable income
     
-    
-    
-    
-    data$income.base<-data$income.base+data$TaxableamtofSSDI-data$Standard # adjust countable income
     
     # Calculate income tax for each bracket separately
     data$taxableincome.bin1<-rowMaxs(cbind((data$income.base-0)-rowMaxs(cbind(data$income.base-data$IncomeBin1Max,0)),0))
@@ -7953,14 +13110,14 @@ function.fedinctax<-function(data
     data$value.tax6<-data$TaxRate6*data$taxableincome.bin6
     data$value.tax7<-data$TaxRate7*data$taxableincome.bin7
     
+    
+    
     data$value.fedinctax<-data$value.tax1+data$value.tax2+data$value.tax3+data$value.tax4+data$value.tax5+data$value.tax6+data$value.tax7
     data$value.fedinctax<-round(data$value.fedinctax,0)
     
     return(data$value.fedinctax)
-    #return(data)
-    
+
   }
-  
 
 
 # State Income Tax----
@@ -7969,12 +13126,12 @@ function.stateinctax<-function(data
                                  , incomevar
                                  , fedincometaxvar
                                  , fedtaxcreditsvar){
-    
+ 
     data<-data %>% 
       rename("income.base" = incomevar
              ,"fedincometax" = fedincometaxvar
              ,"fedtaxcredits" = fedtaxcreditsvar)
-
+    
     data<-left_join(data, stateinctaxData, by=c("ruleYear", "stateFIPS", "FilingStatus"))
     
     # Net Federal Income Tax
@@ -8011,7 +13168,7 @@ function.stateinctax<-function(data
     data$taxableincome.bin7<-rowMaxs(cbind((data$income.base-data$IncomeBin6Max)-rowMaxs(cbind(data$income.base-data$IncomeBin7Max,0)),0))
     data$taxableincome.bin8<-rowMaxs(cbind((data$income.base-data$IncomeBin7Max)-rowMaxs(cbind(data$income.base-data$IncomeBin8Max,0)),0))
     data$taxableincome.bin9<-rowMaxs(cbind((data$income.base-data$IncomeBin8Max)-rowMaxs(cbind(data$income.base-data$IncomeBin9Max,0)),0))
-    data$taxableincome.bin10<-rowMaxs(cbind((data$income.base-data$IncomeBin5Max),0))
+    data$taxableincome.bin10<-rowMaxs(cbind((data$income.base-data$IncomeBin9Max)-rowMaxs(cbind(data$income.base-data$IncomeBin10Max,0)),0))
     
     # Calculate income tax for each bracket separately
     data$value.tax1<-data$TaxRate1*data$taxableincome.bin1
@@ -8037,10 +13194,62 @@ function.stateinctax<-function(data
     return(data$value.stateinctax)
   }
   
+# Local income Tax
+
+function.localinctax<-function(data
+                               , incomevar){
   
+  temp<-data
+  
+  # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+  years<-unique(data$ruleYear) # years in data set
+  yearsinexpdata<- unique(localinctaxData$ruleYear) # rule years in benefit data
+  yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+  yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+  # Create data for the future
+  maxyearofdata<-max(localinctaxData$ruleYear) # collect latest year of benefit data
+  futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+  if(length(futureYrs)>0){
+    # Create data frame with future years
+    expand<-expand.grid(stcountyfips2010=unique(localinctaxData$stcountyfips2010), Year=futureYrs)
+    # Collect latest benefit data there is and merge w/data frame
+    expand2<-localinctaxData[localinctaxData$ruleYear==maxyearofdata, ]
+    expand<-expand%>%left_join(expand2, by=c("stcountyfips2010"))%>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+  }
+  # Create data for past and gap years (missing data) - not the future
+  nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
+  if(length(nonFutureYrs)>0){
+    #Create data frame with past years and year for which we are missing benefit data
+    expandPastMiss<-expand.grid(stcountyfips2010=unique(localinctaxData$stcountyfips2010), Year=nonFutureYrs)
+    # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
+    expandPastMiss2<-left_join(expandPastMiss, localinctaxData, by=c("stcountyfips2010"))
+    expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
+    expandPastMiss2<-expandPastMiss2%>%
+      group_by(Year)%>%
+      mutate(minyeardiff = min(yeardiff))
+    expandPastMiss2<-expandPastMiss2 %>%
+      filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+  }  # Attach copied future, historical, and missing benefit data
+  if(length(futureYrs)>0) {localinctaxData<-localinctaxData %>% rbind(expand)}
+  if(length(nonFutureYrs)>0) {localinctaxData<-localinctaxData %>% rbind(expandPastMiss2)}
+  
+  temp<-left_join(temp, localinctaxData, by=c("stcountyfips2010","ruleYear"))
+  
+  #check for data that is missing
+  #setdiff(data$stcountyfips2010, temp$stcountyfips2010)
+  #setdiff(temp$stcountyfips2010, data$stcountyfips2010)
+  #dim(temp)[1]==dim(localinctaxData)[1]
+  
+  temp<-temp %>%
+    rename("income.base" = incomevar)
+  
+  temp$localinctaxValue<-as.numeric(temp$income.base)*as.numeric(temp$localTaxRate)
+  
+  return(temp$localinctaxValue)
+  
+}
 
 # Federal Child Tax Credit (CTC) ----
-
 function.fedctc<-function(data
                             , incomevar
                             , totalfederaltaxvar){
@@ -8051,6 +13260,37 @@ function.fedctc<-function(data
     
     data$value.fedctc<-0
     
+    if(2023 %in% unique(data$ruleYear)){ # make sure that year is in the list
+      
+      temp<-data[data$ruleYear==2023,]
+      
+      #----------------------------------
+      # Step 1: Assign copays
+      #----------------------------------
+      temp<-left_join(temp, fedctcData, by=c("ruleYear", "FilingStatus"))
+      
+      # Calculate number of eligible dependents
+      temp$numkidsunder17=rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)<=temp$AgeofDependentMax & cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)>=temp$AgeofDependentMin, na.rm=TRUE)
+      
+      subset1<-temp$income.base<=temp$IncomeBin1Max # Fully non-refundable
+      temp$value.fedctc[subset1]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset1],temp$value.fedctc.refundable[subset1])),temp$CreditBin1[subset1]))
+      
+      subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max
+      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),temp$RefundableCredit[subset2]))
+      temp$value.fedctc[subset2]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset2],temp$value.fedctc.refundable[subset2])),temp$CreditBin1[subset2]))
+      
+      subset3<-temp$income.base>temp$IncomeBin2Max
+      temp$value.fedctc[subset3]<-rowMaxs(cbind(temp$CreditBin1[subset3]-(temp$income.base[subset3]-temp$IncomeBin2Max[subset3])*temp$PhaseOutSlope1[subset3],0))
+      
+      temp$value.fedctc<-temp$value.fedctc*temp$numkidsunder17
+      
+      # Make sure the variables names are the same
+      temp<-temp %>% 
+        select(colnames(data),"value.fedctc")
+      
+      # Merge back
+      data[data$ruleYear==2023,]<-temp
+    }
     
     if(2022 %in% unique(data$ruleYear)){ # make sure that year is in the list
       
@@ -8898,10 +14138,7 @@ function.statectc<-function(data
     
     return(data_main$value.statectc)
   }
-  
 
-  
-    
 
 # Federal Earned Income Tax Credit (EITC) ----
 
@@ -8913,52 +14150,97 @@ function.fedeitc<-function(data
     
     # Rename variable to make it consistent with using dataset
     data<-data %>% 
-      rename(  "income.base" = incomevar
-               ,"investmentincome" = investmentincomevar 
+      rename(  "income.base" = incomevar,
+               "investmentincome" = investmentincomevar 
                ,"agePerson1" = ageofRespondentvar 
                ,"agePerson2" = ageofSpousevar) 
     
     # Create two variables: AGI and earned income (later that will go to the InitialTransformations)
+    execute<-"Federal_EITC"
+
     data$income.base.AGI<-data$income.base
     data$income.base.earned<-data$income.base
+    
+    # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+    years<-unique(data$ruleYear) # years in data set
+    yearsinexpdata<- unique(fedeitcData$ruleYear) # rule years in benefit data
+    yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+    yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+    # Create data for the future
+    maxyearofdata<-max(fedeitcData$ruleYear) # collect latest year of benefit data
+    futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+    if(length(futureYrs)>0){
+      # Create data frame with future years
+      expand<-expand.grid(FilingStatus=unique(fedeitcData$FilingStatus), numkids=unique(fedeitcData$numkids), Year=futureYrs)
+      # Collect latest benefit data there is and merge w/data frame
+      expand2<-fedeitcData[fedeitcData$ruleYear==maxyearofdata, ]
+      expand<-expand%>%left_join(expand2, by=c("FilingStatus", "numkids"))%>%drop_na() %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+    }
+    # Create data for past and gap years (missing data) - not the future
+    nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
+    if(length(nonFutureYrs)>0){
+      #Create data frame with past years and year for which we are missing benefit data
+      expandPastMiss<-expand.grid(FilingStatus=unique(fedeitcData$FilingStatus), numkids=unique(fedeitcData$numkids), Year=nonFutureYrs)
+      # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
+      expandPastMiss2<-left_join(expandPastMiss, fedeitcData, by=c("FilingStatus", "numkids"))
+      expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
+      expandPastMiss2<-expandPastMiss2%>%
+        group_by(Year)%>%
+        mutate(minyeardiff = min(yeardiff))
+      expandPastMiss2<-expandPastMiss2 %>%
+        filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+    }  # Attach copied future, historical, and missing benefit data
+    if(length(futureYrs)>0) {fedeitcData<-fedeitcData %>% rbind(expand)}
+    if(length(nonFutureYrs)>0) {fedeitcData<-fedeitcData %>% rbind(expandPastMiss2)}
     
     # Step I: merge parameters by filing status and number of children
     data<-left_join(data, fedeitcData, by=c("FilingStatus", "numkids", "ruleYear"))
     
-    
     # Compute value of the based on Earned Income
     data$value.fedeitc<-0
     
-    subset1<-data$income.base.earned<data$IncomeBin1Max
+    subset1<-which(data$income.base.earned<data$IncomeBin1Max)
     data$value.fedeitc[subset1]<-0
+    assign(paste("subset1",execute,sep="_"),subset1,envir=.GlobalEnv)
     
-    subset2<-data$income.base.earned>=data$IncomeBin1Max & data$income.base.earned<data$IncomeBin2Max
+    subset2<-which(data$income.base.earned>=data$IncomeBin1Max & data$income.base.earned<data$IncomeBin2Max)
     data$value.fedeitc[subset2]<-0+(data$income.base.earned[subset2]-data$IncomeBin1Max[subset2])*data$PhaseInRate[subset2]
-
-    subset3<-data$income.base.earned>=data$IncomeBin2Max & data$income.base.earned<data$IncomeBin3Max
+    assign(paste("subset2",execute,sep="_"),subset2,envir=.GlobalEnv)
+    
+    subset3<-which(data$income.base.earned>=data$IncomeBin2Max & data$income.base.earned<data$IncomeBin3Max)
     data$value.fedeitc[subset3]<-data$MaxCredit[subset3]
+    assign(paste("subset3",execute,sep="_"),subset3,envir=.GlobalEnv)
     
-    subset4<-data$income.base.earned>=data$IncomeBin3Max & data$income.base.earned<data$IncomeBin4Max
+    
+    subset4<-which(data$income.base.earned>=data$IncomeBin3Max & data$income.base.earned<data$IncomeBin4Max)
     data$value.fedeitc[subset4]<-data$MaxCredit[subset4]-(data$income.base.earned[subset4]-data$IncomeBin3Max[subset4])*data$PhaseOutRate[subset4]
+    assign(paste("subset4",execute,sep="_"),subset4,envir=.GlobalEnv)
     
-    subset5<-data$income.base.earned>=data$IncomeBin4Max
+    subset5<-which(data$income.base.earned>=data$IncomeBin4Max)
     data$value.fedeitc[subset5]<-0
+    assign(paste("subset5",execute,sep="_"),subset5,envir=.GlobalEnv)
+    
     
     
     # Recalculate EITC based on AGI if required
-    subset4a<-data$income.base.AGI!=data$income.base.earned & data$income.base.AGI>=data$IncomeBin3Max & data$income.base.AGI<data$IncomeBin4Max
+    subset4a<-which(data$income.base.AGI!=data$income.base.earned & data$income.base.AGI>=data$IncomeBin3Max & data$income.base.AGI<data$IncomeBin4Max)
     data$value.fedeitc[subset4a]<-data$MaxCredit[subset4a]-(data$income.base.AGI[subset4a]-data$IncomeBin3Max[subset4a])*data$PhaseOutRate[subset4a]
+    assign(paste("subset4a",execute,sep="_"),subset4a,envir=.GlobalEnv)
     
-    subset5a<-data$income.base.AGI!=data$income.base.earned & data$income.base.AGI>=data$IncomeBin4Max
+    subset5a<-which(data$income.base.AGI!=data$income.base.earned & data$income.base.AGI>=data$IncomeBin4Max)
     data$value.fedeitc[subset5a]<-0
+    assign(paste("subset5a",execute,sep="_"),subset5a,envir=.GlobalEnv)
     
     
     # Apply special rule for those who do not claim a child
-    subset1<-data$numkids==0 & (data$FilingStatus==1 | data$FilingStatus==3) & (data$agePerson1<data$ageLimitMin | data$agePerson1>data$ageLimitMax)
+    subset1<-which(data$numkids==0 & (data$FilingStatus==1 | data$FilingStatus==3) & (data$agePerson1<data$ageLimitMin | data$agePerson1>data$ageLimitMax))
     data$value.fedeitc[subset1]<-0
+    assign(paste("subset1a",execute,sep="_"),subset1,envir=.GlobalEnv)
     
-    subset2<-data$numkids==0 & (data$FilingStatus==2) & ((data$agePerson1<data$ageLimitMin & data$agePerson2<data$ageLimitMin) | (data$agePerson1>data$ageLimitMax & data$agePerson2>data$ageLimitMax))
+    
+    subset2<-which(data$numkids==0 & (data$FilingStatus==2) & ((data$agePerson1<data$ageLimitMin & data$agePerson2<data$ageLimitMin) | (data$agePerson1>data$ageLimitMax & data$agePerson2>data$ageLimitMax)))
     data$value.fedeitc[subset2]<-0
+    assign(paste("subset2a",execute,sep="_"),subset2,envir=.GlobalEnv)
     
     
     # Invoke investment income test
@@ -8998,42 +14280,74 @@ function.fedeitcIncomeLimits<-function(data
   data$income.base.AGI<-data$income.base
   data$income.base.earned<-data$income.base
   
+  # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+  years<-unique(data$ruleYear) # years in data set
+  yearsinexpdata<- unique(fedeitcData$ruleYear) # rule years in benefit data
+  yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+  yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+  # Create data for the future
+  maxyearofdata<-max(fedeitcData$ruleYear) # collect latest year of benefit data
+  futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+  if(length(futureYrs)>0){
+    # Create data frame with future years
+    expand<-expand.grid(FilingStatus=unique(fedeitcData$FilingStatus), numkids=unique(fedeitcData$numkids), Year=futureYrs)
+    # Collect latest benefit data there is and merge w/data frame
+    expand2<-fedeitcData[fedeitcData$ruleYear==maxyearofdata, ]
+    expand<-expand%>%left_join(expand2, by=c("FilingStatus", "numkids"))%>%drop_na() %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+  }
+  # Create data for past and gap years (missing data) - not the future
+  nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
+  if(length(nonFutureYrs)>0){
+    #Create data frame with past years and year for which we are missing benefit data
+    expandPastMiss<-expand.grid(FilingStatus=unique(fedeitcData$FilingStatus), numkids=unique(fedeitcData$numkids), Year=nonFutureYrs)
+    # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
+    expandPastMiss2<-left_join(expandPastMiss, fedeitcData, by=c("FilingStatus", "numkids"))
+    expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
+    expandPastMiss2<-expandPastMiss2%>%
+      group_by(Year)%>%
+      mutate(minyeardiff = min(yeardiff))
+    expandPastMiss2<-expandPastMiss2 %>%
+      filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+  }  # Attach copied future, historical, and missing benefit data
+  if(length(futureYrs)>0) {fedeitcData<-fedeitcData %>% rbind(expand)}
+  if(length(nonFutureYrs)>0) {fedeitcData<-fedeitcData %>% rbind(expandPastMiss2)}
+  
+  
   # Step I: merge parameters by filing status and number of children
   data<-left_join(data, fedeitcData, by=c("FilingStatus", "numkids", "ruleYear"))
-  
   
   # Compute value of the based on Earned Income
   data$value.fedeitc<-0
   
-  subset1<-data$income.base.earned<data$IncomeBin1Max
+  subset1<-which(data$income.base.earned<data$IncomeBin1Max)
   data$value.fedeitc[subset1]<-0
   
-  subset2<-data$income.base.earned>=data$IncomeBin1Max & data$income.base.earned<data$IncomeBin2Max
+  subset2<-which(data$income.base.earned>=data$IncomeBin1Max & data$income.base.earned<data$IncomeBin2Max)
   data$value.fedeitc[subset2]<-0+(data$income.base.earned[subset2]-data$IncomeBin1Max[subset2])*data$PhaseInRate[subset2]
   
-  subset3<-data$income.base.earned>=data$IncomeBin2Max & data$income.base.earned<data$IncomeBin3Max
+  subset3<-which(data$income.base.earned>=data$IncomeBin2Max & data$income.base.earned<data$IncomeBin3Max)
   data$value.fedeitc[subset3]<-data$MaxCredit[subset3]
   
-  subset4<-data$income.base.earned>=data$IncomeBin3Max & data$income.base.earned<data$IncomeBin4Max
+  subset4<-which(data$income.base.earned>=data$IncomeBin3Max & data$income.base.earned<data$IncomeBin4Max)
   data$value.fedeitc[subset4]<-data$MaxCredit[subset4]-(data$income.base.earned[subset4]-data$IncomeBin3Max[subset4])*data$PhaseOutRate[subset4]
   
-  subset5<-data$income.base.earned>=data$IncomeBin4Max
+  subset5<-which(data$income.base.earned>=data$IncomeBin4Max)
   data$value.fedeitc[subset5]<-0
   
   
   # Recalculate EITC based on AGI if required
-  subset4a<-data$income.base.AGI!=data$income.base.earned & data$income.base.AGI>=data$IncomeBin3Max & data$income.base.AGI<data$IncomeBin4Max
+  subset4a<-which(data$income.base.AGI!=data$income.base.earned & data$income.base.AGI>=data$IncomeBin3Max & data$income.base.AGI<data$IncomeBin4Max)
   data$value.fedeitc[subset4a]<-data$MaxCredit[subset4a]-(data$income.base.AGI[subset4a]-data$IncomeBin3Max[subset4a])*data$PhaseOutRate[subset4a]
   
-  subset5a<-data$income.base.AGI!=data$income.base.earned & data$income.base.AGI>=data$IncomeBin4Max
+  subset5a<-which(data$income.base.AGI!=data$income.base.earned & data$income.base.AGI>=data$IncomeBin4Max)
   data$value.fedeitc[subset5a]<-0
   
   
   # Apply special rule for those who do not claim a child
-  subset1<-data$numkids==0 & (data$FilingStatus==1 | data$FilingStatus==3) & (data$agePerson1<data$ageLimitMin | data$agePerson1>data$ageLimitMax)
+  subset1<-which(data$numkids==0 & (data$FilingStatus==1 | data$FilingStatus==3) & (data$agePerson1<data$ageLimitMin | data$agePerson1>data$ageLimitMax))
   data$value.fedeitc[subset1]<-0
   
-  subset2<-data$numkids==0 & (data$FilingStatus==2) & ((data$agePerson1<data$ageLimitMin & data$agePerson2<data$ageLimitMin) | (data$agePerson1>data$ageLimitMax & data$agePerson2>data$ageLimitMax))
+  subset2<-which(data$numkids==0 & (data$FilingStatus==2) & ((data$agePerson1<data$ageLimitMin & data$agePerson2<data$ageLimitMin) | (data$agePerson1>data$ageLimitMax & data$agePerson2>data$ageLimitMax)))
   data$value.fedeitc[subset2]<-0
   
   
@@ -9045,8 +14359,6 @@ function.fedeitcIncomeLimits<-function(data
   
   return(cbind(data$MaxCredit,data$IncomeBin2Max,data$IncomeBin3Max,data$PhaseOutRate))
 }
-
-
 
  
 # State Earned Income Tax Credit (EITC) ----
@@ -9069,9 +14381,41 @@ function.stateeitc<-function(data
              ,"agePerson2" = ageofSpousevar
              ,"ageChild1" = ageofYoungestChildvar)
     
+    # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+    years<-unique(data$ruleYear) # years in data set
+    yearsinexpdata<- unique(stateeitcData$ruleYear) # rule years in benefit data
+    yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+    yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+    # Create data for the future
+    maxyearofdata<-max(stateeitcData$ruleYear) # collect latest year of benefit data
+    futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+    if(length(futureYrs)>0){
+      # Create data frame with future years
+      expand<-expand.grid(stateFIPS=unique(stateeitcData$stateFIPS), numkids=unique(stateeitcData$numkids), Year=futureYrs)
+      # Collect latest benefit data there is and merge w/data frame
+      expand2<-stateeitcData[stateeitcData$ruleYear==maxyearofdata, ]
+      expand<-expand%>%left_join(expand2, by=c("stateFIPS", "numkids"))%>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+    }
+    # Create data for past and gap years (missing data) - not the future
+    nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
+    if(length(nonFutureYrs)>0){
+      #Create data frame with past years and year for which we are missing benefit data
+      expandPastMiss<-expand.grid(stateFIPS=unique(stateeitcData$stateFIPS), numkids=unique(stateeitcData$numkids), Year=nonFutureYrs)
+      # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
+      expandPastMiss2<-left_join(expandPastMiss, stateeitcData, by=c("stateFIPS", "numkids"))
+      expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
+      expandPastMiss2<-expandPastMiss2%>%
+        group_by(Year)%>%
+        mutate(minyeardiff = min(yeardiff))
+      expandPastMiss2<-expandPastMiss2 %>%
+        filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+    }  # Attach copied future, historical, and missing benefit data
+    if(length(futureYrs)>0) {stateeitcData<-stateeitcData %>% rbind(expand)}
+    if(length(nonFutureYrs)>0) {stateeitcData<-stateeitcData %>% rbind(expandPastMiss2)}
     
     # Step I: merge parameters by filing status and number of children    
-    data_main<-left_join(data, stateeitcData[,colnames(stateeitcData)!="ruleYear"], by=c("stateFIPS", "numkids"))
+   # data_main<-left_join(data, stateeitcData[,colnames(stateeitcData)!="ruleYear"], by=c("stateFIPS", "numkids"))
+    data_main<-left_join(data, stateeitcData, by=c("stateFIPS", "numkids", "ruleYear"))
     
     # Create two variables: AGI and earned income (later that will go to the InitialTransformations)
     data_main$income.base.AGI<-data_main$income.base
@@ -9088,8 +14432,8 @@ function.stateeitc<-function(data
     data$value.stateeitc<-data$PercentOfFederal*data$federaleitc
     
     # Adjust for refundability
-    subset<-data$Refundable=="No"
-    data$value.stateeitc[subset]<-rowMins(cbind(data$value.stateeitc[subset],data$stateincometax[subset]))
+    subset<-which(data$Refundable=="No")
+    data$value.stateeitc[subset]<-rowMins(cbind(data$value.stateeitc[subset], data$stateincometax[subset]),na.rm=TRUE)
     
     # State-specific rules
     
@@ -9103,11 +14447,11 @@ function.stateeitc<-function(data
     temp$value.stateeitc<-temp$PercentOfFederal*temp$federaleitc
     
     # Adjust for refundability
-    subset<-temp$Refundable=="No"
+    subset<-which(temp$Refundable=="No")
     temp$value.stateeitc[subset]<-rowMins(cbind(temp$value.stateeitc[subset],temp$stateincometax[subset]))
     
     #Invoke CA Income eligibility
-    subset<-temp$income.base.earned>30000
+    subset<-which(temp$income.base.earned>30000)
     temp$value.stateeitc[subset]<-0
     
     # Replace back
@@ -9129,21 +14473,21 @@ function.stateeitc<-function(data
       # Step 2: Calculate total EITC (with phase-out)
       temp$income.countable<-rowMaxs(cbind(temp$income.base.earned,temp$income.base)) #max b/w earnings and gross income
       
-      subset<-temp$income.countable<19489
+      subset<-which(temp$income.countable<19489)
       temp$value.stateeitc.additional[subset]<-temp$value.eitc.base[subset]
       
-      subset<-temp$income.countable>=19489
+      subset<-which(temp$income.countable>=19489)
       temp$value.stateeitc.additional[subset]<-rowMaxs(cbind(0,temp$value.eitc.base[subset]-0.0848*(temp$income.countable[subset]-19489)))
       
       # Make sure that age requirements for Federal EITC are met
-      subset1<-temp$numkids==0 & (temp$FilingStatus==1 | temp$FilingStatus==3) & (temp$agePerson1<19 | temp$agePerson1>999)
+      subset1<-which(temp$numkids==0 & (temp$FilingStatus==1 | temp$FilingStatus==3) & (temp$agePerson1<19 | temp$agePerson1>999))
       temp$value.stateeitc.additional[subset1]<-0
       
-      subset2<-temp$numkids==0 & (temp$FilingStatus==2) & ((temp$agePerson1<19 & temp$agePerson2<19) | (temp$agePerson1>999 & temp$agePerson2>999))
+      subset2<-which(temp$numkids==0 & (temp$FilingStatus==2) & ((temp$agePerson1<19 & temp$agePerson2<19) | (temp$agePerson1>999 & temp$agePerson2>999)))
       temp$value.stateeitc.additional[subset2]<-0
       
       # Check if family satisfies investment income requirements
-      subset3<-temp$investmentincome<3650
+      subset3<-which(temp$investmentincome<3650)
       temp$value.stateeitc.additional[subset3]<-0
       
       # Add this special EITC to the DC state EITC
@@ -9164,11 +14508,11 @@ function.stateeitc<-function(data
     temp$value.stateeitc<-temp$PercentOfFederal*temp$federaleitc
     
     # Adjust for refundability
-    subset<-temp$Refundable=="No"
+    subset<-which(temp$Refundable=="No")
     temp$value.stateeitc[subset]<-rowMins(cbind(temp$value.stateeitc[subset],temp$stateincometax[subset]))
     
     #OH has different rules for refundability
-    subset<-temp$income.base>20000
+    subset<-which(temp$income.base>20000)
     temp$value.stateeitc[subset]<-rowMins(cbind(temp$value.stateeitc[subset],0.5*temp$stateincometax[subset]))
     
     # Replace back
@@ -9182,7 +14526,7 @@ function.stateeitc<-function(data
     temp<-data[data$stateFIPS==41,]
     
     # Families with children under the age of 3 have different percent of federal
-    subset<-temp$ageChild1<3
+    subset<-which(temp$ageChild1<3)
     temp$PercentOfFederal[subset]<-0.12
     
     # Calculate tax credit amount in a standard way
@@ -9190,7 +14534,7 @@ function.stateeitc<-function(data
     temp$value.stateeitc<-temp$PercentOfFederal*temp$federaleitc
     
     # Adjust for refundability
-    subset<-temp$Refundable=="No"
+    subset<-which(temp$Refundable=="No")
     temp$value.stateeitc[subset]<-rowMins(cbind(temp$value.stateeitc[subset],temp$stateincometax[subset]))
     
     # Replace back
@@ -9204,6 +14548,38 @@ function.stateeitc<-function(data
     if(24 %in% unique(data$stateFIPS)){ # make sure that state is in the list
       temp<-data[data$stateFIPS==24,]
       
+      # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+      years<-unique(data$ruleYear) # years in data set
+      yearsinexpdata<- unique(fedeitcData$ruleYear) # rule years in benefit data
+      yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+      yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+      # Create data for the future
+      maxyearofdata<-max(fedeitcData$ruleYear) # collect latest year of benefit data
+      futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+      if(length(futureYrs)>0){
+        # Create data frame with future years
+        expand<-expand.grid(FilingStatus=unique(fedeitcData$FilingStatus), numkids=unique(fedeitcData$numkids), Year=futureYrs)
+        # Collect latest benefit data there is and merge w/data frame
+        expand2<-fedeitcData[fedeitcData$ruleYear==maxyearofdata, ]
+        expand<-expand%>%left_join(expand2, by=c("FilingStatus", "numkids"))%>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+      }
+      # Create data for past and gap years (missing data) - not the future
+      nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
+      if(length(nonFutureYrs)>0){
+        #Create data frame with past years and year for which we are missing benefit data
+        expandPastMiss<-expand.grid(FilingStatus=unique(fedeitcData$FilingStatus), numkids=unique(fedeitcData$numkids), Year=nonFutureYrs)
+        # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
+        expandPastMiss2<-left_join(expandPastMiss, fedeitcData, by=c("FilingStatus", "numkids"))
+        expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
+        expandPastMiss2<-expandPastMiss2%>%
+          group_by(Year)%>%
+          mutate(minyeardiff = min(yeardiff))
+        expandPastMiss2<-expandPastMiss2 %>%
+          filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+      }  # Attach copied future, historical, and missing benefit data
+      if(length(futureYrs)>0) {fedeitcData<-fedeitcData %>% rbind(expand)}
+      if(length(nonFutureYrs)>0) {fedeitcData<-fedeitcData %>% rbind(expandPastMiss2)}
+      
       # Step 1: Need to recalulate federal EITC, because Maryland has minimum age requirement disregard
       # Recalculate Federal tax credit
       temp<-left_join(temp, fedeitcData, by=c("FilingStatus", "numkids", "ruleYear"))
@@ -9211,27 +14587,27 @@ function.stateeitc<-function(data
       # Compute value of the based on Earned Income
       temp$federaleitc.rep<-0
       
-      subset1<-temp$income.base.earned<temp$IncomeBin1Max
+      subset1<-which(temp$income.base.earned<temp$IncomeBin1Max)
       temp$federaleitc.rep[subset1]<-0
       
-      subset2<-temp$income.base.earned>=temp$IncomeBin1Max & temp$income.base.earned<temp$IncomeBin2Max
+      subset2<-which(temp$income.base.earned>=temp$IncomeBin1Max & temp$income.base.earned<temp$IncomeBin2Max)
       temp$federaleitc.rep[subset2]<-0+(temp$income.base.earned[subset2]-temp$IncomeBin1Max[subset2])*temp$PhaseInRate[subset2]
       
-      subset3<-temp$income.base.earned>=temp$IncomeBin2Max & temp$income.base.earned<temp$IncomeBin3Max
+      subset3<-which(temp$income.base.earned>=temp$IncomeBin2Max & temp$income.base.earned<temp$IncomeBin3Max)
       temp$federaleitc.rep[subset3]<-temp$MaxCredit[subset3]
       
-      subset4<-temp$income.base.earned>=temp$IncomeBin3Max & temp$income.base.earned<temp$IncomeBin4Max
+      subset4<-which(temp$income.base.earned>=temp$IncomeBin3Max & temp$income.base.earned<temp$IncomeBin4Max)
       temp$federaleitc.rep[subset4]<-temp$MaxCredit[subset4]-(temp$income.base.earned[subset4]-temp$IncomeBin3Max[subset4])*temp$PhaseOutRate[subset4]
       
-      subset5<-temp$income.base.earned>=temp$IncomeBin4Max
+      subset5<-which(temp$income.base.earned>=temp$IncomeBin4Max)
       temp$federaleitc.rep[subset5]<-0
       
       
       # Recalculate EITC based on AGI if required
-      subset4a<-temp$income.base.AGI!=temp$income.base.earned & temp$income.base.AGI>=temp$IncomeBin3Max & temp$income.base.AGI<temp$IncomeBin4Max
+      subset4a<-which(temp$income.base.AGI!=temp$income.base.earned & temp$income.base.AGI>=temp$IncomeBin3Max & temp$income.base.AGI<temp$IncomeBin4Max)
       temp$federaleitc.rep[subset4a]<-temp$MaxCredit[subset4a]-(temp$income.base.AGI[subset4a]-temp$IncomeBin3Max[subset4a])*temp$PhaseOutRate[subset4a]
       
-      subset5a<-temp$income.base.AGI!=temp$income.base.earned & temp$income.base.AGI>=temp$IncomeBin4Max
+      subset5a<-which(temp$income.base.AGI!=temp$income.base.earned & temp$income.base.AGI>=temp$IncomeBin4Max)
       temp$federaleitc.rep[subset5a]<-0
       
       
@@ -9260,10 +14636,10 @@ function.stateeitc<-function(data
     }
     
     # Apply special rule for those who do not claim a child (except Maryland)
-    subset1<-data$numkids==0 & (data$FilingStatus==1 | data$FilingStatus==3) & data$agePerson1<25 & data$stateFIPS != 24
+    subset1<-which(data$numkids==0 & (data$FilingStatus==1 | data$FilingStatus==3) & data$agePerson1<25 & data$stateFIPS != 24)
     data$value.stateeitc[subset1]<-0
     
-    subset2<-data$numkids==0 & (data$FilingStatus==2) & (data$agePerson1<25 & data$agePerson2<25) & data$stateFIPS != 24
+    subset2<-which(data$numkids==0 & (data$FilingStatus==2) & (data$agePerson1<25 & data$agePerson2<25) & data$stateFIPS != 24)
     data$value.stateeitc[subset2]<-0
     
     
@@ -9289,6 +14665,38 @@ function.fedcdctc<-function(data
               ,"totalfederaltax" = totalfederaltaxvar
               )
     
+    # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+    years<-unique(data$ruleYear) # years in data set
+    yearsinexpdata<- unique(fedcdctcData$ruleYear) # rule years in benefit data
+    yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+    yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+    # Create data for the future
+    maxyearofdata<-max(fedcdctcData$ruleYear) # collect latest year of benefit data
+    futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+    if(length(futureYrs)>0){
+      # Create data frame with future years
+      expand<-expand.grid(NumberOfKidsUnder13=unique(fedcdctcData$NumberOfKidsUnder13), Year=futureYrs)
+      # Collect latest benefit data there is and merge w/data frame
+      expand2<-fedcdctcData[fedcdctcData$ruleYear==maxyearofdata, ]
+      expand<-expand%>%left_join(expand2, by=c("NumberOfKidsUnder13"))%>%drop_na() %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+    }
+    # Create data for past and gap years (missing data) - not the future
+    nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
+    if(length(nonFutureYrs)>0){
+      #Create data frame with past years and year for which we are missing benefit data
+      expandPastMiss<-expand.grid(stateFIPS=unique(fedcdctcData$stateFIPS), Year=nonFutureYrs)
+      # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
+      expandPastMiss2<-left_join(expandPastMiss, fedcdctcData, by=c("NumberOfKidsUnder13"))
+      expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
+      expandPastMiss2<-expandPastMiss2%>%
+        group_by(Year)%>%
+        mutate(minyeardiff = min(yeardiff))
+      expandPastMiss2<-expandPastMiss2 %>%
+        filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+    }  # Attach copied future, historical, and missing benefit data
+    if(length(futureYrs)>0) {fedcdctcData<-fedcdctcData %>% rbind(expand)}
+    if(length(nonFutureYrs)>0) {fedcdctcData<-fedcdctcData %>% rbind(expandPastMiss2)}
+    
     # Calculate number of dependents under the age of 13
     data$NumberOfKidsUnder13<-rowSums(cbind(data$agePerson1, data$agePerson2, data$agePerson3, data$agePerson4, data$agePerson5, data$agePerson6, data$agePerson7, data$agePerson8, data$agePerson9, data$agePerson10, data$agePerson11, data$agePerson12)<=12 & cbind(data$agePerson1, data$agePerson2, data$agePerson3, data$agePerson4, data$agePerson5, data$agePerson6, data$agePerson7, data$agePerson8, data$agePerson9, data$agePerson10, data$agePerson11, data$agePerson12)>=0, na.rm=TRUE)
     
@@ -9303,18 +14711,18 @@ function.fedcdctc<-function(data
     
     data$value.fedcdctc<-0
     
-    subset1<-data$income.base.AGI <= data$IncomeBin1Max # Receive Maximum Credit
+    subset1<-which(data$income.base.AGI <= data$IncomeBin1Max) # Receive Maximum Credit
     data$value.fedcdctc[subset1]<-data$MaxCredit[subset1]*rowMins(cbind(rowMins(cbind(data$qualifyingExpenses[subset1],data$MaxExpense[subset1])),data$income.base.AGI[subset1]))
     
-    subset2<-data$income.base.AGI > data$IncomeBin1Max # Receive Phase-Out Credit bounded by the minimum credit from below
+    subset2<-which(data$income.base.AGI > data$IncomeBin1Max) # Receive Phase-Out Credit bounded by the minimum credit from below
     data$value.fedcdctc[subset2]<-(rowMaxs(cbind((data$MaxCredit[subset2]-data$PhaseOutRate[subset2]*(data$income.base.AGI[subset2]-data$IncomeBin1Max[subset2])),data$MinCredit[subset2])))*rowMins(cbind(rowMins(cbind(data$qualifyingExpenses[subset2],data$MaxExpense[subset2])),data$income.base.AGI[subset2]))
     
     # Adjust if CDCTC is non-refundable
-    subset<-data$Refundable=="No"
+    subset<-which(data$Refundable=="No")
     data$value.fedcdctc[subset]<-rowMins(cbind(data$value.fedcdctc[subset],data$totalfederaltax[subset]))
     
     # Earned Income Test
-    subset<-data$income.base.earned==0
+    subset<-which(data$income.base.earned==0)
     data$value.fedcdctc[subset]<-0
     
     data$value.fedcdctc<-round(data$value.fedcdctc,0)
@@ -9323,9 +14731,6 @@ function.fedcdctc<-function(data
   }
   
   
-  
-  
-
 # State Child and Dependent Care Tax Credit (CDCTC)----
 
 function.statecdctc<-function(data
@@ -9333,7 +14738,6 @@ function.statecdctc<-function(data
                                 , incomevar
                                 , stateincometaxvar
                                 , federalcdctcvar){
-    
     
     data<-data %>% 
       rename( "income.base" = incomevar
@@ -9353,44 +14757,43 @@ function.statecdctc<-function(data
     states_with_cdctc<-unique(statecdctcData$stateFIPS)
     data<-data_main[data_main$stateFIPS %in% states_with_cdctc,]
     
-    subset1<- data$income.base<=data$IncomeBin1Max
+    subset1<- which(data$income.base<=data$IncomeBin1Max)
     data$value.statecdctc[subset1]<-rowMaxs(cbind(data$PercentOfFederalBin1[subset1]*data$federalcdctc[subset1], data$PercentOfExpensesBin1[subset1]*data$qualifyingExpenses[subset1]))
     
-    subset2<- data$income.base>data$IncomeBin1Max & data$income.base<=data$IncomeBin2Max
+    subset2<- which(data$income.base>data$IncomeBin1Max & data$income.base<=data$IncomeBin2Max)
     data$value.statecdctc[subset2]<-rowMaxs(cbind(data$PercentOfFederalBin2[subset2]*data$federalcdctc[subset2], data$PercentOfExpensesBin2[subset2]*data$qualifyingExpenses[subset2]))
     
-    subset3<- data$income.base>data$IncomeBin2Max & data$income.base<=data$IncomeBin3Max
+    subset3<- which(data$income.base>data$IncomeBin2Max & data$income.base<=data$IncomeBin3Max)
     data$value.statecdctc[subset3]<-rowMaxs(cbind(data$PercentOfFederalBin3[subset3]*data$federalcdctc[subset3], data$PercentOfExpensesBin3[subset3]*data$qualifyingExpenses[subset3]))
     
-    subset4<- data$income.base>data$IncomeBin3Max & data$income.base<=data$IncomeBin4Max
+    subset4<- which(data$income.base>data$IncomeBin3Max & data$income.base<=data$IncomeBin4Max)
     data$value.statecdctc[subset4]<-rowMaxs(cbind(data$PercentOfFederalBin4[subset4]*data$federalcdctc[subset4], data$PercentOfExpensesBin4[subset4]*data$qualifyingExpenses[subset4]))
     
-    subset5<- data$income.base>data$IncomeBin4Max & data$income.base<=data$IncomeBin5Max
+    subset5<- which(data$income.base>data$IncomeBin4Max & data$income.base<=data$IncomeBin5Max)
     data$value.statecdctc[subset5]<-rowMaxs(cbind(data$PercentOfFederalBin5[subset5]*data$federalcdctc[subset5], data$PercentOfExpensesBin5[subset5]*data$qualifyingExpenses[subset5]))
     
-    subset6<- data$income.base>data$IncomeBin5Max & data$income.base<=data$IncomeBin6Max
+    subset6<- which(data$income.base>data$IncomeBin5Max & data$income.base<=data$IncomeBin6Max)
     data$value.statecdctc[subset6]<-rowMaxs(cbind(data$PercentOfFederalBin6[subset6]*data$federalcdctc[subset6], data$PercentOfExpensesBin6[subset6]*data$qualifyingExpenses[subset6]))
     
-    subset7<- data$income.base>data$IncomeBin6Max & data$income.base<=data$IncomeBin7Max
+    subset7<- which(data$income.base>data$IncomeBin6Max & data$income.base<=data$IncomeBin7Max)
     data$value.statecdctc[subset7]<-rowMaxs(cbind(data$PercentOfFederalBin7[subset7]*data$federalcdctc[subset7], data$PercentOfExpensesBin7[subset7]*data$qualifyingExpenses[subset7]))
     
-    subset8<- data$income.base>data$IncomeBin7Max & data$income.base<=data$IncomeBin8Max
+    subset8<-which(data$income.base>data$IncomeBin7Max & data$income.base<=data$IncomeBin8Max)
     data$value.statecdctc[subset8]<-rowMaxs(cbind(data$PercentOfFederalBin8[subset8]*data$federalcdctc[subset8], data$PercentOfExpensesBin8[subset8]*data$qualifyingExpenses[subset8]))
     
-    subset9<- data$income.base>data$IncomeBin8Max & data$income.base<=data$IncomeBin9Max
+    subset9<-which(data$income.base>data$IncomeBin8Max & data$income.base<=data$IncomeBin9Max)
     data$value.statecdctc[subset9]<-rowMaxs(cbind(data$PercentOfFederalBin9[subset9]*data$federalcdctc[subset9], data$PercentOfExpensesBin9[subset9]*data$qualifyingExpenses[subset9]))
     
-    subset10<- data$income.base>data$IncomeBin9Max & data$income.base<=data$IncomeBin10Max
+    subset10<-which(data$income.base>data$IncomeBin9Max & data$income.base<=data$IncomeBin10Max)
     data$value.statecdctc[subset10]<-rowMaxs(cbind(data$PercentOfFederalBin10[subset10]*data$federalcdctc[subset10], data$PercentOfExpensesBin10[subset10]*data$qualifyingExpenses[subset10]))
     
-    subset11<- data$income.base>data$IncomeBin10Max & data$income.base<=data$IncomeBin11Max
+    subset11<- which(data$income.base>data$IncomeBin10Max & data$income.base<=data$IncomeBin11Max)
     data$value.statecdctc[subset11]<-rowMaxs(cbind(data$PercentOfFederalBin11[subset11]*data$federalcdctc[subset11], data$PercentOfExpensesBin11[subset11]*data$qualifyingExpenses[subset11]))
     
     
     # Adjust for refundability
-    subset<-data$Refundable=="No"
+    subset<-which(data$Refundable=="No")
     data$value.statecdctc[subset]<-rowMins(cbind(data$value.statecdctc[subset],data$stateincometax[subset]))
-    
     
     # State-specific rules
     
@@ -9418,51 +14821,51 @@ function.statecdctc<-function(data
       temp$value.statecdctc.elc.kid12<-0
       
       # Child 1 (income limit is satisfied and age is below 4)
-      subset.kid1<-temp$income.base<=151900 & (!is.na(temp$agePerson1) & temp$agePerson1<=3)
+      subset.kid1<-which(temp$income.base<=151900 & (!is.na(temp$agePerson1) & temp$agePerson1<=3))
       temp$value.statecdctc.elc.kid1[subset.kid1]<-rowMins(cbind(temp$netexp.childcareperson1[subset.kid1],1010)) # Tax credit is a min of a qualifying expense or a maximum credit per child
       
       # Child 2
-      subset.kid2<-temp$income.base<=151900 & (!is.na(temp$agePerson2) & temp$agePerson2<=3)
+      subset.kid2<-which(temp$income.base<=151900 & (!is.na(temp$agePerson2) & temp$agePerson2<=3))
       temp$value.statecdctc.elc.kid2[subset.kid2]<-rowMins(cbind(temp$netexp.childcareperson2[subset.kid2],1010)) 
       
       # Child 3
-      subset.kid3<-temp$income.base<=151900 & (!is.na(temp$agePerson3) & temp$agePerson3<=3)
+      subset.kid3<-which(temp$income.base<=151900 & (!is.na(temp$agePerson3) & temp$agePerson3<=3))
       temp$value.statecdctc.elc.kid3[subset.kid3]<-rowMins(cbind(temp$netexp.childcareperson3[subset.kid3],1010)) 
       
       # Child 4
-      subset.kid4<-temp$income.base<=151900 & (!is.na(temp$agePerson4) & temp$agePerson4<=3)
+      subset.kid4<-which(temp$income.base<=151900 & (!is.na(temp$agePerson4) & temp$agePerson4<=3))
       temp$value.statecdctc.elc.kid4[subset.kid4]<-rowMins(cbind(temp$netexp.childcareperson4[subset.kid4],1010)) 
       
       # Child 5
-      subset.kid5<-temp$income.base<=151900 & (!is.na(temp$agePerson5) & temp$agePerson5<=3)
+      subset.kid5<-which(temp$income.base<=151900 & (!is.na(temp$agePerson5) & temp$agePerson5<=3))
       temp$value.statecdctc.elc.kid5[subset.kid5]<-rowMins(cbind(temp$netexp.childcareperson5[subset.kid5],1010)) 
       
       # Child 6
-      subset.kid6<-temp$income.base<=151900 & (!is.na(temp$agePerson6) & temp$agePerson6<=3)
+      subset.kid6<-which(temp$income.base<=151900 & (!is.na(temp$agePerson6) & temp$agePerson6<=3))
       temp$value.statecdctc.elc.kid6[subset.kid6]<-rowMins(cbind(temp$netexp.childcareperson6[subset.kid6],1010)) 
       
       # Child 7
-      subset.kid7<-temp$income.base<=151900 & (!is.na(temp$agePerson7) & temp$agePerson7<=3)
+      subset.kid7<-which(temp$income.base<=151900 & (!is.na(temp$agePerson7) & temp$agePerson7<=3))
       temp$value.statecdctc.elc.kid7[subset.kid7]<-rowMins(cbind(temp$netexp.childcareperson7[subset.kid7],1010)) 
       
       # Child 8
-      subset.kid8<-temp$income.base<=151900 & (!is.na(temp$agePerson8) & temp$agePerson8<=3)
+      subset.kid8<-which(temp$income.base<=151900 & (!is.na(temp$agePerson8) & temp$agePerson8<=3))
       temp$value.statecdctc.elc.kid8[subset.kid8]<-rowMins(cbind(temp$netexp.childcareperson8[subset.kid8],1010)) 
       
       # Child 9
-      subset.kid9<-temp$income.base<=151900 & (!is.na(temp$agePerson9) & temp$agePerson9<=3)
+      subset.kid9<-which(temp$income.base<=151900 & (!is.na(temp$agePerson9) & temp$agePerson9<=3))
       temp$value.statecdctc.elc.kid9[subset.kid9]<-rowMins(cbind(temp$netexp.childcareperson9[subset.kid9],1010)) 
       
       # Child 10
-      subset.kid10<-temp$income.base<=151900 & (!is.na(temp$agePerson10) & temp$agePerson10<=3)
+      subset.kid10<-which(temp$income.base<=151900 & (!is.na(temp$agePerson10) & temp$agePerson10<=3))
       temp$value.statecdctc.elc.kid10[subset.kid10]<-rowMins(cbind(temp$netexp.childcareperson10[subset.kid10],1010)) 
       
       # Child 11
-      subset.kid11<-temp$income.base<=151900 & (!is.na(temp$agePerson11) & temp$agePerson11<=3)
+      subset.kid11<-which(temp$income.base<=151900 & (!is.na(temp$agePerson11) & temp$agePerson11<=3))
       temp$value.statecdctc.elc.kid11[subset.kid11]<-rowMins(cbind(temp$netexp.childcareperson11[subset.kid11],1010)) 
       
       # Child 12
-      subset.kid12<-temp$income.base<=151900 & (!is.na(temp$agePerson12) & temp$agePerson12<=3)
+      subset.kid12<-which(temp$income.base<=151900 & (!is.na(temp$agePerson12) & temp$agePerson12<=3))
       temp$value.statecdctc.elc.kid12[subset.kid12]<-rowMins(cbind(temp$netexp.childcareperson12[subset.kid12],1010)) 
       
       # Total value of the credit
@@ -9625,7 +15028,6 @@ function.statecdctc<-function(data
       data[data$stateFIPS==31,]<-temp
     }
     
-    
     data$value.statecdctc<-round(data$value.statecdctc,0)
     
     # Plug states with CTC back
@@ -9635,8 +15037,6 @@ function.statecdctc<-function(data
   }
   
   
-  
-  
 # Federal Insurance Constribution Act (FICA) Tax----
 
 function.ficatax<-function(data
@@ -9644,11 +15044,11 @@ function.ficatax<-function(data
     
     colnames(data)[colnames(data)==employmentincomevar]<-"income.base"
     
+    # We have historical rules
     data<-left_join(data, ficataxData, by=c("ruleYear","FilingStatus"))
     
     data$tax.ss<-rowMins(cbind(data$income.base,data$SocialSecurityTaxBase))*data$SocialSecurityTaxRate
   
-    
     # Calculate income tax for each bracket separately
     data$taxableincome.bin1<-rowMaxs(cbind((data$income.base-0)-rowMaxs(cbind(data$income.base-data$IncomeBin1Max,0)),0))
     data$taxableincome.bin2<-rowMaxs(cbind((data$income.base-data$IncomeBin1Max),0))
@@ -9661,10 +15061,4 @@ function.ficatax<-function(data
     
     return(data$value.ficatax)
   }
-  
-  
-  
-  
-  
-  
   
