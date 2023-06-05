@@ -3,23 +3,22 @@
 # Inputs for Data Generation (leave blank if the data was pre-generated)
 ##########################################################################
 
-# Specify rule year(s)
+# Specify rule year(s) also for inflation/deflation purposes
 
-ruleYear: [2022]
+ruleYear: [2023]
 
+# Specify year of the data 
 
-# Specify year of the data (for inflation/deflation purposes)
-
-Year: [2022]
+Year: [2023]
 
 
 # Age of each member of the household
 
-agePerson1: [25]
+agePerson1: [30]
 
-agePerson2: [NA]
+agePerson2: [8]
 
-agePerson3: [NA,2]
+agePerson3: [NA]
 
 agePerson4: [NA]
 
@@ -39,10 +38,12 @@ agePerson11: [NA]
 
 agePerson12: [NA]
 
+# Specify marital status (0: not married; 1: married)
+married: [0]
 
-# Disability status of each family member
+# Disability status of each family member (disability1 corresponds to agePerson1 and so on)
 
-disability1: [1]
+disability1: [0]
 
 disability2: [0]
 
@@ -66,6 +67,9 @@ disability11: [0]
 
 disability12: [0]
 
+# Has anyone in the home previously received SSI? If so, the person is eligible for Medicaid even if they are not currently receiving SSI.
+
+prev_ssi: [0] 
 
 # Specify if any of adult family members (persons 1 to 6) are blind
 
@@ -83,9 +87,9 @@ blind6: [0]
 
 
 
-# How much each adult family members (persons 1 to 6) initially receives in SSDI payments
+# How much each adult family members (persons 1 to 6) initially receives in SSDI payments ($ per month)
 
-ssdiPIA1: [1000]
+ssdiPIA1: [0]
 
 ssdiPIA2: [0]
 
@@ -124,7 +128,7 @@ income.child_support: [0]
 
 # Does job provide health insurance (1-yes/0-no)
 
-empl_healthcare: [0,1]
+empl_healthcare: [0]
 
 
 # Do you own ('own') or rent ('rent') a house
@@ -150,7 +154,7 @@ disab.work.exp: [0]
 
 # Global settings
 
-k_ftorpt: FT #not used anywher in benefits calc right now
+k_ftorpt: FT #not used anywhere in benefits calc right now
 
 schoolagesummercare: PT #don't change - ben calc not yet set up to handle FT
 
@@ -164,9 +168,9 @@ contelig.earlyheadstart: false
 
 contelig.ccdf: true
 
-USEALICE: false
+budget.ALICE: survivalforcliff
 
-# Trasnfer programs switches
+# Transfer programs switches
 
 APPLY_CHILDCARE: true
 
@@ -176,7 +180,7 @@ APPLY_CCDF: true
 
 APPLY_PREK: true
 
-APPLY_LIHEAP: false
+APPLY_LIHEAP: true
 
 APPLY_HEALTHCARE: true
 
@@ -186,7 +190,7 @@ APPLY_MEDICAID_CHILD: true
 
 APPLY_ACA: true
 
-APPLY_SECTION8: true
+APPLY_SECTION8: true 
 
 APPLY_RAP: false
 

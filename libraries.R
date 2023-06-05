@@ -1,7 +1,7 @@
 # #######################################
 # Load all necessary packages
 #########################################
-# Add new reuiqred packages here
+# Add new required packages here
 
 
 if (!"shiny" %in% rownames(installed.packages())){install.packages("shiny")} 
@@ -39,6 +39,9 @@ if (!"shinycssloaders" %in% rownames(installed.packages())){install.packages("sh
 if (!"rjson" %in% rownames(installed.packages())){install.packages("rjson")}
 if (!"yaml" %in% rownames(installed.packages())){install.packages("yaml")}
 #if (!"urbnmapr" %in% rownames(installed.packages())){install.packages("urbnmapr")}
+#note: this library needs to be downloaded from github
+#devtools::install_github("UrbanInstitute/urbnmapr", force = TRUE)
+if (!"rstudioapi" %in% rownames(installed.packages())){install.packages("rstudioapi")}
 
 library(shiny)
 library(shinythemes)
@@ -73,7 +76,10 @@ library(shinycssloaders)
 library(rjson)
 library(yaml)
 #library(urbnmapr)
-
+library(rstudioapi)
+library(pivottabler)
+library(ggiraph)
+library(here)
 
 # !!! IMPORTANT !!!
 # Load dplyr and plyr in the right order (to avoid functions override)

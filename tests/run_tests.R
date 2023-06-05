@@ -48,6 +48,8 @@ contelig.headstart <- inputs$contelig.headstart
 contelig.earlyheadstart <- inputs$contelig.earlyheadstart 
 contelig.ccdf <- inputs$contelig.ccdf 
 USEALICE <- inputs$USEALICE
+budget.ALICE <-inputs$budget.ALICE
+
 
 # Transfer programs switches
 APPLY_CHILDCARE<-inputs$APPLY_CHILDCARE #Childcare block - Head Start and CCDF
@@ -79,12 +81,7 @@ APPLY_SSDI<-inputs$APPLY_SSDI
 data<-function.createData(inputs)
 
 ## 3. Attach default expenses----
-if (USEALICE == FALSE){
-  data<-BenefitsCalculator.DefaultExpenses(data)
-}
-if (USEALICE == TRUE){
-  data<-BenefitsCalculator.ALICEExpenses(data)
-}
+data<-BenefitsCalculator.ALICEExpenses(data)
 
 load("./unit_test/BenefitsCalculator.OtherBenefits_unittest.rdata")
 comparison_function_1=data_unittest

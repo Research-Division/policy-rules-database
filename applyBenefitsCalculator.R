@@ -2,7 +2,7 @@
 # Ellie & Elias Benefits Calculator----
 # This program reads-in input data and runs Benefits Calculator
 
-# PREAMBLE-----
+# PREAMBLE----
 
 
 rm(list=ls())
@@ -33,6 +33,7 @@ source(paste0(current_directory,"/functions/BenefitsCalculator_functions.R"), lo
 
 # SPECIFY PROJECT----
 PROJECT<-"TEST"
+#PROJECT<-"unit_test"
 
 ## 1. Settings----
 
@@ -48,6 +49,8 @@ preK_ftorpt <- inputs$preK_ftorpt
 contelig.headstart <- inputs$contelig.headstart 
 contelig.earlyheadstart <- inputs$contelig.earlyheadstart 
 contelig.ccdf <- inputs$contelig.ccdf 
+USEALICE <- inputs$USEALICE
+budget.ALICE <-inputs$budget.ALICE
 
 # Transfer programs switches
 APPLY_CHILDCARE<-inputs$APPLY_CHILDCARE #Childcare block - Head Start and CCDF
@@ -79,7 +82,7 @@ APPLY_SSDI<-inputs$APPLY_SSDI
 data<-function.createData(inputs)
 
 ## 3. Attach default expenses----
-data<-BenefitsCalculator.DefaultExpenses(data)
+data<-BenefitsCalculator.ALICEExpenses(data)
 
 ## 4. Apply Benefits Calculator (block-by-block)----
 
