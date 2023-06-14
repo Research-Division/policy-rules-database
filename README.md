@@ -127,159 +127,148 @@ To test the functions:
 
 Check the Readme file inside the folder tests
 
-**8. "Up to date Programs**
-
-See below the years included for each public policy program. 
-
-Federal Taxes & Tax Credits:*
-Federal Income Tax	2010-2022
-FICA	2010-2023
-Federal CDCTC	1976-2022
-Federal CTC	1997-2022
-Federal EITC	2018-2022
-*Note: For the current year, the PRD uses the tax rules for the previous year
-
-State Income Tax – all states and DC
-2011-2022
-
-State Tax Credits
-CDCTC – States:
-Arkansas
-California
-Colorado
-Delaware
-District of Columbia
-Georgia
-Hawaii
-Iowa
-Kansas
-Kentucky
-Louisiana
-Maine
-Maryland
-Minnesota
-New Jersey
-Nebraska
-New Mexico
-New York
-Ohio
-Oklahoma
-Oregon
-Rhode Island
-South Carolina
-Vermont
-	2021
-CTC – States:
-California
-Colorado
-Idaho
-New York
-North Carolina
-Oklahoma
-	2021
-EITC – States:
-California
-Colorado
-Connecticut
-Delaware
-District of Columbia
-Hawaii
-Illinois
-Indiana
-Iowa
-Kansas
-Louisiana
-Maine
-Maryland
-Massachusetts
-Michigan
-Minnesota
-Montana
-Nebraska
-New Jersey
-New Mexico
-New York
-Ohio
-Oklahoma
-Oregon
-Rhode Island
-South Carolina
-Vermont
-Virginia
-Wisconsin
-	2022
+**9. "Up to date Programs**
 
 
-Benefits:
-
-SNAP	2011-2023
-School Lunch Program	2011-2023
-WIC	2011-2023
-Pre-K	2019
-Head Start /Early Head Start	2013-2022
-Section 8	2009-2023
-Medicaid	2011-2023
-ACA	2014-2023
-SSI	1984-2023
-SSDI	1975-2023
-
-
-
-
-CCDF:
-AL	2021-2022
-AK	2021-2022
-AR	2021-2022
-AZ	2020
-CA	2020
-CO	2021
-CT	2021
-DE	2021-2022
-DC	2018 & 2021
-FL	2011-2022
-GA	2020 & 2022
-HI	2020-2022
-IA	2021-2022
-ID	2020
-IL	2019-2022
-IN	2020
-KS	2020
-KY	2020
-LA	2020 & 2022
-ME	2020
-MA	2020-2022
-MD	2018 & 2022
-MI	2021-2022
-MN	2020
-MO	2020
-MS	2021
-MT	2020
-NC	2020
-ND	2021-2022
-NE	2021
-NV	2021-2022
-NH	2021
-NJ	2021-2022
-NM	2020
-NY	2020 & 2022
-OH	2020
-OK	2020
-OR	2021
-PA	2021-2022
-RI	2021
-SC	2020
-SD	2021-2022
-TN	2021
-TX	2020
-UT	2020
-VA	2020
-VT	2021-2022
-WA	2011-2022
-WI	2020
-WV	2020-2022
-WY	2021
-
-
+Federal Taxes & Tax Credits*									
+Federal Income Tax	FICA	Federal CDCTC	Federal CTC	Federal EITC					
+2010-2022	2010-2023	1976-2022	1997-2022	2018-2022					
+									
+									
+									
+*Note: For the current year, the PRD uses the tax rules for the previous year									
+									
+State Income Tax – all states and DC									
+2011-2022									
+									
+State Tax Credits									
+CDCTC – States:	2021								
+Arkansas									
+California									
+Colorado									
+Delaware									
+District of Columbia									
+Georgia									
+Hawaii									
+Iowa									
+Kansas									
+Kentucky									
+Louisiana									
+Maine									
+Maryland									
+Minnesota									
+New Jersey									
+Nebraska									
+New Mexico									
+New York									
+Ohio									
+Oklahoma									
+Oregon									
+Rhode Island									
+South Carolina									
+Vermont									
+CTC – States:	2021								
+California									
+Colorado									
+Idaho									
+New York									
+North Carolina									
+Oklahoma									
+EITC – States:	2022								
+California									
+Colorado									
+Connecticut									
+Delaware									
+District of Columbia									
+Hawaii									
+Illinois									
+Indiana									
+Iowa									
+Kansas									
+Louisiana									
+Maine									
+Maryland									
+Massachusetts									
+Michigan									
+Minnesota									
+Montana									
+Nebraska									
+New Jersey									
+New Mexico									
+New York									
+Ohio									
+Oklahoma									
+Oregon									
+Rhode Island									
+South Carolina									
+Vermont									
+Virginia									
+Wisconsin									
+									
+									
+Benefits									
+SNAP	School Lunch Program	WIC	Pre-K	Head Start /	Section 8	Medicaid	ACA	SSI	SSDI
+				Early Head Start					
+2011-2023	2011-2023	2011-2023	2019	2013-2022	2009-2023	2011-2023	2014-2023	1984-2023	1975-2023
+									
+									
+CCDF									
+AL	2021-2022								
+AK	2021-2022								
+AR	2021-2022								
+AZ	2020								
+CA	2020								
+CO	2021								
+CT	2021								
+DE	2021-2022								
+DC	2018 & 2021								
+FL	2011-2022								
+GA	2020 & 2022								
+HI	2020-2022								
+IA	2021-2022								
+ID	2020								
+IL	2019-2022								
+IN	2020								
+KS	2020								
+KY	2020								
+LA	2020 & 2022								
+ME	2020								
+MA	2020-2022								
+MD	2018 & 2022								
+MI	2021-2022								
+MN	2020								
+MO	2020								
+MS	2021								
+MT	2020								
+NC	2020								
+ND	2021-2022								
+NE	2021								
+NV	2021-2022								
+NH	2021								
+NJ	2021-2022								
+NM	2020								
+NY	2020 & 2022								
+OH	2020								
+OK	2020								
+OR	2021								
+PA	2021-2022								
+RI	2021								
+SC	2020								
+SD	2021-2022								
+TN	2021								
+TX	2020								
+UT	2020								
+VA	2020								
+VT	2021-2022								
+WA	2011-2022								
+WI	2020								
+WV	2020-2022								
+WY	2021								
+									
+									
+									
+									
+![image](https://github.com/FRB-Atlanta-Advancing-Careers/policy-rules-database/assets/59230162/89adfaa4-117f-40a0-8170-3332c194b626)
 
 
 
