@@ -128,9 +128,8 @@ To test the functions:
 Check the Readme file inside the folder tests
 
 **9. "Up to date Programs**
-
-									
-![image](https://github.com/FRB-Atlanta-Advancing-Careers/policy-rules-database/assets/59230162/89adfaa4-117f-40a0-8170-3332c194b626)
+							
+![image](https://github.com/FRB-Atlanta-Advancing-Careers/policy-rules-database/assets/59230162/cc8f1caa-adb7-4597-82a9-b8710baf1427)
 
 
 
