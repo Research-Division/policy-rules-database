@@ -73,7 +73,7 @@ function.childcareExp.ALICE<-function(data
       mutate(exp.childcareInfants=familyChildCare.infant.ftdailyrate*(parameters.defaults$numberofSummerChildcareDays[1]+parameters.defaults$numberofSchoolDays[1]),
              exp.childcarePreSchoolers=familyChildCare.4yr.old.ftdailyrate*(parameters.defaults$numberofSummerChildcareDays[1]+parameters.defaults$numberofSchoolDays[1]),
              ALICE.exp.childcareSchoolAge=familyChildCare.4yr.old.ftdailyrate*(parameters.defaults$numberofSummerChildcareDays[1]+parameters.defaults$numberofSchoolDays[1])*(3/8),
-             exp.childcareSchoolAge=familyChildCare.4yr.old.ftdailyrate*parameters.defaults$numberofSummerChildcareDays[1]*careduringsummer+licensedChildcare.4yr.ftdailyrate*0.5*parameters.defaults$numberofSchoolDays[1],
+             exp.childcareSchoolAge=familyChildCare.4yr.old.ftdailyrate*parameters.defaults$numberofSummerChildcareDays[1]*careduringsummer+familyChildCare.4yr.old.ftdailyrate*0.5*parameters.defaults$numberofSchoolDays[1],
              exp.childcare=exp.childcareInfants+exp.childcarePreSchoolers+exp.childcareSchoolAge,
              ALICE.exp.childcare=exp.childcareInfants+exp.childcarePreSchoolers+ALICE.exp.childcareSchoolAge)
   }
@@ -147,7 +147,7 @@ function.childcareExp.ALICE<-function(data
   
   #inflate cost to current Year
   data$ALICE.exp.childcare<-data$ALICE.exp.childcare*(1+(.021-parameters.defaults$inflationrate[1]))^(data$Year-data$yearofdata)
-  data$exp.childcare<-data$exp.childcare*(1+(.021-parameters.defaults$inflationrate[1]))^(data$Year-data$yearofdata)
+  data$exp.childcare<-data$exp.childcare*(1+(parameters.defaults$inflationrate[1]))^(data$Year-data$yearofdata)
   
   data$ALICE.exp.childcare<-round(data$ALICE.exp.childcare,0)
   
@@ -731,9 +731,13 @@ function.schoolmealsExp<-function(data){
   data<-left_join(data, exp.foodData.schoolMeals, by=c("AKorHI","Year"))
   
   data$expense.dailyschoolMeals<-data$dailyvalue.schoolLunch+data$dailyvalue.schoolBreakfast
+  
+  data$numkidsinschool=rowSums(cbind(data$agePerson1, data$agePerson2, data$agePerson3, data$agePerson4, data$agePerson5, data$agePerson6, data$agePerson7, data$agePerson8, data$agePerson9, data$agePerson10, data$agePerson11, data$agePerson12)<=18 & cbind(data$agePerson1, data$agePerson2, data$agePerson3, data$agePerson4, data$agePerson5, data$agePerson6, data$agePerson7, data$agePerson8, data$agePerson9, data$agePerson10, data$agePerson11, data$agePerson12)>=5, na.rm=TRUE)
 
   #annualize
   data$expense.schoolmeals<-data$expense.dailyschoolMeals*parameters.defaults$numberofSchoolDays[1] 
+  
+  data$expense.schoolmeals<-data$expense.schoolmeals*data$numkidsinschool
   
   #inflation adjust
   if (budget.ALICE=="survival" | budget.ALICE=="stability"){
@@ -745,6 +749,9 @@ function.schoolmealsExp<-function(data){
   
   # remove yearofdata from main dataset before merging the next expense
   data<-data%>%select(-yearofdata)
+  
+  # The cost for school meals is calculated using school age kids, >5 years old. Kids in PreK may be younger than 5 so the 'numkidsinschool' value is recalculated after
+  # the PreK benefit is ran and includes these kids. 
   
   return(data$expense.schoolmeals)
 }
@@ -841,7 +848,7 @@ function.healthcareExp.ALICE<-function(data, famsizevar){
     #total cost of health insurance (employer paid + employee paid premium)
     mutate(exp.healthcare.employer= case_when(famsize==1 ~ Single_employee+Single_employer, famsize==2 ~ Plusone_employee+ Plusone_employer, famsize>=3 ~Family_employee+Family_employer, TRUE~NA_real_)) %>% 
     mutate(exp.healthcare.employer.ALICE =case_when(famsize_forALICE==1 ~ Single_employee+Single_employer, famsize_forALICE==2 ~ Plusone_employee+ Plusone_employer, famsize_forALICE>=3 ~ Family_employee + Family_employer, TRUE~NA_real_)) %>% 
-    #premium paid by the employee  
+    #premium paid by the employee - low-income households are more likely to have someone in fair or poor health. The Household Survival Budget includes a poor-health multiplier, a conservative 30% increase to out-of-pocket costs.
     mutate(premium.employer= case_when(famsize==1 ~ Single_employee, famsize==2 ~ Plusone_employee, famsize>=3 ~Family_employee, TRUE~NA_real_)*1.3) %>% 
     mutate(premium.employer.ALICE =case_when(famsize_forALICE==1 ~ Single_employee, famsize_forALICE==2 ~ Plusone_employee, famsize_forALICE>=3 ~ Family_employee,famsize_forALICE==0 ~ 0, TRUE~NA_real_)) %>% 
     #premium.medicare
@@ -854,14 +861,14 @@ function.healthcareExp.ALICE<-function(data, famsizevar){
   
   if(budget.ALICE=="survival" | budget.ALICE=="survivalforcliff"){
     data<-data %>% 
-      mutate(oop.health.family.ALICE=TotalU65*(annualOOP_survival)+Total65plus*(annualOOP_partB+annualOOP.chronicconditions+annual_premium_partB),
-             ALICE.expense.healthcare.family=premium.employer.ALICE*1.3+oop.health.family.ALICE)
+      mutate(oop.health.family.ALICE=TotalU65*(annualOOP_survival)+Total65plus*(annualOOP_partB+annualOOP.chronicconditions+annual_premium_partB)) %>% 
+      mutate(ALICE.expense.healthcare.family=premium.employer.ALICE*1.3+oop.health.family.ALICE)
   } 
   
   if(budget.ALICE=="stability"){
     data<-data %>% 
-      mutate(oop.health.family.ALICE<-TotalU65*(annualOOP_stability)+Total65plus*(annualOOP_partB+annualOOP.chronicconditions+annual_premium_partB),
-             ALICE.expense.healthcare.family<-premium.employer.ALICE+oop.health.family.ALICE)
+      mutate(oop.health.family.ALICE<-TotalU65*(annualOOP_stability)+Total65plus*(annualOOP_partB+annualOOP.chronicconditions+annual_premium_partB)) %>% 
+      mutate(ALICE.expense.healthcare.family<-premium.employer.ALICE+oop.health.family.ALICE)
   }
   
   #maybe add something here for "survivalforcliff", maybe not
@@ -909,6 +916,7 @@ function.healthcareExp.ALICE<-function(data, famsizevar){
   data$oop.notmedicare<-round(data$oop.notmedicare*(1+(.033-parameters.defaults$inflationrate[1]))^(data$Year-data$yearofdata),0) 
   data$oop.medicare<-round(data$oop.medicare*(1+(.033-parameters.defaults$inflationrate[1]))^(data$Year-data$yearofdata),0) 
   data$oop.add_for_elderlyordisabled<-round(data$oop.add_for_elderlyordisabled*(1+(.033-parameters.defaults$inflationrate[1]))^(data$Year-data$yearofdata),0) 
+  data$oop.health.family.ALICE<-round(data$oop.health.family.ALICE*(1+(.033-parameters.defaults$inflationrate[1]))^(data$Year-data$yearofdata),0)
   }else if(budget.ALICE=="survivalforcliff"){
     data$ALICE.expense.healthcare.family<-round(data$ALICE.expense.healthcare.family*(1+(parameters.defaults$inflationrate[1]))^(data$ruleYear-data$yearofdata),0) 
     data$exp.healthcare.employer<-round(data$exp.healthcare.employer*(1+(parameters.defaults$inflationrate[1]))^(data$ruleYear-data$yearofdata),0) 
@@ -917,9 +925,11 @@ function.healthcareExp.ALICE<-function(data, famsizevar){
     data$oop.notmedicare<-round(data$oop.notmedicare*(1+(parameters.defaults$inflationrate[1]))^(data$ruleYear-data$yearofdata),0) 
     data$oop.medicare<-round(data$oop.medicare*(1+(parameters.defaults$inflationrate[1]))^(data$ruleYear-data$yearofdata),0) 
     data$oop.add_for_elderlyordisabled<-round(data$oop.add_for_elderlyordisabled*(1+(parameters.defaults$inflationrate[1]))^(data$ruleYear-data$yearofdata),0) 
+    data$oop.health.family.ALICE<-round(data$oop.health.family.ALICE*(1+(parameters.defaults$inflationrate[1]))^(data$ruleYear-data$yearofdata),0) 
+    
   }
   returnData<-data %>% 
-    select(ALICE.expense.healthcare.family,exp.healthcare.employer,premium.employer,premium.medicare,oop.notmedicare,oop.medicare,oop.add_for_elderlyordisabled) 
+    select(ALICE.expense.healthcare.family,exp.healthcare.employer,premium.employer,premium.medicare,oop.notmedicare,oop.medicare,oop.add_for_elderlyordisabled,oop.health.family.ALICE) 
   
   # remove yearofdata from main dataset before merging the next expense
   data<-data%>%select(-yearofdata)
@@ -938,16 +948,18 @@ function.healthcareExp.Medicaid<-function(data
   
   data<-left_join(data, exp.healthcareData.Medicaid, by=c("stateFIPS"))
   
-  if (budget.ALICE=="survival" | budget.ALICE=="stability"){
-    data$expense.medicaidAdults<-data$expense.medicaidAdults*(1+(.033-parameters.defaults$inflationrate[1]))^(data$Year-data$yearofdata) 
-  }else if(budget.ALICE=="survivalforcliff"){
-    data$expense.medicaidAdults<-data$expense.medicaidAdults*(1+(parameters.defaults$inflationrate[1]))^(data$ruleYear-data$yearofdata) 
-  }
   # Assign value of medicaid based on whether person is a kid or an adult
   data<-data %>% 
     mutate(expense.medicaid=case_when(ageofperson >= 19 ~ expense.medicaidAdults
                                       ,ageofperson < 19 ~ expense.medicaidChildren
                                       , TRUE ~ 0))
+  
+  if (budget.ALICE=="survival" | budget.ALICE=="stability"){
+    data$expense.medicaid<-data$expense.medicaid*(1+(.033-parameters.defaults$inflationrate[1]))^(data$Year-data$yearofdata) 
+  }else if(budget.ALICE=="survivalforcliff"){
+    data$expense.medicaid<-data$expense.medicaid*(1+(parameters.defaults$inflationrate[1]))^(data$ruleYear-data$yearofdata) 
+  }
+  
   
   data$expense.medicaid<-round(data$expense.medicaid,0)
   

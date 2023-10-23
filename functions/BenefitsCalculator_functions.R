@@ -22,7 +22,7 @@ if (!exists("APPLY_FRSP")) APPLY_FRSP=FALSE
 function.createData<-function(inputs){
   
   # Process "locations" input
-  if(inputs$locations=="all"){ #include all counties
+  if(inputs$locations=="all"){ #include all counties  
     inputs$locations<-paste(table.countypop$countyortownName,table.countypop$stateAbbrev,sep=", ")  
   } else{
     inputs$locations<-inputs$locations
@@ -81,7 +81,7 @@ function.createData<-function(inputs){
                     , income.child_support = inputs$income.child_support
                     , disab.work.exp = inputs$disab.work.exp
                     , ruleYear = inputs$ruleYear
-                    , Year= inputs$Year) 
+                    , Year= inputs$ruleYear) 
   
   #make location two variables
   data<- data %>%
@@ -282,7 +282,7 @@ if(APPLY_CHILDCARE==FALSE | (APPLY_HEADSTART==FALSE & APPLY_CCDF==FALSE & APPLY_
   data$value.HeadStart<-0 
   data$value.earlyHeadStart<-0 
   data$value.PreK<-0
-  data$numkidsinschool=rowSums(cbind(data$agePerson1, data$agePerson2, data$agePerson3, data$agePerson4, data$agePerson5, data$agePerson6, data$agePerson7, data$agePerson8, data$agePerson9, data$agePerson10, data$agePerson11, data$agePerson12)<=17 & cbind(data$agePerson1, data$agePerson2, data$agePerson3, data$agePerson4, data$agePerson5, data$agePerson6, data$agePerson7, data$agePerson8, data$agePerson9, data$agePerson10, data$agePerson11, data$agePerson12)>=5, na.rm=TRUE)
+  data$numkidsinschool=rowSums(cbind(data$agePerson1, data$agePerson2, data$agePerson3, data$agePerson4, data$agePerson5, data$agePerson6, data$agePerson7, data$agePerson8, data$agePerson9, data$agePerson10, data$agePerson11, data$agePerson12)<=18 & cbind(data$agePerson1, data$agePerson2, data$agePerson3, data$agePerson4, data$agePerson5, data$agePerson6, data$agePerson7, data$agePerson8, data$agePerson9, data$agePerson10, data$agePerson11, data$agePerson12)>=5, na.rm=TRUE)
   data$value.FATES<-0
   }else{
   
@@ -741,7 +741,8 @@ data<-data %>%
                ,value.PreKperson10=if_else(is.na(value.PreKperson10), 0, value.PreKperson10)
                ,value.PreKperson11=if_else(is.na(value.PreKperson11), 0, value.PreKperson11)
                ,value.PreKperson12=if_else(is.na(value.PreKperson12), 0, value.PreKperson12)) %>% 
-        mutate(value.PreK = value.PreKperson1+value.PreKperson2+value.PreKperson3+value.PreKperson4++value.PreKperson5++value.PreKperson6++value.PreKperson7+value.PreKperson8+value.PreKperson9+value.PreKperson10+value.PreKperson11+value.PreKperson12)
+        mutate(value.PreK = value.PreKperson1+value.PreKperson2+value.PreKperson3+value.PreKperson4++value.PreKperson5++value.PreKperson6++value.PreKperson7+value.PreKperson8+value.PreKperson9+value.PreKperson10+value.PreKperson11+value.PreKperson12) %>%
+        mutate(value.PreK = ifelse(exp.childcare<=value.PreK, exp.childcare, value.PreK))
       
             #Calculate childcare cost net of preK & headstart
       data=data %>% 
@@ -761,10 +762,9 @@ data<-data %>%
                 )
     } #end PREK=true function
 
-# Sum the number of school age kids & recalculate school meals cost based on this
-#####
-    
-    data$numkidsinschool=rowSums(cbind(data$value.PreKperson1, data$value.PreKperson2, data$value.PreKperson3, data$value.PreKperson4, data$value.PreKperson5, data$value.PreKperson6, data$value.PreKperson7, data$value.PreKperson8, data$value.PreKperson9, data$value.PreKperson10, data$value.PreKperson11, data$value.PreKperson12)>0 | (cbind(data$agePerson1, data$agePerson2, data$agePerson3, data$agePerson4, data$agePerson5, data$agePerson6, data$agePerson7, data$agePerson8, data$agePerson9, data$agePerson10, data$agePerson11, data$agePerson12)>=5 & cbind(data$agePerson1, data$agePerson2, data$agePerson3, data$agePerson4, data$agePerson5, data$agePerson6, data$agePerson7, data$agePerson8, data$agePerson9, data$agePerson10, data$agePerson11, data$agePerson12)<=17),na.rm=TRUE)
+# The cost for school meals was done in the ALICE expense function and only includes kids>=5 years old. If kids are in PreK, we recalculate the cost 
+# for school meals by including these children who can be younger than 5 years old. 
+    data$numkidsinschool=rowSums(cbind(data$value.PreKperson1, data$value.PreKperson2, data$value.PreKperson3, data$value.PreKperson4, data$value.PreKperson5, data$value.PreKperson6, data$value.PreKperson7, data$value.PreKperson8, data$value.PreKperson9, data$value.PreKperson10, data$value.PreKperson11, data$value.PreKperson12)>0 | (cbind(data$agePerson1, data$agePerson2, data$agePerson3, data$agePerson4, data$agePerson5, data$agePerson6, data$agePerson7, data$agePerson8, data$agePerson9, data$agePerson10, data$agePerson11, data$agePerson12)>=5 & cbind(data$agePerson1, data$agePerson2, data$agePerson3, data$agePerson4, data$agePerson5, data$agePerson6, data$agePerson7, data$agePerson8, data$agePerson9, data$agePerson10, data$agePerson11, data$agePerson12)<=18),na.rm=TRUE)
     data$numkidsinschool[is.na(data$numkidsinschool)]<-0
     data$exp.schoolMeals=data$exp.schoolMeals*data$numkidsinschool
     
@@ -846,7 +846,7 @@ if(APPLY_FATES==FALSE){
 # 4. If Medicaid, ACA or Health Exchange are not available - out-of-pocket
 BenefitsCalculator.Healthcare<-function(data, APPLY_HEALTHCARE=FALSE, APPLY_MEDICAID_ADULT=TRUE, APPLY_MEDICAID_CHILD=TRUE, APPLY_ACA=TRUE){
   
-  if(APPLY_HEALTHCARE==FALSE){
+  if(APPLY_HEALTHCARE==FALSE){ # when APPY_HEALTHCARE==FALSE, only assign healthcare costs. No benefits.
     
     data$value.medicaid<-0 
     data$value.medicaid.adult<-0 
@@ -857,8 +857,14 @@ BenefitsCalculator.Healthcare<-function(data, APPLY_HEALTHCARE=FALSE, APPLY_MEDI
     ###############################
     # Assign employer healthcare if available
     
+    
+    data$oop.health.family.ALICE<-function.healthcareExp.ALICE(data
+                                                               , famsizevar = "famsize")[,"oop.health.family.ALICE"] 
+    
+    
+    
     data$exp.healthcare.employer<-function.healthcareExp.ALICE(data
-                                                               , famsizevar = "famsize")[,2]
+                                                               , famsizevar = "famsize")[,2] #total cost of health insurance (employer paid + employee paid premium)
    
     data$premium.employer<-function.healthcareExp.ALICE(data
                                                         , famsizevar = "famsize")[,3] # employee premium
@@ -929,6 +935,7 @@ BenefitsCalculator.Healthcare<-function(data, APPLY_HEALTHCARE=FALSE, APPLY_MEDI
       mutate(exp.healthcare = case_when( healthcare.source == "Employer" ~ exp.healthcare.employer
                                          ,healthcare.source == "Out-of-pocket" ~ exp.healthcare.healthexchange)) 
     
+    data$exp.healthcare <- data$exp.healthcare + data$oop.health.family.ALICE
     
     data<-data %>% 
       mutate(netexp.healthcare = exp.healthcare-value.employerhealthcare) # Total out-of-pocket costs
@@ -1678,6 +1685,9 @@ BenefitsCalculator.Healthcare<-function(data, APPLY_HEALTHCARE=FALSE, APPLY_MEDI
     data$premium.employer[data$healthcare.source != "Employer" & data$healthcare.source != "Employer & Medicaid/CHIP"]<-NA
     data$premium.outofpocket[data$healthcare.source != "Out-of-pocket" & data$healthcare.source != "Out-of-pocket & Medicaid/CHIP"]<-NA
     
+    data$exp.healthcare <- data$exp.healthcare + data$oop.health.family.ALICE
+    
+    
     data<-data %>% 
       mutate(netexp.healthcare = exp.healthcare-value.aca-value.medicaid-value.employerhealthcare) # Total out-of-pocket costs
     
@@ -1696,26 +1706,12 @@ BenefitsCalculator.Healthcare<-function(data, APPLY_HEALTHCARE=FALSE, APPLY_MEDI
 #------------------------------------------------------------------------
 BenefitsCalculator.OtherBenefits<-function(data, APPLY_TANF, APPLY_SSDI, APPLY_SSI){
      
+  
   # Do ssdi before tanf because ssdi counts as unearned income for tanf calculation                                       
 
   # # SSDI
   if (APPLY_SSDI==FALSE){
     data$value.ssdi<-0
-    
-    # # When SSI is TRUE 'hadssdi' is created in benefits_function.R instead of here    
-    # data$hadssdi1<-ifelse(data$disability1==1 & !is.na(data$disability1) & data$prev_ssdi==1
-    #                      ,1 ,0)
-    # data$hadssdi2<-ifelse(data$disability2==1 & !is.na(data$disability2) & data$prev_ssdi==1
-    #                      ,1 ,0)
-    # data$hadssdi3<-ifelse(data$disability3==1 & !is.na(data$disability3) & data$prev_ssdi==1
-    #                      ,1 ,0)
-    # data$hadssdi4<-ifelse(data$disability4==1 & !is.na(data$disability4) & data$prev_ssdi==1
-    #                      ,1 ,0)
-    # data$hadssdi5<-ifelse(data$disability5==1 & !is.na(data$disability5) & data$prev_ssdi==1
-    #                      ,1 ,0)
-    # data$hadssdi6<-ifelse(data$disability6==1 & !is.na(data$disability6) & data$prev_ssdi==1
-    #                      ,1 ,0)
-    
   }else if(APPLY_SSDI==TRUE){
     value.ssdi<-function.ssdiBenefit(data)
     data$value.ssdi<-NULL
@@ -1728,8 +1724,19 @@ BenefitsCalculator.OtherBenefits<-function(data, APPLY_TANF, APPLY_SSDI, APPLY_S
   if(APPLY_TANF==FALSE){
     data$value.tanf<-0
   }else if(APPLY_TANF==TRUE){
+    
+    data$index <- as.numeric(row.names(data))
+    
+    if(!("householdid" %in% colnames(data))){
+      data$householdid <- 1
+    }
+    
+    data <- data[order(data$householdid, data$Year),]
+    
     data$value.tanf<-function.tanfBenefit(data)
     
+    data <- data[order(data$index), ]
+    data$index <- NULL
     #-------------------------------------
     # Adjust for take-up
     #-------------------------------------
@@ -1805,7 +1812,7 @@ BenefitsCalculator.OtherBenefits<-function(data, APPLY_TANF, APPLY_SSDI, APPLY_S
 ## FOOD and Housing (Housing Vouchers (Section 8, RAP), SNAP, SLP, WIC)
 #------------------------------------------------------------------------
 #------------------------------------------------------------------------  
-BenefitsCalculator.FoodandHousing<-function(data, APPLY_SECTION8=FALSE, APPLY_LIHEAP=FALSE, APPLY_SNAP=FALSE, APPLY_SLP=FALSE, APPLY_WIC=FALSE, APPLY_RAP=FALSE, APPLY_FRSP=FALSE, frsp_share = 0.4){
+BenefitsCalculator.FoodandHousing<-function(data, APPLY_SECTION8=FALSE, APPLY_LIHEAP=FALSE, APPLY_SNAP=FALSE, APPLY_SLP=FALSE, APPLY_WIC=FALSE, APPLY_RAP=FALSE, APPLY_FRSP=FALSE, frsp_share = 0.3){
 
 #some programs rely on liheap, but liheap is run last
   data$value.liheap<-0
@@ -1904,7 +1911,7 @@ BenefitsCalculator.FoodandHousing<-function(data, APPLY_SECTION8=FALSE, APPLY_LI
     data$netexp.food<-data$exp.food
   }else { if(APPLY_SNAP==TRUE){
     
-    data$value.snap<-function.snapBenefit(data)
+    data$value.snap<-rowMins(cbind(function.snapBenefit(data), data$exp.food)) # Benefit cannot be greater than expense
 
     #-------------------------------------
     # Adjust for take-up
@@ -1923,7 +1930,7 @@ BenefitsCalculator.FoodandHousing<-function(data, APPLY_SECTION8=FALSE, APPLY_LI
     data$value.schoolmeals<-0
   }else{ if(APPLY_SLP==TRUE){   
     # School Lunches
-    data$value.schoolmeals<-function.schoolmeals(data)
+    data$value.schoolmeals<-rowMins(cbind(function.schoolmeals(data), data$netexp.food)) # Benefit cannot be greater than expense. Net expense for food created in SNAP function
     
     data$netexp.food<-rowMaxs(cbind(data$netexp.food-data$value.schoolmeals,0))
     
@@ -1934,7 +1941,7 @@ BenefitsCalculator.FoodandHousing<-function(data, APPLY_SECTION8=FALSE, APPLY_LI
     data$value.wic<-0
   }else{ if(APPLY_WIC==TRUE){
 
-    data$value.wic<-function.wicBenefit(data)
+    data$value.wic<-rowMins(cbind(function.wicBenefit(data), data$netexp.food))
 
     
   data$netexp.food<-rowMaxs(cbind(data$netexp.food-data$value.wic,0))
@@ -1965,7 +1972,7 @@ BenefitsCalculator.FoodandHousing<-function(data, APPLY_SECTION8=FALSE, APPLY_LI
 ## TAXES AND TAX CREDITS
 #------------------------------------------------------------------------
 #------------------------------------------------------------------------ 
-# Variables required to calculate each tax and tax creris are specified in the function
+# Variables required to calculate each tax and tax credit are specified in the function
 # Function will not run unless all inputs are specified
 BenefitsCalculator.TaxesandTaxCredits<-function(data, APPLY_EITC=FALSE, APPLY_CTC=FALSE, APPLY_CDCTC=FALSE, APPLY_TAXES=TRUE){ #DEFAULT TAXES TO TRUE
 

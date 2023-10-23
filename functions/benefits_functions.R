@@ -1449,7 +1449,7 @@
        mutate(tanfValue=0,
               subset=totalassets<AssetTest) %>% 
        # Benefit allotment determined by Max Benefit Amount minus 75% of gross income 
-       mutate(tanfValue=ifelse(subset==TRUE,rowMaxs(cbind(Maxbenefit-(EarnedIncomeDisregard*(income/12)),0)),tanfValue)) %>% 
+       mutate(tanfValue=ifelse(subset==TRUE,rowMaxs(cbind(Maxbenefit-(EarnedIncomeDisregard*(income/12)),0)),tanfValue)) #%>% 
        
        # Apply gross income test (if applicable) & net income / standard test (if applicable). Neither apply to Illinois to our knowledge
        
@@ -2325,7 +2325,8 @@
        mutate(tanfValue=0,
               subset=totalassets<AssetTest) #%>%
      
-     temp$tanfValue[subset]<-rowMins(cbind(temp$Maxbenefit[subset] - temp$net.income[subset], 0)) # tanf can't be negative 
+     temp$tanfValue[temp$subset==TRUE]<-rowMaxs(cbind(temp$Maxbenefit[temp$subset==TRUE] - temp$net.income[temp$subset==TRUE], 0)) # tanf can't be negative 
+     
      temp$tanfValue[temp$tanfValue < 0] <- 0
      max_benefit <- as.numeric(unique(temp$Maxbenefit))
      temp$tanfValue[temp$tanfValue > temp$Maxbenefit] <- max_benefit # tanf value can't be greater than max value 
@@ -3948,11 +3949,11 @@
      #  temp$net.income<-rowMaxs(cbind(temp$net.income-temp$childcareDeduction,0))
      temp$net.income <- temp$net.income + (temp$value.ssdi/12)   
      # Step II: Calculate value of the benefit
-     
+     temp$deficit <- rowMaxs(cbind(temp$StandardOfNeed - temp$net.income,0))
      
      temp$tanfValue<-0
      subset<-temp$totalassets<temp$AssetTest
-     temp$tanfValue[subset]<-rowMaxs(cbind(temp$Maxbenefit[subset] - temp$net.income[subset],0))
+     temp$tanfValue[subset]<-rowMins(cbind(temp$deficit[subset],temp$Maxbenefit[subset]))
      
      # Apply gross income test (if applicable) & net income / standard test (if applicable)
      
@@ -12603,8 +12604,8 @@ function.headstart<-function(data
      data<- data %>% 
          mutate(incomeeligible_initial_earlyheadstart = case_when(countableincome<IncomeEligibilityLimit|value.ssi>0|value.tanf>0
                                                                 ~1, TRUE~0))
-     # check to see if householdid exists
-     if (length(data$householdid)>1){
+     # check to see if householdid exists - householdid created in TANF functions
+     if ("householdid" %in% names(data) & length(data$householdid)>1){
        data<-data %>%
          group_by(householdid)}
      
@@ -12643,7 +12644,7 @@ function.headstart<-function(data
      #NOTE! need to do this by unique id if using a larger dataset w/ multiple records per person   
      
      # # check to see if householdid exists
-     if (length(data$householdid)>1){
+     if ("householdid" %in% names(data) & length(data$householdid)>1){
        data<-data%>%
          group_by(householdid)}
      
@@ -13055,7 +13056,12 @@ function.schoolmeals<-function(data){
     data$copay[data$income.countable<=data$IncomeBin1Max]<-data$CopayBin1[data$income.countable<=data$IncomeBin1Max]
     data$copay[data$income.countable>data$IncomeBin1Max & data$income.countable<=data$IncomeBin2Max]<-data$CopayBin2[data$income.countable>data$IncomeBin1Max & data$income.countable<=data$IncomeBin2Max]
     data$copay<-data$copay*parameters.defaults$numberofSchoolDays[1] #Annualize
-  
+    
+    # Universal free school meals for these states
+    data$copay[data$ruleYear==2021] <- 0 # Pandemic-era rule for free meals
+    data$copay[data$ruleYear>=2022 & data$stateAbbrev %in% c("CA", "ME", "MA")] <- 0
+    data$copay[data$ruleYear>=2023 & data$stateAbbrev %in% c("CO", "IL", "MN", "NM", "VT")] <- 0
+    data$copay[(data$ruleYear==2023 | data$ruleYear==2024) & data$stateAbbrev %in% c("MI", "GA", "NV")] <- 0
 
     #categorical elibiblity: 
     
@@ -13080,8 +13086,8 @@ function.schoolmeals<-function(data){
     
     data$value.schoolmeals<-round(data$value.schoolmeals,2)
     
-    # The value of free school meals depends on the cost assigned to school meals (exp.schoolMeals) which uses the number of kids in school older than 5. numkidsinschool
-    # is recalculated after the PreK function bc kids in PreK may be younger than 5. 
+    # NOTE! The value of free school meals depends on the cost assigned to school meals (exp.schoolMeals) which uses the number of kids in school 
+    # older than 5. numkidsinschool is recalculated after the PreK function bc kids in PreK may be younger than 5. 
     
     return(data$value.schoolmeals)
   }
