@@ -127,9 +127,7 @@ To test the functions:
 
 Check the Readme file inside the folder tests
 
-**9. Up to date Programs**
-							
-![image](https://github.com/FRB-Atlanta-Advancing-Careers/policy-rules-database/assets/59230162/66d09e50-85df-4064-82d8-b73b56120048)
+
 
 
 
