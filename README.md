@@ -63,12 +63,7 @@ The following files are located in this folder:
 4. tables.RData - supplemental tables and crosswalks (e.g. SMIs, FPLs, state FIPS to state name mapping etc)
 
 
-**3. "prd_parameters_excel" folder**
-
-Contains the PRD parameters in the alternative Excel format
-
-
-**4. "functions" folder**
+**3. "functions" folder**
 
 Contains main Policy Rules Database functions written in R programming language. These functions read-in parameters from (1) and determine eligibility/calculate the dollar value of benefits for each program. 
 
@@ -79,17 +74,17 @@ The following files are located in this folder:
 3. BenefitsCalculator_functions.R - higher-level program that aggregates smaller functions into blocks (Expenses, Childcare, Healthcare, Food and Housing, Taxes and Tax Credits, Other Benefits) 
 
 
-**5. applyBenefitsCalculator.R**
+**4. applyBenefitsCalculator.R**
 
 High-level program that runs the Benfits Calculator in its entirety
 
 
-**6. libraries.R**
+**5. libraries.R**
 
 Packages and libraries required to run example codes below
 
 
-**7. "projects" folder**
+**6. "projects" folder**
 
 YML files that are used to provide the specification for the PRD (i.e. specify the family demographics and benefits composition to run through the PRD). TEST.yml is then read-in by the applyBenefitsCalculator.R program and produces calculations
 
@@ -101,7 +96,7 @@ To test changes/run PRD you can do the following:
 4. Run the program. Results are saved to the "output" folder as results_YOUR_NAME.csv file
 
 
-**8. "output" folder**
+**7. "output" folder**
 
 applyBenefitsCalculator.R program saves the resulted output into this folder
 
