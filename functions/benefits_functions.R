@@ -1,9 +1,10 @@
  #-------------------------------------------------------------
-# FUNCTIONS TO CALCULATE VALUE OF BENEFITS PROGRAMS----
+# description: calculate the value of each public benefit in the PRD
+# inputs: each benefit's 'parameters'.rdata file (e.g. snapData.rdata)
+# output: values of each benefit & other output used in other programs
 #-------------------------------------------------------------
 
-
-
+ 
 # PUBLIC BENEFITS----
  
 ## Temporary Assistance for Needy Families (TANF)----
@@ -68,7 +69,7 @@
      # Step 3: add gift income
      temp$income=temp$income+temp$income.gift 
      
-     # Calculate net income - For Alabama, a 30% deducation in work expense and childcare are subtracted from gross income 
+     # Calculate net income - For Alabama, a 30% dedication in work expense and childcare are subtracted from gross income 
      temp$net.income<-rowMaxs(cbind((temp$income - temp$EarnedIncomeDisregard*temp$income)/12,0)) 
      temp$net.income<-temp$net.income+(temp$value.ssdi/12)
      # Step II: Calculate value of the benefit
@@ -542,7 +543,9 @@
          
          ############## REDO NOW WITH ADULTS EXCLUDED 
          
-         tanfData$numkids <- tanfData$famsize
+         tanfData_CA <- tanfData
+         
+         tanfData_CA$numkids <- tanfData_CA$famsize
          
          
          temp_countys<-temp[temp$Year > temp$min_Year + 3,] %>% 
@@ -565,7 +568,7 @@
              | countyortownName ==  "Sonoma County" 
              | countyortownName ==  "Ventura County" 
            ) %>%
-           left_join(tanfData, by=c("stateFIPS", "numkids")) %>% 
+           left_join(tanfData_CA, by=c("stateFIPS", "numkids")) %>% 
            
            # Step I: Calculate net income - this is NOT including DBI, need to look into that 
            mutate(income=income+income.gift) %>% 
@@ -612,7 +615,7 @@
              & countyortownName !=  "Sonoma County" 
              & countyortownName !=  "Ventura County" 
            )  %>% 
-           left_join(tanfData, by=c("stateFIPS", "numkids")) %>% 
+           left_join(tanfData_CA, by=c("stateFIPS", "numkids")) %>% 
            
            # Step I: Calculate net income - this is NOT including DBI, need to look into that 
            mutate(income=income+income.gift) %>% 
@@ -647,7 +650,7 @@
          temp <- rbind(temp_adults, temp)
          
          rm(temp_adults)
-         
+         rm(tanfData_CA) # ER: Austin, let me know if this will be alright to include.
        }else{
          rm(temp_adults)
        }
@@ -657,7 +660,6 @@
        
      }
      
- 
      
      householdids <- unique(temp$householdid)
      # 
@@ -1023,10 +1025,10 @@
      temp$income <- temp$income+temp$income.gift # add gift income
      
      # Apply TANF child care income deduction (175 for kids in childcare + $25 for <2). We do not currently include this in the benefit / net income calculation 
-   #  temp$numkidsunder13 <- rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)<=12,na.rm=TRUE)
-  #   temp$numkidsunder2 <- rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)<=1,na.rm=TRUE)
+     # temp$numkidsunder13 <- rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)<=12,na.rm=TRUE)
+     #temp$numkidsunder2 <- rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)<=1,na.rm=TRUE)
      
-  #   temp$childcareDeduction<-temp$numkidsunder13*175+temp$numkidsunder2*25
+  #   temp$childcareDeduction<-temp$numkidsunder13*175+temp$numkidsunder2*25 *CHECK THIS LINE *UNDER 2 SHOULD BE 200 NOT 25
      
      # DC Net income is calculated as income minus $160, and then subtract 67% of the remaining income 
      
@@ -1796,7 +1798,7 @@
      
      temp$net.income <- rowMaxs(cbind((temp$income/12)-90,0)) # earned income deduction: work expense
      temp$rate.reduction<-rowMaxs(cbind(temp$EarnedIncomeDisregard*(temp$StandardOfNeed - temp$net.income),0)) # earned income deduction
-     temp$rate.reduction[temp$income <= 0] <- temp$Maxbenefit
+     temp$rate.reduction[temp$income <= 0] <- temp$Maxbenefit[temp$income <= 0]
      # Step II: Calculate value of the benefit
      temp$tanfValue<-0
      subset<-temp$totalassets<temp$AssetTest
@@ -4741,6 +4743,24 @@
 
 function.ssdiBenefit<-function(data){
   
+  # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+  years<-unique(data$ruleYear) # years in data set
+  yearsinexpdata<- unique(ssdiData$ruleYear) # rule years in benefit data
+  yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+  yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+  # Create data for the future
+  maxyearofdata<-max(ssdiData$ruleYear) # collect latest year of benefit data
+  futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+  if(length(futureYrs)>0){
+    # Create data frame with future years
+    expand<-expand.grid(Year=futureYrs)
+    # Collect latest benefit data there is and merge w/data frame
+    expand2<-ssdiData[ssdiData$ruleYear==maxyearofdata, ]
+    expand2$ruleYear<-ifelse(expand2$ruleYear < expand$Year, expand$Year, expand2$ruleYear)
+    expand<-expand%>%left_join(expand2, by=c("Year" = "ruleYear")) %>% rename("ruleYear"=Year)
+  }# Attach copied future, historical, and missing benefit data
+  if(length(futureYrs)>0) {ssdiData<-ssdiData %>% rbind(expand)}
+
   # We have historical rules
   data<-left_join(data, ssdiData, by=c("ruleYear"))
   data$value.ssdi<-0
@@ -4893,6 +4913,23 @@ function.ssdiBenefit<-function(data){
 # Supplemental Security Income Program (SSI)----
 
 function.ssiBenefit<-function(data){ 
+  
+  # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+  years<-unique(data$ruleYear) # years in data set
+  yearsinexpdata<- unique(ssiData$ruleYear) # rule years in benefit data
+  yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+  yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+  # Create data for the future
+  maxyearofdata<-max(ssiData$ruleYear) # collect latest year of benefit data
+  futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+  if(length(futureYrs)>0){
+    # Create data frame with future years
+    expand<-expand.grid(married=unique(ssiData$married), Year=futureYrs)
+    # Collect latest benefit data there is and merge w/data frame
+    expand2<-ssiData[ssiData$ruleYear==maxyearofdata, ]
+    expand<-expand%>%left_join(expand2, by=c("married")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+  }# Attach copied future, historical, and missing benefit data
+  if(length(futureYrs)>0) {ssiData<-ssiData %>% rbind(expand)}
   
   # We have historical rules
   data<-left_join(data, ssiData, by=c("married","ruleYear"))
@@ -5307,8 +5344,25 @@ function.ssiBenefit<-function(data){
 # Supplemental Nutrition Assistance Program (SNAP)----
 
 function.snapBenefit<-function(data){
-    
-  # We have historical rules
+  
+  # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+  years<-unique(data$ruleYear) # years in data set
+  yearsinexpdata<- unique(snapData$ruleYear) # rule years in benefit data
+  yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+  yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+  # Create data for the future
+  maxyearofdata<-max(snapData$ruleYear) # collect latest year of benefit data
+  futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+  if(length(futureYrs)>0){
+    # Create data frame with future years
+    expand<-expand.grid(stateFIPS=unique(snapData$stateFIPS), famsize=unique(snapData$famsize), Year=futureYrs)
+    # Collect latest benefit data there is and merge w/data frame
+    expand2<-snapData[snapData$ruleYear==maxyearofdata, ]
+    expand<-expand%>%left_join(expand2, by=c("stateFIPS","famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+  }# Attach copied future, historical, and missing benefit data
+  if(length(futureYrs)>0) {snapData<-snapData %>% rbind(expand)}
+  
+    # We have historical rules
     data<-left_join(data, snapData, by=c("ruleYear","stateFIPS", "famsize"))
     
     # First, calculate total countable income 
@@ -5413,10 +5467,27 @@ function.snapBenefit<-function(data){
   }
 
 
-# Special Supplemental Nutrition Program for Women, Infanta and Children (WIC)----
+# Special Supplemental Nutrition Program for Women, Infants and Children (WIC)----
 
 function.wicBenefit<-function(data){
 
+  # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+  years<-unique(data$ruleYear) # years in data set
+  yearsinexpdata<- unique(wicData$ruleYear) # rule years in benefit data
+  yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+  yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+  # Create data for the future
+  maxyearofdata<-max(wicData$ruleYear) # collect latest year of benefit data
+  futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+  if(length(futureYrs)>0){
+    # Create data frame with future years
+    expand<-expand.grid(AKorHI=unique(wicData$AKorHI), famsize=unique(wicData$famsize), Year=futureYrs)
+    # Collect latest benefit data there is and merge w/data frame
+    expand2<-wicData[wicData$ruleYear==maxyearofdata, ]
+    expand<-expand%>%left_join(expand2, by=c("AKorHI","famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+  }# Attach copied future, historical, and missing benefit data
+  if(length(futureYrs)>0) {wicData<-wicData %>% rbind(expand)}
+  
   # We have historical rules
   data<-left_join(data, wicData, by=c("famsize", "AKorHI", "ruleYear"))
   
@@ -7146,35 +7217,7 @@ function.CCDFcopay<-function(data
       
       ccdfData_IA$stateFIPS <- 19
       
-      ccdfData_IA$Bin1Max <- ccdfData_IA$Bin1Max*12
-      ccdfData_IA$Bin2Max <- ccdfData_IA$Bin2Max*12
-      ccdfData_IA$Bin3Max <- ccdfData_IA$Bin3Max*12
-      ccdfData_IA$Bin4Max <- ccdfData_IA$Bin4Max*12
-      ccdfData_IA$Bin5Max <- ccdfData_IA$Bin5Max*12
-      ccdfData_IA$Bin6Max <- ccdfData_IA$Bin6Max*12
-      ccdfData_IA$Bin7Max <- ccdfData_IA$Bin7Max*12
-      ccdfData_IA$Bin8Max <- ccdfData_IA$Bin8Max*12
-      ccdfData_IA$Bin9Max <- ccdfData_IA$Bin9Max*12
-      ccdfData_IA$Bin10Max <- ccdfData_IA$Bin10Max*12
-      ccdfData_IA$Bin11Max <- ccdfData_IA$Bin11Max*12
-      ccdfData_IA$Bin12Max <- ccdfData_IA$Bin12Max*12
-      ccdfData_IA$Bin13Max <- ccdfData_IA$Bin13Max*12
-      ccdfData_IA$Bin14Max <- ccdfData_IA$Bin14Max*12
-      ccdfData_IA$Bin15Max <- ccdfData_IA$Bin15Max*12
-      ccdfData_IA$Bin16Max <- ccdfData_IA$Bin16Max*12
-      ccdfData_IA$Bin17Max <- ccdfData_IA$Bin17Max*12
-      ccdfData_IA$Bin18Max <- ccdfData_IA$Bin18Max*12
-      ccdfData_IA$Bin19Max <- ccdfData_IA$Bin19Max*12
-      ccdfData_IA$Bin20Max <- ccdfData_IA$Bin20Max*12
-      ccdfData_IA$Bin21Max <- ccdfData_IA$Bin21Max*12
-      ccdfData_IA$Bin22Max <- ccdfData_IA$Bin22Max*12
-      ccdfData_IA$Bin23Max <- ccdfData_IA$Bin23Max*12
-      ccdfData_IA$Bin24Max <- ccdfData_IA$Bin24Max*12
-      ccdfData_IA$Bin25Max <- ccdfData_IA$Bin25Max*12
-      ccdfData_IA$Bin26Max <- ccdfData_IA$Bin26Max*12
-      ccdfData_IA$Bin27Max <- ccdfData_IA$Bin27Max*12
-      ccdfData_IA$Bin28Max <- ccdfData_IA$Bin28Max*12
-      #----------------------------------
+    
       
       temp<-data[data$stateFIPS==19,]
       
@@ -7446,7 +7489,8 @@ function.CCDFcopay<-function(data
       temp$FTcopay[temp$income>temp$Bin17Max & temp$income<=temp$Bin18Max]<-temp$CopayBin18[temp$income>temp$Bin17Max & temp$income<=temp$Bin18Max]
       temp$FTcopay[temp$income>temp$Bin18Max & temp$income<=temp$Bin19Max]<-temp$CopayBin19[temp$income>temp$Bin18Max & temp$income<=temp$Bin19Max]
       temp$FTcopay[temp$income>temp$Bin19Max & temp$income<=temp$Bin20Max]<-temp$CopayBin20[temp$income>temp$Bin19Max & temp$income<=temp$Bin20Max]
-
+      temp$FTcopay[temp$income>temp$Bin20Max & temp$income<=temp$Bin21Max]<-temp$CopayBin21[temp$income>temp$Bin20Max & temp$income<=temp$Bin21Max]
+      
       # Apply asset test
       subset<-temp$totalassets > temp$AssetTest
       temp$totcopay[subset]<-NA_real_
@@ -8394,7 +8438,7 @@ function.CCDFcopay<-function(data
       temp$FTcopay[temp$income>temp$Bin29Max & temp$income<=temp$Bin30Max]<-temp$CopayBin30[temp$income>temp$Bin29Max & temp$income<=temp$Bin30Max]
       temp$FTcopay[temp$income>temp$Bin30Max & temp$income<=temp$Bin31Max]<-temp$CopayBin31[temp$income>temp$Bin30Max & temp$income<=temp$Bin31Max]
       temp$FTcopay[temp$income>temp$Bin31Max & temp$income<=temp$Bin32Max]<-temp$CopayBin32[temp$income>temp$Bin31Max & temp$income<=temp$Bin32Max]
-      temp$FTcopay[temp$income>temp$Bin32Max & temp$income<=temp$Bin33Max]<-temp$CopayBin33[temp$income>temp$Bin32Max & temp$income<=temp$Bin33Max]
+      #temp$FTcopay[temp$income>temp$Bin32Max & temp$income<=temp$Bin33Max]<-temp$CopayBin33[temp$income>temp$Bin32Max & temp$income<=temp$Bin33Max]
       
       
       # Apply asset test
@@ -8632,6 +8676,7 @@ function.CCDFcopay<-function(data
       temp$FTcopay[temp$income>temp$Bin7Max & temp$income<=temp$Bin8Max]<-temp$CopayBin8_FT[temp$income>temp$Bin7Max & temp$income<=temp$Bin8Max]
       temp$FTcopay[temp$income>temp$Bin8Max & temp$income<=temp$Bin9Max]<-temp$CopayBin9_FT[temp$income>temp$Bin8Max & temp$income<=temp$Bin9Max]
       temp$FTcopay[temp$income>temp$Bin9Max & temp$income<=temp$Bin10Max]<-temp$CopayBin10_FT[temp$income>temp$Bin9Max & temp$income<=temp$Bin10Max]
+      temp$FTcopay[temp$income>temp$Bin10Max & temp$income<=temp$Bin11Max]<-temp$CopayBin11_FT[temp$income>temp$Bin10Max & temp$income<=temp$Bin11Max]
       
       
       # Apply asset test
@@ -8740,6 +8785,10 @@ function.CCDFcopay<-function(data
       temp$FTcopay[temp$income>temp$Bin17Max & temp$income<=temp$Bin18Max]<-temp$CopayBin18[temp$income>temp$Bin17Max & temp$income<=temp$Bin18Max]
       temp$FTcopay[temp$income>temp$Bin18Max & temp$income<=temp$Bin19Max]<-temp$CopayBin19[temp$income>temp$Bin18Max & temp$income<=temp$Bin19Max]
       temp$FTcopay[temp$income>temp$Bin19Max & temp$income<=temp$Bin20Max]<-temp$CopayBin20[temp$income>temp$Bin19Max & temp$income<=temp$Bin20Max]
+      temp$FTcopay[temp$income>temp$Bin20Max & temp$income<=temp$Bin21Max]<-temp$CopayBin21[temp$income>temp$Bin20Max & temp$income<=temp$Bin21Max]
+      temp$FTcopay[temp$income>temp$Bin21Max & temp$income<=temp$Bin22Max]<-temp$CopayBin22[temp$income>temp$Bin21Max & temp$income<=temp$Bin22Max]
+      temp$FTcopay[temp$income>temp$Bin22Max & temp$income<=temp$Bin23Max]<-temp$CopayBin23[temp$income>temp$Bin22Max & temp$income<=temp$Bin23Max]
+      temp$FTcopay[temp$income>temp$Bin23Max & temp$income<=temp$Bin24Max]<-temp$CopayBin24[temp$income>temp$Bin23Max & temp$income<=temp$Bin24Max]
       
       # Apply asset test
       subset<-temp$totalassets > temp$AssetTest
@@ -8855,18 +8904,18 @@ function.CCDFcopay<-function(data
     
     if(32 %in% unique(data$stateFIPS)){
       
-      
-     # ccdfData_NV <- ccdfData_NV[ccdfData_NV$ruleYear != 2021,]
-    #  ccdfData_NV$ruleYear <- 2021
-      
-      ccdfData_NV$stateFIPS <- 32
-      ccdfData_NV$AssetTest <- 1000000
-      ccdfData_NV$IncomeDisregard <- 0
-      providercost_NV$stateFIPS <- 32
-      
       temp <- data[data$stateFIPS==32,]
       
-      # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+    ### DOUBLE CHECK THAT THE CCDFDATA_NV DATASET IN THE GLOBAL ENVIRONMENT HAS THESE CORRECT  
+     # ccdfData_NV$stateFIPS <- 32
+    #  ccdfData_NV$AssetTest <- 1000000
+    #  ccdfData_NV$IncomeDisregard <- 0
+      
+    #### SAME GOES FOR PROVIDERCOST_NV  
+    #  providercost_NV$stateFIPS <- 32
+      
+      
+     # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
       years<-unique(data$ruleYear) # years in data set
       yearsinexpdata<- unique(providercost_NV$ruleYear) # rule years in benefit data
       yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
@@ -8903,6 +8952,10 @@ function.CCDFcopay<-function(data
    #   }
       #temp<-left_join(temp, providercost_NV, by=c("stateFIPS", "countyortownName", "ruleYear")) # EI: ruleYear is not working here !! 
     #  providercost_NV$ruleYear<-providercost_NV$yearofdata
+      
+      
+      
+      
       temp<-left_join(temp, providercost_NV, by=c("stateFIPS", "countyortownName", "ruleYear","stateName","stateAbbrev","AKorHI")) 
       
         # Determine Expense based on Age of Children
@@ -9140,7 +9193,7 @@ function.CCDFcopay<-function(data
      #     temp$ruleYear <- 2022
     #    }
         
-      temp<-left_join(temp, ccdfData_NV, by=c("stateFIPS","stateName", "famsize", "countyortownName", "ruleYear"))
+      temp<-left_join(temp, ccdfData_NV, by=c("stateFIPS","stateName", "famsize", "countyortownName", "AKorHI", "ruleYear"))
       
      # temp$income<-temp$income-12*temp$IncomeDisregard
       
@@ -9164,9 +9217,13 @@ function.CCDFcopay<-function(data
       #----------------------------------
       # Step 2: Calculate total copays
       #----------------------------------
-      temp$totcopay <- temp$annualCost*(1-temp$FTcopay)
+      temp$totcopay[temp$ruleYear<=2022] <- temp$annualCost[temp$ruleYear<=2022]*(1-temp$FTcopay[temp$ruleYear<=2022])
       
-      temp$totcopay<-rowMins(cbind(temp$annualCost*(1-temp$FTcopay),temp$netexp.childcare))
+      temp$totcopay[temp$ruleYear>=2023] <- temp$income[temp$ruleYear>=2023]*temp$FTcopay[temp$ruleYear>=2023]
+        
+        
+      
+      temp$totcopay<-rowMins(cbind(temp$totcopay,temp$netexp.childcare))
       
       # Set copay to zero if no children
       temp$totcopay[temp$numkidsincare0to4+temp$numkidsincare5to12==0]<-0
@@ -9359,6 +9416,178 @@ function.CCDFcopay<-function(data
       temp$FTcopay[temp$income>temp$Bin119Max & temp$income<=temp$Bin120Max]<-temp$CopayBin120[temp$income>temp$Bin119Max & temp$income<=temp$Bin120Max]
       temp$FTcopay[temp$income>temp$Bin120Max & temp$income<=temp$Bin121Max]<-temp$CopayBin121[temp$income>temp$Bin120Max & temp$income<=temp$Bin121Max]
       temp$FTcopay[temp$income>temp$Bin121Max & temp$income<=temp$Bin122Max]<-temp$CopayBin122[temp$income>temp$Bin121Max & temp$income<=temp$Bin122Max]
+      
+      temp$FTcopay[temp$income>temp$Bin122Max & temp$income<=temp$Bin123Max]<-temp$CopayBin123[temp$income>temp$Bin122Max & temp$income<=temp$Bin123Max]
+      temp$FTcopay[temp$income>temp$Bin123Max & temp$income<=temp$Bin124Max]<-temp$CopayBin124[temp$income>temp$Bin123Max & temp$income<=temp$Bin124Max]
+      temp$FTcopay[temp$income>temp$Bin124Max & temp$income<=temp$Bin125Max]<-temp$CopayBin125[temp$income>temp$Bin124Max & temp$income<=temp$Bin125Max]
+      temp$FTcopay[temp$income>temp$Bin125Max & temp$income<=temp$Bin126Max]<-temp$CopayBin126[temp$income>temp$Bin125Max & temp$income<=temp$Bin126Max]
+      temp$FTcopay[temp$income>temp$Bin126Max & temp$income<=temp$Bin127Max]<-temp$CopayBin127[temp$income>temp$Bin126Max & temp$income<=temp$Bin127Max]
+      temp$FTcopay[temp$income>temp$Bin127Max & temp$income<=temp$Bin128Max]<-temp$CopayBin128[temp$income>temp$Bin127Max & temp$income<=temp$Bin128Max]
+      temp$FTcopay[temp$income>temp$Bin128Max & temp$income<=temp$Bin129Max]<-temp$CopayBin129[temp$income>temp$Bin128Max & temp$income<=temp$Bin129Max]
+      temp$FTcopay[temp$income>temp$Bin129Max & temp$income<=temp$Bin130Max]<-temp$CopayBin130[temp$income>temp$Bin129Max & temp$income<=temp$Bin130Max]
+      temp$FTcopay[temp$income>temp$Bin130Max & temp$income<=temp$Bin131Max]<-temp$CopayBin131[temp$income>temp$Bin130Max & temp$income<=temp$Bin131Max]
+      temp$FTcopay[temp$income>temp$Bin131Max & temp$income<=temp$Bin132Max]<-temp$CopayBin132[temp$income>temp$Bin131Max & temp$income<=temp$Bin132Max]
+      temp$FTcopay[temp$income>temp$Bin132Max & temp$income<=temp$Bin133Max]<-temp$CopayBin133[temp$income>temp$Bin132Max & temp$income<=temp$Bin133Max]
+      temp$FTcopay[temp$income>temp$Bin133Max & temp$income<=temp$Bin134Max]<-temp$CopayBin134[temp$income>temp$Bin133Max & temp$income<=temp$Bin134Max]
+      temp$FTcopay[temp$income>temp$Bin134Max & temp$income<=temp$Bin135Max]<-temp$CopayBin135[temp$income>temp$Bin134Max & temp$income<=temp$Bin135Max]
+      temp$FTcopay[temp$income>temp$Bin135Max & temp$income<=temp$Bin136Max]<-temp$CopayBin136[temp$income>temp$Bin135Max & temp$income<=temp$Bin136Max]
+      temp$FTcopay[temp$income>temp$Bin136Max & temp$income<=temp$Bin137Max]<-temp$CopayBin137[temp$income>temp$Bin136Max & temp$income<=temp$Bin137Max]
+      temp$FTcopay[temp$income>temp$Bin137Max & temp$income<=temp$Bin138Max]<-temp$CopayBin138[temp$income>temp$Bin137Max & temp$income<=temp$Bin138Max]
+      temp$FTcopay[temp$income>temp$Bin138Max & temp$income<=temp$Bin139Max]<-temp$CopayBin139[temp$income>temp$Bin138Max & temp$income<=temp$Bin139Max]
+      temp$FTcopay[temp$income>temp$Bin139Max & temp$income<=temp$Bin140Max]<-temp$CopayBin140[temp$income>temp$Bin139Max & temp$income<=temp$Bin140Max]
+      temp$FTcopay[temp$income>temp$Bin140Max & temp$income<=temp$Bin141Max]<-temp$CopayBin141[temp$income>temp$Bin140Max & temp$income<=temp$Bin141Max]
+      temp$FTcopay[temp$income>temp$Bin141Max & temp$income<=temp$Bin142Max]<-temp$CopayBin142[temp$income>temp$Bin141Max & temp$income<=temp$Bin142Max]
+      temp$FTcopay[temp$income>temp$Bin142Max & temp$income<=temp$Bin143Max]<-temp$CopayBin143[temp$income>temp$Bin142Max & temp$income<=temp$Bin143Max]
+      temp$FTcopay[temp$income>temp$Bin143Max & temp$income<=temp$Bin144Max]<-temp$CopayBin144[temp$income>temp$Bin143Max & temp$income<=temp$Bin144Max]
+      temp$FTcopay[temp$income>temp$Bin144Max & temp$income<=temp$Bin145Max]<-temp$CopayBin145[temp$income>temp$Bin144Max & temp$income<=temp$Bin145Max]
+      temp$FTcopay[temp$income>temp$Bin145Max & temp$income<=temp$Bin146Max]<-temp$CopayBin146[temp$income>temp$Bin145Max & temp$income<=temp$Bin146Max]
+      temp$FTcopay[temp$income>temp$Bin146Max & temp$income<=temp$Bin147Max]<-temp$CopayBin147[temp$income>temp$Bin146Max & temp$income<=temp$Bin147Max]
+      temp$FTcopay[temp$income>temp$Bin147Max & temp$income<=temp$Bin148Max]<-temp$CopayBin148[temp$income>temp$Bin147Max & temp$income<=temp$Bin148Max]
+      temp$FTcopay[temp$income>temp$Bin148Max & temp$income<=temp$Bin149Max]<-temp$CopayBin149[temp$income>temp$Bin148Max & temp$income<=temp$Bin149Max]
+      temp$FTcopay[temp$income>temp$Bin149Max & temp$income<=temp$Bin150Max]<-temp$CopayBin150[temp$income>temp$Bin149Max & temp$income<=temp$Bin150Max]
+      temp$FTcopay[temp$income>temp$Bin150Max & temp$income<=temp$Bin151Max]<-temp$CopayBin151[temp$income>temp$Bin150Max & temp$income<=temp$Bin151Max]
+      temp$FTcopay[temp$income>temp$Bin151Max & temp$income<=temp$Bin152Max]<-temp$CopayBin152[temp$income>temp$Bin151Max & temp$income<=temp$Bin152Max]
+      temp$FTcopay[temp$income>temp$Bin152Max & temp$income<=temp$Bin153Max]<-temp$CopayBin153[temp$income>temp$Bin152Max & temp$income<=temp$Bin153Max]
+      temp$FTcopay[temp$income>temp$Bin153Max & temp$income<=temp$Bin154Max]<-temp$CopayBin154[temp$income>temp$Bin153Max & temp$income<=temp$Bin154Max]
+      temp$FTcopay[temp$income>temp$Bin154Max & temp$income<=temp$Bin155Max]<-temp$CopayBin155[temp$income>temp$Bin154Max & temp$income<=temp$Bin155Max]
+      temp$FTcopay[temp$income>temp$Bin155Max & temp$income<=temp$Bin156Max]<-temp$CopayBin156[temp$income>temp$Bin155Max & temp$income<=temp$Bin156Max]
+      temp$FTcopay[temp$income>temp$Bin156Max & temp$income<=temp$Bin157Max]<-temp$CopayBin157[temp$income>temp$Bin156Max & temp$income<=temp$Bin157Max]
+      temp$FTcopay[temp$income>temp$Bin157Max & temp$income<=temp$Bin158Max]<-temp$CopayBin158[temp$income>temp$Bin157Max & temp$income<=temp$Bin158Max]
+      temp$FTcopay[temp$income>temp$Bin158Max & temp$income<=temp$Bin159Max]<-temp$CopayBin159[temp$income>temp$Bin158Max & temp$income<=temp$Bin159Max]
+      temp$FTcopay[temp$income>temp$Bin159Max & temp$income<=temp$Bin160Max]<-temp$CopayBin160[temp$income>temp$Bin159Max & temp$income<=temp$Bin160Max]
+      temp$FTcopay[temp$income>temp$Bin160Max & temp$income<=temp$Bin161Max]<-temp$CopayBin161[temp$income>temp$Bin160Max & temp$income<=temp$Bin161Max]
+      temp$FTcopay[temp$income>temp$Bin161Max & temp$income<=temp$Bin162Max]<-temp$CopayBin162[temp$income>temp$Bin161Max & temp$income<=temp$Bin162Max]
+      temp$FTcopay[temp$income>temp$Bin162Max & temp$income<=temp$Bin163Max]<-temp$CopayBin163[temp$income>temp$Bin162Max & temp$income<=temp$Bin163Max]
+      temp$FTcopay[temp$income>temp$Bin163Max & temp$income<=temp$Bin164Max]<-temp$CopayBin164[temp$income>temp$Bin163Max & temp$income<=temp$Bin164Max]
+      temp$FTcopay[temp$income>temp$Bin164Max & temp$income<=temp$Bin165Max]<-temp$CopayBin165[temp$income>temp$Bin164Max & temp$income<=temp$Bin165Max]
+      temp$FTcopay[temp$income>temp$Bin165Max & temp$income<=temp$Bin166Max]<-temp$CopayBin166[temp$income>temp$Bin165Max & temp$income<=temp$Bin166Max]
+      temp$FTcopay[temp$income>temp$Bin166Max & temp$income<=temp$Bin167Max]<-temp$CopayBin167[temp$income>temp$Bin166Max & temp$income<=temp$Bin167Max]
+      temp$FTcopay[temp$income>temp$Bin167Max & temp$income<=temp$Bin168Max]<-temp$CopayBin168[temp$income>temp$Bin167Max & temp$income<=temp$Bin168Max]
+      temp$FTcopay[temp$income>temp$Bin168Max & temp$income<=temp$Bin169Max]<-temp$CopayBin169[temp$income>temp$Bin168Max & temp$income<=temp$Bin169Max]
+      temp$FTcopay[temp$income>temp$Bin169Max & temp$income<=temp$Bin170Max]<-temp$CopayBin170[temp$income>temp$Bin169Max & temp$income<=temp$Bin170Max]
+      temp$FTcopay[temp$income>temp$Bin170Max & temp$income<=temp$Bin171Max]<-temp$CopayBin171[temp$income>temp$Bin170Max & temp$income<=temp$Bin171Max]
+      temp$FTcopay[temp$income>temp$Bin171Max & temp$income<=temp$Bin172Max]<-temp$CopayBin172[temp$income>temp$Bin171Max & temp$income<=temp$Bin172Max]
+      temp$FTcopay[temp$income>temp$Bin172Max & temp$income<=temp$Bin173Max]<-temp$CopayBin173[temp$income>temp$Bin172Max & temp$income<=temp$Bin173Max]
+      temp$FTcopay[temp$income>temp$Bin173Max & temp$income<=temp$Bin174Max]<-temp$CopayBin174[temp$income>temp$Bin173Max & temp$income<=temp$Bin174Max]
+      temp$FTcopay[temp$income>temp$Bin174Max & temp$income<=temp$Bin175Max]<-temp$CopayBin175[temp$income>temp$Bin174Max & temp$income<=temp$Bin175Max]
+      temp$FTcopay[temp$income>temp$Bin175Max & temp$income<=temp$Bin176Max]<-temp$CopayBin176[temp$income>temp$Bin175Max & temp$income<=temp$Bin176Max]
+      temp$FTcopay[temp$income>temp$Bin176Max & temp$income<=temp$Bin177Max]<-temp$CopayBin177[temp$income>temp$Bin176Max & temp$income<=temp$Bin177Max]
+      temp$FTcopay[temp$income>temp$Bin177Max & temp$income<=temp$Bin178Max]<-temp$CopayBin178[temp$income>temp$Bin177Max & temp$income<=temp$Bin178Max]
+      temp$FTcopay[temp$income>temp$Bin178Max & temp$income<=temp$Bin179Max]<-temp$CopayBin179[temp$income>temp$Bin178Max & temp$income<=temp$Bin179Max]
+      temp$FTcopay[temp$income>temp$Bin179Max & temp$income<=temp$Bin180Max]<-temp$CopayBin180[temp$income>temp$Bin179Max & temp$income<=temp$Bin180Max]
+      temp$FTcopay[temp$income>temp$Bin180Max & temp$income<=temp$Bin181Max]<-temp$CopayBin181[temp$income>temp$Bin180Max & temp$income<=temp$Bin181Max]
+      temp$FTcopay[temp$income>temp$Bin181Max & temp$income<=temp$Bin182Max]<-temp$CopayBin182[temp$income>temp$Bin181Max & temp$income<=temp$Bin182Max]
+      temp$FTcopay[temp$income>temp$Bin182Max & temp$income<=temp$Bin183Max]<-temp$CopayBin183[temp$income>temp$Bin182Max & temp$income<=temp$Bin183Max]
+      temp$FTcopay[temp$income>temp$Bin183Max & temp$income<=temp$Bin184Max]<-temp$CopayBin184[temp$income>temp$Bin183Max & temp$income<=temp$Bin184Max]
+      temp$FTcopay[temp$income>temp$Bin184Max & temp$income<=temp$Bin185Max]<-temp$CopayBin185[temp$income>temp$Bin184Max & temp$income<=temp$Bin185Max]
+      temp$FTcopay[temp$income>temp$Bin185Max & temp$income<=temp$Bin186Max]<-temp$CopayBin186[temp$income>temp$Bin185Max & temp$income<=temp$Bin186Max]
+      temp$FTcopay[temp$income>temp$Bin186Max & temp$income<=temp$Bin187Max]<-temp$CopayBin187[temp$income>temp$Bin186Max & temp$income<=temp$Bin187Max]
+      temp$FTcopay[temp$income>temp$Bin187Max & temp$income<=temp$Bin188Max]<-temp$CopayBin188[temp$income>temp$Bin187Max & temp$income<=temp$Bin188Max]
+      temp$FTcopay[temp$income>temp$Bin188Max & temp$income<=temp$Bin189Max]<-temp$CopayBin189[temp$income>temp$Bin188Max & temp$income<=temp$Bin189Max]
+      temp$FTcopay[temp$income>temp$Bin189Max & temp$income<=temp$Bin190Max]<-temp$CopayBin190[temp$income>temp$Bin189Max & temp$income<=temp$Bin190Max]
+      temp$FTcopay[temp$income>temp$Bin190Max & temp$income<=temp$Bin191Max]<-temp$CopayBin191[temp$income>temp$Bin190Max & temp$income<=temp$Bin191Max]
+      temp$FTcopay[temp$income>temp$Bin191Max & temp$income<=temp$Bin192Max]<-temp$CopayBin192[temp$income>temp$Bin191Max & temp$income<=temp$Bin192Max]
+      temp$FTcopay[temp$income>temp$Bin192Max & temp$income<=temp$Bin193Max]<-temp$CopayBin193[temp$income>temp$Bin192Max & temp$income<=temp$Bin193Max]
+      temp$FTcopay[temp$income>temp$Bin193Max & temp$income<=temp$Bin194Max]<-temp$CopayBin194[temp$income>temp$Bin193Max & temp$income<=temp$Bin194Max]
+      temp$FTcopay[temp$income>temp$Bin194Max & temp$income<=temp$Bin195Max]<-temp$CopayBin195[temp$income>temp$Bin194Max & temp$income<=temp$Bin195Max]
+      temp$FTcopay[temp$income>temp$Bin195Max & temp$income<=temp$Bin196Max]<-temp$CopayBin196[temp$income>temp$Bin195Max & temp$income<=temp$Bin196Max]
+      temp$FTcopay[temp$income>temp$Bin196Max & temp$income<=temp$Bin197Max]<-temp$CopayBin197[temp$income>temp$Bin196Max & temp$income<=temp$Bin197Max]
+      temp$FTcopay[temp$income>temp$Bin197Max & temp$income<=temp$Bin198Max]<-temp$CopayBin198[temp$income>temp$Bin197Max & temp$income<=temp$Bin198Max]
+      temp$FTcopay[temp$income>temp$Bin198Max & temp$income<=temp$Bin199Max]<-temp$CopayBin199[temp$income>temp$Bin198Max & temp$income<=temp$Bin199Max]
+      temp$FTcopay[temp$income>temp$Bin199Max & temp$income<=temp$Bin200Max]<-temp$CopayBin200[temp$income>temp$Bin199Max & temp$income<=temp$Bin200Max]
+      
+      
+      temp$FTcopay[temp$income>temp$Bin200Max & temp$income<=temp$Bin201Max]<-temp$CopayBin201[temp$income>temp$Bin200Max & temp$income<=temp$Bin201Max]
+      temp$FTcopay[temp$income>temp$Bin201Max & temp$income<=temp$Bin202Max]<-temp$CopayBin202[temp$income>temp$Bin201Max & temp$income<=temp$Bin202Max]
+      temp$FTcopay[temp$income>temp$Bin202Max & temp$income<=temp$Bin203Max]<-temp$CopayBin203[temp$income>temp$Bin202Max & temp$income<=temp$Bin203Max]
+      temp$FTcopay[temp$income>temp$Bin203Max & temp$income<=temp$Bin204Max]<-temp$CopayBin204[temp$income>temp$Bin203Max & temp$income<=temp$Bin204Max]
+      temp$FTcopay[temp$income>temp$Bin204Max & temp$income<=temp$Bin205Max]<-temp$CopayBin205[temp$income>temp$Bin204Max & temp$income<=temp$Bin205Max]
+      temp$FTcopay[temp$income>temp$Bin205Max & temp$income<=temp$Bin206Max]<-temp$CopayBin206[temp$income>temp$Bin205Max & temp$income<=temp$Bin206Max]
+      temp$FTcopay[temp$income>temp$Bin206Max & temp$income<=temp$Bin207Max]<-temp$CopayBin207[temp$income>temp$Bin206Max & temp$income<=temp$Bin207Max]
+      temp$FTcopay[temp$income>temp$Bin207Max & temp$income<=temp$Bin208Max]<-temp$CopayBin208[temp$income>temp$Bin207Max & temp$income<=temp$Bin208Max]
+      temp$FTcopay[temp$income>temp$Bin208Max & temp$income<=temp$Bin209Max]<-temp$CopayBin209[temp$income>temp$Bin208Max & temp$income<=temp$Bin209Max]
+      temp$FTcopay[temp$income>temp$Bin209Max & temp$income<=temp$Bin210Max]<-temp$CopayBin210[temp$income>temp$Bin209Max & temp$income<=temp$Bin210Max]
+      temp$FTcopay[temp$income>temp$Bin210Max & temp$income<=temp$Bin211Max]<-temp$CopayBin211[temp$income>temp$Bin210Max & temp$income<=temp$Bin211Max]
+      temp$FTcopay[temp$income>temp$Bin211Max & temp$income<=temp$Bin212Max]<-temp$CopayBin212[temp$income>temp$Bin211Max & temp$income<=temp$Bin212Max]
+      temp$FTcopay[temp$income>temp$Bin212Max & temp$income<=temp$Bin213Max]<-temp$CopayBin213[temp$income>temp$Bin212Max & temp$income<=temp$Bin213Max]
+      temp$FTcopay[temp$income>temp$Bin213Max & temp$income<=temp$Bin214Max]<-temp$CopayBin214[temp$income>temp$Bin213Max & temp$income<=temp$Bin214Max]
+      temp$FTcopay[temp$income>temp$Bin214Max & temp$income<=temp$Bin215Max]<-temp$CopayBin215[temp$income>temp$Bin214Max & temp$income<=temp$Bin215Max]
+      temp$FTcopay[temp$income>temp$Bin215Max & temp$income<=temp$Bin216Max]<-temp$CopayBin216[temp$income>temp$Bin215Max & temp$income<=temp$Bin216Max]
+      temp$FTcopay[temp$income>temp$Bin216Max & temp$income<=temp$Bin217Max]<-temp$CopayBin217[temp$income>temp$Bin216Max & temp$income<=temp$Bin217Max]
+      temp$FTcopay[temp$income>temp$Bin217Max & temp$income<=temp$Bin218Max]<-temp$CopayBin218[temp$income>temp$Bin217Max & temp$income<=temp$Bin218Max]
+      temp$FTcopay[temp$income>temp$Bin218Max & temp$income<=temp$Bin219Max]<-temp$CopayBin219[temp$income>temp$Bin218Max & temp$income<=temp$Bin219Max]
+      temp$FTcopay[temp$income>temp$Bin219Max & temp$income<=temp$Bin220Max]<-temp$CopayBin220[temp$income>temp$Bin219Max & temp$income<=temp$Bin220Max]
+      temp$FTcopay[temp$income>temp$Bin220Max & temp$income<=temp$Bin221Max]<-temp$CopayBin221[temp$income>temp$Bin220Max & temp$income<=temp$Bin221Max]
+      temp$FTcopay[temp$income>temp$Bin221Max & temp$income<=temp$Bin222Max]<-temp$CopayBin222[temp$income>temp$Bin221Max & temp$income<=temp$Bin222Max]
+      temp$FTcopay[temp$income>temp$Bin222Max & temp$income<=temp$Bin223Max]<-temp$CopayBin223[temp$income>temp$Bin222Max & temp$income<=temp$Bin223Max]
+      temp$FTcopay[temp$income>temp$Bin223Max & temp$income<=temp$Bin224Max]<-temp$CopayBin224[temp$income>temp$Bin223Max & temp$income<=temp$Bin224Max]
+      temp$FTcopay[temp$income>temp$Bin224Max & temp$income<=temp$Bin225Max]<-temp$CopayBin225[temp$income>temp$Bin224Max & temp$income<=temp$Bin225Max]
+      temp$FTcopay[temp$income>temp$Bin225Max & temp$income<=temp$Bin226Max]<-temp$CopayBin226[temp$income>temp$Bin225Max & temp$income<=temp$Bin226Max]
+      temp$FTcopay[temp$income>temp$Bin226Max & temp$income<=temp$Bin227Max]<-temp$CopayBin227[temp$income>temp$Bin226Max & temp$income<=temp$Bin227Max]
+      temp$FTcopay[temp$income>temp$Bin227Max & temp$income<=temp$Bin228Max]<-temp$CopayBin228[temp$income>temp$Bin227Max & temp$income<=temp$Bin228Max]
+      temp$FTcopay[temp$income>temp$Bin228Max & temp$income<=temp$Bin229Max]<-temp$CopayBin229[temp$income>temp$Bin228Max & temp$income<=temp$Bin229Max]
+      temp$FTcopay[temp$income>temp$Bin229Max & temp$income<=temp$Bin230Max]<-temp$CopayBin230[temp$income>temp$Bin229Max & temp$income<=temp$Bin230Max]
+      temp$FTcopay[temp$income>temp$Bin230Max & temp$income<=temp$Bin231Max]<-temp$CopayBin231[temp$income>temp$Bin230Max & temp$income<=temp$Bin231Max]
+      temp$FTcopay[temp$income>temp$Bin231Max & temp$income<=temp$Bin232Max]<-temp$CopayBin232[temp$income>temp$Bin231Max & temp$income<=temp$Bin232Max]
+      temp$FTcopay[temp$income>temp$Bin232Max & temp$income<=temp$Bin233Max]<-temp$CopayBin233[temp$income>temp$Bin232Max & temp$income<=temp$Bin233Max]
+      temp$FTcopay[temp$income>temp$Bin233Max & temp$income<=temp$Bin234Max]<-temp$CopayBin234[temp$income>temp$Bin233Max & temp$income<=temp$Bin234Max]
+      temp$FTcopay[temp$income>temp$Bin234Max & temp$income<=temp$Bin235Max]<-temp$CopayBin235[temp$income>temp$Bin234Max & temp$income<=temp$Bin235Max]
+      temp$FTcopay[temp$income>temp$Bin235Max & temp$income<=temp$Bin236Max]<-temp$CopayBin236[temp$income>temp$Bin235Max & temp$income<=temp$Bin236Max]
+      temp$FTcopay[temp$income>temp$Bin236Max & temp$income<=temp$Bin237Max]<-temp$CopayBin237[temp$income>temp$Bin236Max & temp$income<=temp$Bin237Max]
+      temp$FTcopay[temp$income>temp$Bin237Max & temp$income<=temp$Bin238Max]<-temp$CopayBin238[temp$income>temp$Bin237Max & temp$income<=temp$Bin238Max]
+      temp$FTcopay[temp$income>temp$Bin238Max & temp$income<=temp$Bin239Max]<-temp$CopayBin239[temp$income>temp$Bin238Max & temp$income<=temp$Bin239Max]
+      temp$FTcopay[temp$income>temp$Bin239Max & temp$income<=temp$Bin240Max]<-temp$CopayBin240[temp$income>temp$Bin239Max & temp$income<=temp$Bin240Max]
+      temp$FTcopay[temp$income>temp$Bin240Max & temp$income<=temp$Bin241Max]<-temp$CopayBin241[temp$income>temp$Bin240Max & temp$income<=temp$Bin241Max]
+      temp$FTcopay[temp$income>temp$Bin241Max & temp$income<=temp$Bin242Max]<-temp$CopayBin242[temp$income>temp$Bin241Max & temp$income<=temp$Bin242Max]
+      temp$FTcopay[temp$income>temp$Bin242Max & temp$income<=temp$Bin243Max]<-temp$CopayBin243[temp$income>temp$Bin242Max & temp$income<=temp$Bin243Max]
+      temp$FTcopay[temp$income>temp$Bin243Max & temp$income<=temp$Bin244Max]<-temp$CopayBin244[temp$income>temp$Bin243Max & temp$income<=temp$Bin244Max]
+      temp$FTcopay[temp$income>temp$Bin244Max & temp$income<=temp$Bin245Max]<-temp$CopayBin245[temp$income>temp$Bin244Max & temp$income<=temp$Bin245Max]
+      temp$FTcopay[temp$income>temp$Bin245Max & temp$income<=temp$Bin246Max]<-temp$CopayBin246[temp$income>temp$Bin245Max & temp$income<=temp$Bin246Max]
+      temp$FTcopay[temp$income>temp$Bin246Max & temp$income<=temp$Bin247Max]<-temp$CopayBin247[temp$income>temp$Bin246Max & temp$income<=temp$Bin247Max]
+      temp$FTcopay[temp$income>temp$Bin247Max & temp$income<=temp$Bin248Max]<-temp$CopayBin248[temp$income>temp$Bin247Max & temp$income<=temp$Bin248Max]
+      temp$FTcopay[temp$income>temp$Bin248Max & temp$income<=temp$Bin249Max]<-temp$CopayBin249[temp$income>temp$Bin248Max & temp$income<=temp$Bin249Max]
+      temp$FTcopay[temp$income>temp$Bin249Max & temp$income<=temp$Bin250Max]<-temp$CopayBin250[temp$income>temp$Bin249Max & temp$income<=temp$Bin250Max]
+      temp$FTcopay[temp$income>temp$Bin250Max & temp$income<=temp$Bin251Max]<-temp$CopayBin251[temp$income>temp$Bin250Max & temp$income<=temp$Bin251Max]
+      temp$FTcopay[temp$income>temp$Bin251Max & temp$income<=temp$Bin252Max]<-temp$CopayBin252[temp$income>temp$Bin251Max & temp$income<=temp$Bin252Max]
+      temp$FTcopay[temp$income>temp$Bin252Max & temp$income<=temp$Bin253Max]<-temp$CopayBin253[temp$income>temp$Bin252Max & temp$income<=temp$Bin253Max]
+      temp$FTcopay[temp$income>temp$Bin253Max & temp$income<=temp$Bin254Max]<-temp$CopayBin254[temp$income>temp$Bin253Max & temp$income<=temp$Bin254Max]
+      temp$FTcopay[temp$income>temp$Bin254Max & temp$income<=temp$Bin255Max]<-temp$CopayBin255[temp$income>temp$Bin254Max & temp$income<=temp$Bin255Max]
+      temp$FTcopay[temp$income>temp$Bin255Max & temp$income<=temp$Bin256Max]<-temp$CopayBin256[temp$income>temp$Bin255Max & temp$income<=temp$Bin256Max]
+      temp$FTcopay[temp$income>temp$Bin256Max & temp$income<=temp$Bin257Max]<-temp$CopayBin257[temp$income>temp$Bin256Max & temp$income<=temp$Bin257Max]
+      temp$FTcopay[temp$income>temp$Bin257Max & temp$income<=temp$Bin258Max]<-temp$CopayBin258[temp$income>temp$Bin257Max & temp$income<=temp$Bin258Max]
+      temp$FTcopay[temp$income>temp$Bin258Max & temp$income<=temp$Bin259Max]<-temp$CopayBin259[temp$income>temp$Bin258Max & temp$income<=temp$Bin259Max]
+      temp$FTcopay[temp$income>temp$Bin259Max & temp$income<=temp$Bin260Max]<-temp$CopayBin260[temp$income>temp$Bin259Max & temp$income<=temp$Bin260Max]
+      temp$FTcopay[temp$income>temp$Bin260Max & temp$income<=temp$Bin261Max]<-temp$CopayBin261[temp$income>temp$Bin260Max & temp$income<=temp$Bin261Max]
+      temp$FTcopay[temp$income>temp$Bin261Max & temp$income<=temp$Bin262Max]<-temp$CopayBin262[temp$income>temp$Bin261Max & temp$income<=temp$Bin262Max]
+      temp$FTcopay[temp$income>temp$Bin262Max & temp$income<=temp$Bin263Max]<-temp$CopayBin263[temp$income>temp$Bin262Max & temp$income<=temp$Bin263Max]
+      temp$FTcopay[temp$income>temp$Bin263Max & temp$income<=temp$Bin264Max]<-temp$CopayBin264[temp$income>temp$Bin263Max & temp$income<=temp$Bin264Max]
+      temp$FTcopay[temp$income>temp$Bin264Max & temp$income<=temp$Bin265Max]<-temp$CopayBin265[temp$income>temp$Bin264Max & temp$income<=temp$Bin265Max]
+      temp$FTcopay[temp$income>temp$Bin265Max & temp$income<=temp$Bin266Max]<-temp$CopayBin266[temp$income>temp$Bin265Max & temp$income<=temp$Bin266Max]
+      temp$FTcopay[temp$income>temp$Bin266Max & temp$income<=temp$Bin267Max]<-temp$CopayBin267[temp$income>temp$Bin266Max & temp$income<=temp$Bin267Max]
+      temp$FTcopay[temp$income>temp$Bin267Max & temp$income<=temp$Bin268Max]<-temp$CopayBin268[temp$income>temp$Bin267Max & temp$income<=temp$Bin268Max]
+      temp$FTcopay[temp$income>temp$Bin268Max & temp$income<=temp$Bin269Max]<-temp$CopayBin269[temp$income>temp$Bin268Max & temp$income<=temp$Bin269Max]
+      temp$FTcopay[temp$income>temp$Bin269Max & temp$income<=temp$Bin270Max]<-temp$CopayBin270[temp$income>temp$Bin269Max & temp$income<=temp$Bin270Max]
+      temp$FTcopay[temp$income>temp$Bin270Max & temp$income<=temp$Bin271Max]<-temp$CopayBin271[temp$income>temp$Bin270Max & temp$income<=temp$Bin271Max]
+      temp$FTcopay[temp$income>temp$Bin271Max & temp$income<=temp$Bin272Max]<-temp$CopayBin272[temp$income>temp$Bin271Max & temp$income<=temp$Bin272Max]
+      temp$FTcopay[temp$income>temp$Bin272Max & temp$income<=temp$Bin273Max]<-temp$CopayBin273[temp$income>temp$Bin272Max & temp$income<=temp$Bin273Max]
+      temp$FTcopay[temp$income>temp$Bin273Max & temp$income<=temp$Bin274Max]<-temp$CopayBin274[temp$income>temp$Bin273Max & temp$income<=temp$Bin274Max]
+      temp$FTcopay[temp$income>temp$Bin274Max & temp$income<=temp$Bin275Max]<-temp$CopayBin275[temp$income>temp$Bin274Max & temp$income<=temp$Bin275Max]
+      temp$FTcopay[temp$income>temp$Bin275Max & temp$income<=temp$Bin276Max]<-temp$CopayBin276[temp$income>temp$Bin275Max & temp$income<=temp$Bin276Max]
+      temp$FTcopay[temp$income>temp$Bin276Max & temp$income<=temp$Bin277Max]<-temp$CopayBin277[temp$income>temp$Bin276Max & temp$income<=temp$Bin277Max]
+      temp$FTcopay[temp$income>temp$Bin277Max & temp$income<=temp$Bin278Max]<-temp$CopayBin278[temp$income>temp$Bin277Max & temp$income<=temp$Bin278Max]
+      temp$FTcopay[temp$income>temp$Bin278Max & temp$income<=temp$Bin279Max]<-temp$CopayBin279[temp$income>temp$Bin278Max & temp$income<=temp$Bin279Max]
+      temp$FTcopay[temp$income>temp$Bin279Max & temp$income<=temp$Bin280Max]<-temp$CopayBin280[temp$income>temp$Bin279Max & temp$income<=temp$Bin280Max]
+      temp$FTcopay[temp$income>temp$Bin280Max & temp$income<=temp$Bin281Max]<-temp$CopayBin281[temp$income>temp$Bin280Max & temp$income<=temp$Bin281Max]
+      temp$FTcopay[temp$income>temp$Bin281Max & temp$income<=temp$Bin282Max]<-temp$CopayBin282[temp$income>temp$Bin281Max & temp$income<=temp$Bin282Max]
+      temp$FTcopay[temp$income>temp$Bin282Max & temp$income<=temp$Bin283Max]<-temp$CopayBin283[temp$income>temp$Bin282Max & temp$income<=temp$Bin283Max]
+      temp$FTcopay[temp$income>temp$Bin283Max & temp$income<=temp$Bin284Max]<-temp$CopayBin284[temp$income>temp$Bin283Max & temp$income<=temp$Bin284Max]
+      temp$FTcopay[temp$income>temp$Bin284Max & temp$income<=temp$Bin285Max]<-temp$CopayBin285[temp$income>temp$Bin284Max & temp$income<=temp$Bin285Max]
+      temp$FTcopay[temp$income>temp$Bin285Max & temp$income<=temp$Bin286Max]<-temp$CopayBin286[temp$income>temp$Bin285Max & temp$income<=temp$Bin286Max]
+      temp$FTcopay[temp$income>temp$Bin286Max & temp$income<=temp$Bin287Max]<-temp$CopayBin287[temp$income>temp$Bin286Max & temp$income<=temp$Bin287Max]
+      temp$FTcopay[temp$income>temp$Bin287Max & temp$income<=temp$Bin288Max]<-temp$CopayBin288[temp$income>temp$Bin287Max & temp$income<=temp$Bin288Max]
+      temp$FTcopay[temp$income>temp$Bin288Max & temp$income<=temp$Bin289Max]<-temp$CopayBin289[temp$income>temp$Bin288Max & temp$income<=temp$Bin289Max]
+      
+      
       
       # Apply asset test
       subset<-temp$totalassets > temp$AssetTest
@@ -9923,17 +10152,41 @@ function.CCDFcopay<-function(data
       temp$FTcopay[temp$income>temp$Bin24Max & temp$income<=temp$Bin25Max]<-temp$CopayBin25_FractionOfGrossIncome[temp$income>temp$Bin24Max & temp$income<=temp$Bin25Max]
       temp$FTcopay[temp$income>temp$Bin25Max & temp$income<=temp$Bin26Max]<-temp$CopayBin26_FractionOfGrossIncome[temp$income>temp$Bin25Max & temp$income<=temp$Bin26Max]
       temp$FTcopay[temp$income>temp$Bin26Max & temp$income<=temp$Bin27Max]<-temp$CopayBin27_FractionOfGrossIncome[temp$income>temp$Bin26Max & temp$income<=temp$Bin27Max]
+      temp$FTcopay[temp$income>temp$Bin27Max & temp$income<=temp$Bin28Max]<-temp$CopayBin28_FractionOfGrossIncome[temp$income>temp$Bin27Max & temp$income<=temp$Bin28Max]
+      temp$FTcopay[temp$income>temp$Bin28Max & temp$income<=temp$Bin29Max]<-temp$CopayBin29_FractionOfGrossIncome[temp$income>temp$Bin28Max & temp$income<=temp$Bin29Max]
+      temp$FTcopay[temp$income>temp$Bin29Max & temp$income<=temp$Bin30Max]<-temp$CopayBin30_FractionOfGrossIncome[temp$income>temp$Bin29Max & temp$income<=temp$Bin30Max]
+      temp$FTcopay[temp$income>temp$Bin30Max & temp$income<=temp$Bin31Max]<-temp$CopayBin31_FractionOfGrossIncome[temp$income>temp$Bin30Max & temp$income<=temp$Bin31Max]
+      temp$FTcopay[temp$income>temp$Bin31Max & temp$income<=temp$Bin32Max]<-temp$CopayBin32_FractionOfGrossIncome[temp$income>temp$Bin31Max & temp$income<=temp$Bin32Max]
+      temp$FTcopay[temp$income>temp$Bin32Max & temp$income<=temp$Bin33Max]<-temp$CopayBin33_FractionOfGrossIncome[temp$income>temp$Bin32Max & temp$income<=temp$Bin33Max]
+      temp$FTcopay[temp$income>temp$Bin33Max & temp$income<=temp$Bin34Max]<-temp$CopayBin34_FractionOfGrossIncome[temp$income>temp$Bin33Max & temp$income<=temp$Bin34Max]
+      temp$FTcopay[temp$income>temp$Bin34Max & temp$income<=temp$Bin35Max]<-temp$CopayBin35_FractionOfGrossIncome[temp$income>temp$Bin34Max & temp$income<=temp$Bin35Max]
+      temp$FTcopay[temp$income>temp$Bin35Max & temp$income<=temp$Bin36Max]<-temp$CopayBin36_FractionOfGrossIncome[temp$income>temp$Bin35Max & temp$income<=temp$Bin36Max]
+      temp$FTcopay[temp$income>temp$Bin36Max & temp$income<=temp$Bin37Max]<-temp$CopayBin37_FractionOfGrossIncome[temp$income>temp$Bin36Max & temp$income<=temp$Bin37Max]
+      temp$FTcopay[temp$income>temp$Bin37Max & temp$income<=temp$Bin38Max]<-temp$CopayBin38_FractionOfGrossIncome[temp$income>temp$Bin37Max & temp$income<=temp$Bin38Max]
+      temp$FTcopay[temp$income>temp$Bin38Max & temp$income<=temp$Bin39Max]<-temp$CopayBin39_FractionOfGrossIncome[temp$income>temp$Bin38Max & temp$income<=temp$Bin39Max]
+      temp$FTcopay[temp$income>temp$Bin39Max & temp$income<=temp$Bin40Max]<-temp$CopayBin40_FractionOfGrossIncome[temp$income>temp$Bin39Max & temp$income<=temp$Bin40Max]
+      temp$FTcopay[temp$income>temp$Bin40Max & temp$income<=temp$Bin41Max]<-temp$CopayBin41_FractionOfGrossIncome[temp$income>temp$Bin40Max & temp$income<=temp$Bin41Max]
       
       # Apply asset test
       subset<-temp$totalassets > temp$AssetTest
       temp$totcopay[subset]<-NA_real_
+      
+      
       
       #----------------------------------
       # Step 2: Calculate total copays
       #----------------------------------
       
       # Can't pay more than the total remaining expenses
-      temp$totcopay<-rowMins(cbind(temp$income*temp$FTcopay,temp$netexp.childcare))
+      
+      
+      #temp$totcopay<-rowMins(cbind(temp$income*temp$FTcopay,temp$netexp.childcare))
+      
+      temp$totcopay[temp$ruleYear<=2022] <- temp$income[temp$ruleYear<=2022]*temp$FTcopay[temp$ruleYear<=2022]
+      
+      temp$totcopay[temp$ruleYear>=2023] <- temp$FTcopay[temp$ruleYear>=2023]*52 # 2023 onwards, Ohio charges copay as a weekly dollar amount, rather than as a monthly percentage of income
+      
+      temp$totcopay<-rowMins(cbind(temp$totcopay,temp$netexp.childcare))
       
       # Set copay to zero if no children
       temp$totcopay[temp$numkidsincare0to4+temp$numkidsincare5to12==0]<-0
@@ -10483,7 +10736,7 @@ function.CCDFcopay<-function(data
       temp<-left_join(temp, ccdfData_SD, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize"))
       
       # Adjust for the income disregard
-      temp$income<-temp$income-12*temp$IncomeDisregard
+      temp$income<-temp$income*(1-temp$IncomeDisregard)
       
       temp$FTcopay<-NA
       
@@ -10883,239 +11136,253 @@ function.CCDFcopay<-function(data
       
       # providercost_VT$stateFIPS <- 50
       # 
-      # #if(temp$ruleYear < 2022){
-      #   # Uses most current rules in PRD and imputes them for years in the data set
-      #   maxYear<-max(providercost_VT$ruleYear)
-      #   for (yr in c(2011:2021)){
-      #     if(yr %notin% providercost_VT$ruleYear){
-      #       copyLatestYear<-providercost_VT[rep(providercost_VT$ruleYear==maxYear), ]
-      #       copyLatestYear$ruleYear[copyLatestYear$ruleYear == maxYear]<-yr
-      #       providercost_VT<-providercost_VT%>%
-      #         rbind(copyLatestYear) 
-      #     }}
-      # 
-      # # Adds historical rules if we do not have them
-      # minYear<-min(providercost_VT$ruleYear)
-      # for (yr in c(2011:2021)){
-      #   if(yr %notin% providercost_VT$ruleYear){
-      #     copyEarliestYear<-providercost_VT[rep(providercost_VT$ruleYear==minYear), ]
-      #     copyEarliestYear$ruleYear[copyEarliestYear$ruleYear == minYear]<-yr
-      #     providercost_VT<-providercost_VT%>%
-      #       rbind(copyEarliestYear) 
-      #   }}
-      # 
-      #   temp<-left_join(temp, providercost_VT, by=c("stateFIPS", "ruleYear"))
-      # 
-      # # Determine Expense based on Age of Children
-      #  temp<-temp %>% 
-      #     mutate(sprPerson1=(case_when(agePerson1 %in% c(0)~ftdailyrate.infant,
-      #                                  agePerson1 %in% c(1:2)~ftdailyrate.toddler,
-      #                                  agePerson1 %in% c(3:5)~ftdailyrate.preschool,  
-      #                                  agePerson1 %in% c(6:12)~ftdailyrate.schoolage,
-      #                                  agePerson1 > 12 ~ 0,
-      #                                  TRUE~0)
-      #     )
-      #     )
-      #   temp<-temp %>% 
-      #       mutate(sprPerson2=(case_when(agePerson2 %in% c(0)~ftdailyrate.infant,
-      #                                    agePerson2 %in% c(1:2)~ftdailyrate.toddler,
-      #                                    agePerson2 %in% c(3:5)~ftdailyrate.preschool,  
-      #                                    agePerson2 %in% c(6:12)~ftdailyrate.schoolage,
-      #                                    agePerson2 > 12 ~ 0,
-      #                                    TRUE~0)
-      #       )
-      #       )
-      #     temp<-temp %>% 
-      #       mutate(sprPerson3=(case_when(agePerson3 %in% c(0)~ftdailyrate.infant,
-      #                                    agePerson3 %in% c(1:2)~ftdailyrate.toddler,
-      #                                    agePerson3 %in% c(3:5)~ftdailyrate.preschool,  
-      #                                    agePerson3 %in% c(6:12)~ftdailyrate.schoolage,
-      #                                    agePerson3 > 12 ~ 0,
-      #                                    TRUE~0)
-      #       )
-      #       )
-      # 
-      #    temp<-temp %>% 
-      #       mutate(sprPerson4=(case_when(agePerson4 %in% c(0)~ftdailyrate.infant,
-      #                                    agePerson4 %in% c(1:2)~ftdailyrate.toddler,
-      #                                    agePerson4 %in% c(3:5)~ftdailyrate.preschool,  
-      #                                    agePerson4 %in% c(6:12)~ftdailyrate.schoolage,
-      #                                    agePerson4 > 12 ~ 0,
-      #                                    TRUE~0)
-      #       )
-      #       )
-      # 
-      #     temp<-temp %>% 
-      #       mutate(sprPerson5=(case_when(agePerson5 %in% c(0)~ftdailyrate.infant,
-      #                                    agePerson5 %in% c(1:2)~ftdailyrate.toddler,
-      #                                    agePerson5 %in% c(3:5)~ftdailyrate.preschool,  
-      #                                    agePerson5 %in% c(6:12)~ftdailyrate.schoolage,
-      #                                    agePerson5 > 12 ~ 0,
-      #                                    TRUE~0)
-      #       )
-      #       )
-      # 
-      #    temp<-temp %>% 
-      #       mutate(sprPerson6=(case_when(agePerson6 %in% c(0)~ftdailyrate.infant,
-      #                                    agePerson6 %in% c(1:2)~ftdailyrate.toddler,
-      #                                    agePerson6 %in% c(3:5)~ftdailyrate.preschool,  
-      #                                    agePerson6 %in% c(6:12)~ftdailyrate.schoolage,
-      #                                    agePerson6 > 12 ~ 0,
-      #                                    TRUE~0)
-      #       )
-      #       )
-      # 
-      #     temp<-temp %>% 
-      #       mutate(sprPerson7=(case_when(agePerson7 %in% c(0)~ftdailyrate.infant,
-      #                                    agePerson7 %in% c(1:2)~ftdailyrate.toddler,
-      #                                    agePerson7 %in% c(3:5)~ftdailyrate.preschool,  
-      #                                    agePerson7 %in% c(6:12)~ftdailyrate.schoolage,
-      #                                    agePerson7 > 12 ~ 0,
-      #                                    TRUE~0)
-      #       )
-      #       )
-      # 
-      #     temp<-temp %>% 
-      #       mutate(sprPerson8=(case_when(agePerson8 %in% c(0)~ftdailyrate.infant,
-      #                                    agePerson8 %in% c(1:2)~ftdailyrate.toddler,
-      #                                    agePerson8 %in% c(3:5)~ftdailyrate.preschool,  
-      #                                    agePerson8 %in% c(6:12)~ftdailyrate.schoolage,
-      #                                    TRUE~0)
-      #       )
-      #       )
-      # 
-      #     temp<-temp %>% 
-      #       mutate(sprPerson9=(case_when(agePerson9 %in% c(0)~ftdailyrate.infant,
-      #                                    agePerson9 %in% c(1:2)~ftdailyrate.toddler,
-      #                                    agePerson9 %in% c(3:5)~ftdailyrate.preschool,  
-      #                                    agePerson9 %in% c(6:12)~ftdailyrate.schoolage,
-      #                                    TRUE~0)
-      #       )
-      #       )
-      # 
-      #   temp<-temp %>% 
-      #     mutate(sprPerson10=(case_when(agePerson10 %in% c(0)~ftdailyrate.infant,
-      #                                   agePerson10 %in% c(1:2)~ftdailyrate.toddler,
-      #                                   agePerson10 %in% c(3:5)~ftdailyrate.preschool,  
-      #                                   agePerson10 %in% c(6:12)~ftdailyrate.schoolage,
-      #                                   TRUE~0)
-      #     )
-      #     )
-      # 
-      #  temp<-temp %>% 
-      #     mutate(sprPerson11=(case_when(agePerson11 %in% c(0)~ftdailyrate.infant,
-      #                                   agePerson11 %in% c(1:2)~ftdailyrate.toddler,
-      #                                   agePerson11 %in% c(3:5)~ftdailyrate.preschool,  
-      #                                   agePerson11 %in% c(6:12)~ftdailyrate.schoolage,
-      #                                   TRUE~0)
-      #     )
-      #     )
-      # 
-      #   temp<-temp %>% 
-      #     mutate(sprPerson12=(case_when(agePerson12 %in% c(0)~ftdailyrate.infant,
-      #                                   agePerson12 %in% c(1:2)~ftdailyrate.toddler,
-      #                                   agePerson12 %in% c(3:5)~ftdailyrate.preschool,  
-      #                                   agePerson12 %in% c(6:12)~ftdailyrate.schoolage,
-      #                                   TRUE~0)
-      #     )
-      #     )
-      #   
-      #   temp<-temp %>%
-      #     mutate(sprTotal=sprPerson1+sprPerson2+sprPerson3+sprPerson4+sprPerson5+sprPerson6+sprPerson7+sprPerson8+sprPerson9+sprPerson10+sprPerson11+sprPerson12)
-      #  
-      #    temp<-temp %>% 
-      #       mutate(annualcost1=(case_when(agePerson1 < 5 ~ sprPerson1*daysofcareneeded0to4,
-      #                                     agePerson1 > 4 & agePerson1 < 13 ~ sprPerson1*daysofcareneeded5to12,
-      #                                     agePerson1 > 12 ~ 0,
-      #                                     TRUE~0)
-      #       )
-      #       )
-      # 
-      #     temp<-temp %>% 
-      #       mutate(annualcost2=(case_when(agePerson2 < 5 ~ sprPerson2*daysofcareneeded0to4,
-      #                                    agePerson2 > 4 & agePerson2 < 13 ~ sprPerson2*daysofcareneeded5to12,
-      #                                     agePerson2 > 12 ~ 0,
-      #                                     TRUE~0)
-      #      )
-      #     )
-      # 
-      #   temp<-temp %>% 
-      #     mutate(annualcost3=(case_when(agePerson3 < 5 ~ sprPerson3*daysofcareneeded0to4,
-      #                                   agePerson3 > 4 & agePerson3 < 13 ~ sprPerson3*daysofcareneeded5to12,
-      #                                  agePerson3 > 12 ~ 0,
-      #                                   TRUE~0)
-      #     )
-      #     )
-      # 
-      #   temp<-temp %>% 
-      #     mutate(annualcost4=(case_when(agePerson4 < 5 ~ sprPerson4*daysofcareneeded0to4,
-      #                                   agePerson4 > 4 & agePerson4 < 13 ~ sprPerson4*daysofcareneeded5to12,
-      #                                   agePerson4 > 12 ~ 0,
-      #                                   TRUE~0)
-      #     )
-      #     )
-      # 
-      #   temp<-temp %>% 
-      #     mutate(annualcost5=(case_when(agePerson5 < 5 ~ sprPerson5*daysofcareneeded0to4,
-      #                                   agePerson5 > 4 & agePerson5 < 13 ~ sprPerson5*daysofcareneeded5to12,
-      #                                   agePerson5 > 12 ~ 0,
-      #                                   TRUE~0)
-      #     )
-      #     )
-      # 
-      #  temp<-temp %>% 
-      #     mutate(annualcost6=(case_when(agePerson6 < 5 ~ sprPerson6*daysofcareneeded0to4,
-      #                                   agePerson6 > 4 & agePerson6 < 13 ~ sprPerson6*daysofcareneeded5to12,
-      #                                   agePerson6 > 12 ~ 0,
-      #                                   TRUE~0)
-      #     )
-      #     )
-      # 
-      #   temp<-temp %>% 
-      #     mutate(annualcost7=(case_when(agePerson7 < 5 ~ sprPerson7*daysofcareneeded0to4,
-      #                                   agePerson7 > 4 & agePerson7 < 13 ~ sprPerson7*daysofcareneeded5to12,
-      #                                   agePerson7 > 12 ~ 0,
-      #                                   TRUE~0)
-      #     )
-      #     )
-      # 
-      #     temp<-temp %>% 
-      #       mutate(annualcost8=(case_when(agePerson8 < 5 ~ sprPerson8*daysofcareneeded0to4,
-      #                                     agePerson8 > 4 & agePerson8 < 13 ~ sprPerson8*daysofcareneeded5to12,
-      #                                     TRUE~0)
-      #       )
-      #       )
-      # 
-      #    temp<-temp %>% 
-      #       mutate(annualcost9=(case_when(agePerson9 < 5 ~ sprPerson9*daysofcareneeded0to4,
-      #                                    agePerson9 > 4 & agePerson9 < 13 ~ sprPerson9*daysofcareneeded5to12,
-      #                                   TRUE~0)
-      #    )
-      #   )
-      # 
-      #   temp<-temp %>% 
-      #     mutate(annualcost10=(case_when(agePerson10 < 5 ~ sprPerson10*daysofcareneeded0to4,
-      #                                   agePerson10 > 4 & agePerson10 < 13 ~ sprPerson10*daysofcareneeded5to12,
-      #                                  TRUE~0)
-      #   )
-      #   )
-      # 
-      # temp<-temp %>% 
-      #         mutate(annualcost11=(case_when(agePerson11 < 5 ~ sprPerson11*daysofcareneeded0to4,
-      #                                        agePerson11 > 4 & agePerson11 < 13 ~ sprPerson11*daysofcareneeded5to12,
-      #                                        TRUE~0)
-      #        )
-      #         )
-      # 
-      #      temp<-temp %>% 
-      #         mutate(annualcost12=(case_when(agePerson12 < 5 ~ sprPerson12*daysofcareneeded0to4,
-      #                                        agePerson12 > 4 & agePerson12 < 13 ~ sprPerson12*daysofcareneeded5to12,
-      #                                        TRUE~0)
-      #         )
-      #         )
-      # 
-      #      temp$annualCost<-temp$annualcost1+temp$annualcost2+temp$annualcost3+temp$annualcost4+temp$annualcost5+temp$annualcost6+temp$annualcost7+temp$annualcost8+temp$annualcost9+temp$annualcost10+temp$annualcost11+temp$annualcost12
-     # }
+     #if(temp$ruleYear < 2022){
+      
+      # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+      years<-unique(data$ruleYear) # years in data set
+      yearsinexpdata<- unique(providercost_VT$ruleYear) # rule years in benefit data
+      yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+      yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+      # Create data for the future
+      maxyearofdata<-max(providercost_VT$ruleYear) # collect latest year of benefit data
+      futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+      if(length(futureYrs)>0){
+        # Create data frame with future years
+        expand<-expand.grid(stateFIPS=unique(providercost_VT$stateFIPS), Year=futureYrs)
+        # Collect latest benefit data there is and merge w/data frame
+        expand2<-providercost_VT[providercost_VT$ruleYear==maxyearofdata, ]
+        expand<-expand%>%left_join(expand2, by=c("stateFIPS")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+      }
+      # Create data for past and gap years (missing data) - not the future
+      nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
+      if(length(nonFutureYrs)>0){
+        #Create data frame with past years and year for which we are missing benefit data
+        expandPastMiss<-expand.grid(stateFIPS=unique(providercost_VT$stateFIPS), Year=nonFutureYrs)
+        # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
+        expandPastMiss2<-left_join(expandPastMiss, providercost_VT, by=c("stateFIPS"))
+        expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
+        expandPastMiss2<-expandPastMiss2%>%
+          group_by(Year)%>%
+          mutate(minyeardiff = min(yeardiff))
+        expandPastMiss2<-expandPastMiss2 %>%
+          filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+      }  # Attach copied future, historical, and missing benefit data
+      if(length(futureYrs)>0) {providercost_VT<-providercost_VT %>% rbind(expand)}
+      if(length(nonFutureYrs)>0) {providercost_VT<-providercost_VT %>% rbind(expandPastMiss2)}
+      
+       
+         temp<-left_join(temp, providercost_VT, by=c("stateFIPS", "ruleYear"))
+       
+       # Determine Expense based on Age of Children
+        temp<-temp %>% 
+           mutate(sprPerson1=(case_when(agePerson1 %in% c(0)~ftdailyrate.infant,
+                                        agePerson1 %in% c(1:2)~ftdailyrate.toddler,
+                                        agePerson1 %in% c(3:5)~ftdailyrate.preschool,  
+                                        agePerson1 %in% c(6:12)~ftdailyrate.schoolage,
+                                        agePerson1 > 12 ~ 0,
+                                        TRUE~0)
+           )
+           )
+         temp<-temp %>% 
+             mutate(sprPerson2=(case_when(agePerson2 %in% c(0)~ftdailyrate.infant,
+                                          agePerson2 %in% c(1:2)~ftdailyrate.toddler,
+                                          agePerson2 %in% c(3:5)~ftdailyrate.preschool,  
+                                          agePerson2 %in% c(6:12)~ftdailyrate.schoolage,
+                                          agePerson2 > 12 ~ 0,
+                                          TRUE~0)
+             )
+             )
+           temp<-temp %>% 
+             mutate(sprPerson3=(case_when(agePerson3 %in% c(0)~ftdailyrate.infant,
+                                          agePerson3 %in% c(1:2)~ftdailyrate.toddler,
+                                          agePerson3 %in% c(3:5)~ftdailyrate.preschool,  
+                                          agePerson3 %in% c(6:12)~ftdailyrate.schoolage,
+                                          agePerson3 > 12 ~ 0,
+                                          TRUE~0)
+             )
+             )
+       
+          temp<-temp %>% 
+             mutate(sprPerson4=(case_when(agePerson4 %in% c(0)~ftdailyrate.infant,
+                                          agePerson4 %in% c(1:2)~ftdailyrate.toddler,
+                                          agePerson4 %in% c(3:5)~ftdailyrate.preschool,  
+                                          agePerson4 %in% c(6:12)~ftdailyrate.schoolage,
+                                          agePerson4 > 12 ~ 0,
+                                          TRUE~0)
+             )
+             )
+       
+           temp<-temp %>% 
+             mutate(sprPerson5=(case_when(agePerson5 %in% c(0)~ftdailyrate.infant,
+                                          agePerson5 %in% c(1:2)~ftdailyrate.toddler,
+                                          agePerson5 %in% c(3:5)~ftdailyrate.preschool,  
+                                          agePerson5 %in% c(6:12)~ftdailyrate.schoolage,
+                                          agePerson5 > 12 ~ 0,
+                                          TRUE~0)
+             )
+             )
+       
+          temp<-temp %>% 
+             mutate(sprPerson6=(case_when(agePerson6 %in% c(0)~ftdailyrate.infant,
+                                          agePerson6 %in% c(1:2)~ftdailyrate.toddler,
+                                          agePerson6 %in% c(3:5)~ftdailyrate.preschool,  
+                                          agePerson6 %in% c(6:12)~ftdailyrate.schoolage,
+                                          agePerson6 > 12 ~ 0,
+                                          TRUE~0)
+             )
+             )
+       
+           temp<-temp %>% 
+             mutate(sprPerson7=(case_when(agePerson7 %in% c(0)~ftdailyrate.infant,
+                                          agePerson7 %in% c(1:2)~ftdailyrate.toddler,
+                                          agePerson7 %in% c(3:5)~ftdailyrate.preschool,  
+                                          agePerson7 %in% c(6:12)~ftdailyrate.schoolage,
+                                          agePerson7 > 12 ~ 0,
+                                          TRUE~0)
+             )
+             )
+       
+           temp<-temp %>% 
+             mutate(sprPerson8=(case_when(agePerson8 %in% c(0)~ftdailyrate.infant,
+                                          agePerson8 %in% c(1:2)~ftdailyrate.toddler,
+                                          agePerson8 %in% c(3:5)~ftdailyrate.preschool,  
+                                          agePerson8 %in% c(6:12)~ftdailyrate.schoolage,
+                                          TRUE~0)
+             )
+             )
+       
+           temp<-temp %>% 
+             mutate(sprPerson9=(case_when(agePerson9 %in% c(0)~ftdailyrate.infant,
+                                          agePerson9 %in% c(1:2)~ftdailyrate.toddler,
+                                          agePerson9 %in% c(3:5)~ftdailyrate.preschool,  
+                                          agePerson9 %in% c(6:12)~ftdailyrate.schoolage,
+                                          TRUE~0)
+             )
+             )
+       
+         temp<-temp %>% 
+           mutate(sprPerson10=(case_when(agePerson10 %in% c(0)~ftdailyrate.infant,
+                                         agePerson10 %in% c(1:2)~ftdailyrate.toddler,
+                                         agePerson10 %in% c(3:5)~ftdailyrate.preschool,  
+                                         agePerson10 %in% c(6:12)~ftdailyrate.schoolage,
+                                         TRUE~0)
+           )
+           )
+       
+        temp<-temp %>% 
+           mutate(sprPerson11=(case_when(agePerson11 %in% c(0)~ftdailyrate.infant,
+                                         agePerson11 %in% c(1:2)~ftdailyrate.toddler,
+                                         agePerson11 %in% c(3:5)~ftdailyrate.preschool,  
+                                         agePerson11 %in% c(6:12)~ftdailyrate.schoolage,
+                                         TRUE~0)
+           )
+           )
+       
+         temp<-temp %>% 
+           mutate(sprPerson12=(case_when(agePerson12 %in% c(0)~ftdailyrate.infant,
+                                         agePerson12 %in% c(1:2)~ftdailyrate.toddler,
+                                         agePerson12 %in% c(3:5)~ftdailyrate.preschool,  
+                                         agePerson12 %in% c(6:12)~ftdailyrate.schoolage,
+                                         TRUE~0)
+           )
+           )
+         
+         temp<-temp %>%
+           mutate(sprTotal=sprPerson1+sprPerson2+sprPerson3+sprPerson4+sprPerson5+sprPerson6+sprPerson7+sprPerson8+sprPerson9+sprPerson10+sprPerson11+sprPerson12)
+        
+          temp<-temp %>% 
+             mutate(annualcost1=(case_when(agePerson1 < 5 ~ sprPerson1*daysofcareneeded0to4,
+                                           agePerson1 > 4 & agePerson1 < 13 ~ sprPerson1*daysofcareneeded5to12,
+                                           agePerson1 > 12 ~ 0,
+                                           TRUE~0)
+             )
+             )
+       
+           temp<-temp %>% 
+             mutate(annualcost2=(case_when(agePerson2 < 5 ~ sprPerson2*daysofcareneeded0to4,
+                                          agePerson2 > 4 & agePerson2 < 13 ~ sprPerson2*daysofcareneeded5to12,
+                                           agePerson2 > 12 ~ 0,
+                                           TRUE~0)
+            )
+           )
+       
+         temp<-temp %>% 
+           mutate(annualcost3=(case_when(agePerson3 < 5 ~ sprPerson3*daysofcareneeded0to4,
+                                         agePerson3 > 4 & agePerson3 < 13 ~ sprPerson3*daysofcareneeded5to12,
+                                        agePerson3 > 12 ~ 0,
+                                         TRUE~0)
+           )
+           )
+       
+         temp<-temp %>% 
+           mutate(annualcost4=(case_when(agePerson4 < 5 ~ sprPerson4*daysofcareneeded0to4,
+                                         agePerson4 > 4 & agePerson4 < 13 ~ sprPerson4*daysofcareneeded5to12,
+                                         agePerson4 > 12 ~ 0,
+                                         TRUE~0)
+           )
+           )
+       
+         temp<-temp %>% 
+           mutate(annualcost5=(case_when(agePerson5 < 5 ~ sprPerson5*daysofcareneeded0to4,
+                                         agePerson5 > 4 & agePerson5 < 13 ~ sprPerson5*daysofcareneeded5to12,
+                                         agePerson5 > 12 ~ 0,
+                                         TRUE~0)
+           )
+           )
+       
+        temp<-temp %>% 
+           mutate(annualcost6=(case_when(agePerson6 < 5 ~ sprPerson6*daysofcareneeded0to4,
+                                         agePerson6 > 4 & agePerson6 < 13 ~ sprPerson6*daysofcareneeded5to12,
+                                       agePerson6 > 12 ~ 0,
+                                         TRUE~0)
+           )
+           )
+       
+         temp<-temp %>% 
+           mutate(annualcost7=(case_when(agePerson7 < 5 ~ sprPerson7*daysofcareneeded0to4,
+                                         agePerson7 > 4 & agePerson7 < 13 ~ sprPerson7*daysofcareneeded5to12,
+                                         agePerson7 > 12 ~ 0,
+                                         TRUE~0)
+           )
+           )
+       
+           temp<-temp %>% 
+             mutate(annualcost8=(case_when(agePerson8 < 5 ~ sprPerson8*daysofcareneeded0to4,
+                                           agePerson8 > 4 & agePerson8 < 13 ~ sprPerson8*daysofcareneeded5to12,
+                                           TRUE~0)
+             )
+             )
+       
+          temp<-temp %>% 
+             mutate(annualcost9=(case_when(agePerson9 < 5 ~ sprPerson9*daysofcareneeded0to4,
+                                          agePerson9 > 4 & agePerson9 < 13 ~ sprPerson9*daysofcareneeded5to12,
+                                         TRUE~0)
+          )
+         )
+       
+         temp<-temp %>% 
+           mutate(annualcost10=(case_when(agePerson10 < 5 ~ sprPerson10*daysofcareneeded0to4,
+                                         agePerson10 > 4 & agePerson10 < 13 ~ sprPerson10*daysofcareneeded5to12,
+                                        TRUE~0)
+         )
+         )
+       
+       temp<-temp %>% 
+               mutate(annualcost11=(case_when(agePerson11 < 5 ~ sprPerson11*daysofcareneeded0to4,
+                                              agePerson11 > 4 & agePerson11 < 13 ~ sprPerson11*daysofcareneeded5to12,
+                                              TRUE~0)
+              )
+               )
+       
+            temp<-temp %>% 
+               mutate(annualcost12=(case_when(agePerson12 < 5 ~ sprPerson12*daysofcareneeded0to4,
+                                              agePerson12 > 4 & agePerson12 < 13 ~ sprPerson12*daysofcareneeded5to12,
+                                              TRUE~0)
+               )
+               )
+       
+            temp$annualCost<-temp$annualcost1+temp$annualcost2+temp$annualcost3+temp$annualcost4+temp$annualcost5+temp$annualcost6+temp$annualcost7+temp$annualcost8+temp$annualcost9+temp$annualcost10+temp$annualcost11+temp$annualcost12
+    # }
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
@@ -11172,7 +11439,7 @@ function.CCDFcopay<-function(data
       temp$FTcopay[temp$income>temp$Bin7Max & temp$income<=temp$Bin8Max]<-temp$ShareofCost8[temp$income>temp$Bin7Max & temp$income<=temp$Bin8Max]
       temp$FTcopay[temp$income>temp$Bin8Max & temp$income<=temp$Bin9Max]<-temp$ShareofCost9[temp$income>temp$Bin8Max & temp$income<=temp$Bin9Max]
       
-       temp$FTcopay[temp$income>temp$Bin9Max & temp$income<=temp$Bin10Max]<-temp$ShareofCost10[temp$income>temp$Bin9Max & temp$income<=temp$Bin10Max]
+        temp$FTcopay[temp$income>temp$Bin9Max & temp$income<=temp$Bin10Max]<-temp$ShareofCost10[temp$income>temp$Bin9Max & temp$income<=temp$Bin10Max]
         temp$FTcopay[temp$income>temp$Bin10Max & temp$income<=temp$Bin11Max]<-temp$ShareofCost11[temp$income>temp$Bin10Max & temp$income<=temp$Bin11Max]
         temp$FTcopay[temp$income>temp$Bin11Max & temp$income<=temp$Bin12Max]<-temp$ShareofCost12[temp$income>temp$Bin11Max & temp$income<=temp$Bin12Max]
         temp$FTcopay[temp$income>temp$Bin12Max & temp$income<=temp$Bin13Max]<-temp$ShareofCost13[temp$income>temp$Bin12Max & temp$income<=temp$Bin13Max]
@@ -11193,7 +11460,7 @@ function.CCDFcopay<-function(data
       temp$totcopay[subset]<-NA_real_
       
      
-      # temp$totcopay[temp$ruleYear!=2022] <- temp$annualCost[temp$ruleYear!=2022]*(1-temp$FTcopay[temp$ruleYear!=2022])
+          
       # 
       # temp$totcopay[temp$ruleYear!=2022]<-rowMins(cbind(temp$annualCost[temp$ruleYear!=2022]*(1-temp$FTcopay[temp$ruleYear!=2022]),temp$netexp.childcare[temp$ruleYear!=2022]))
       
@@ -11201,13 +11468,12 @@ function.CCDFcopay<-function(data
       #----------------------------------
       # Step 2: Calculate total copays
       #----------------------------------
-      #temp$totcopay <- temp$FTcopay*52
+        
+      temp$totcopay[temp$ruleYear<=2022] <- temp$annualCost[temp$ruleYear<=2022]*(1-temp$FTcopay[temp$ruleYear<=2022])
       
-      # temp$totcopay[temp$ruleYear==2022]<-rowMins(cbind(temp$FTcopay[temp$ruleYear==2022]*52,temp$netexp.childcare[temp$ruleYear==2022]))
+      temp$totcopay[temp$ruleYear>=2023] <- temp$FTcopay[temp$ruleYear>=2023]*52
       
-      
-      # ER 2/7/23: Commented out Condition for ruleYear<2022. Wasn't working for 'all' locations.
-      temp$totcopay<-rowMins(cbind(temp$FTcopay*52,temp$netexp.childcare))
+      temp$totcopay<-rowMins(cbind(temp$totcopay,temp$netexp.childcare))
       
     
       
@@ -11297,7 +11563,12 @@ function.CCDFcopay<-function(data
       #----------------------------------
       
       # Can't pay more than the total remaining expenses
-      temp$totcopay<-rowMins(cbind(temp$income*temp$FTcopay,temp$netexp.childcare))
+      
+      temp$totcopay[temp$ruleYear<2023]<-temp$income[temp$ruleYear<2023]*temp$FTcopay[temp$ruleYear<2023]
+      
+      temp$totcopay[temp$ruleYear>=2023]<-temp$income[temp$ruleYear>=2023]*12
+      
+      temp$totcopay<-rowMins(cbind(temp$totcopay,temp$netexp.childcare))
       
       # Set copay to zero if no children
       temp$totcopay[temp$numkidsincare0to4+temp$numkidsincare5to12==0]<-0
@@ -12083,8 +12354,6 @@ function.CCDFcopay<-function(data
       
       temp<-data[data$stateFIPS==56,]
       
-      temp$numkidsInCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
-      
       # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
       years<-unique(data$ruleYear) # years in data set
       yearsinexpdata<- unique(ccdfData_WY$ruleYear) # rule years in benefit data
@@ -12095,18 +12364,18 @@ function.CCDFcopay<-function(data
       futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
       if(length(futureYrs)>0){
         # Create data frame with future years
-        expand<-expand.grid(stateFIPS=unique(ccdfData_WY$stateFIPS), AKorHI=unique(ccdfData_WY$AKorHI), famsize=unique(ccdfData_WY$famsize), numkidsInCare=unique(ccdfData_WY$numkidsInCare), Year=futureYrs)
+        expand<-expand.grid(stateFIPS=unique(ccdfData_WY$stateFIPS), AKorHI=unique(ccdfData_WY$AKorHI), famsize=unique(ccdfData_WY$famsize), Year=futureYrs)
         # Collect latest benefit data there is and merge w/data frame
         expand2<-ccdfData_WY[ccdfData_WY$ruleYear==maxyearofdata, ]
-        expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+        expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
       }
       # Create data for past and gap years (missing data) - not the future
       nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
       if(length(nonFutureYrs)>0){
         #Create data frame with past years and year for which we are missing benefit data
-        expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_WY$stateFIPS), AKorHI=unique(ccdfData_WY$AKorHI), famsize=unique(ccdfData_WY$famsize), numkidsInCare=unique(ccdfData_WY$numkidsInCare), Year=nonFutureYrs)
+        expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_WY$stateFIPS), AKorHI=unique(ccdfData_WY$AKorHI), famsize=unique(ccdfData_WY$famsize), Year=nonFutureYrs)
         # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-        expandPastMiss2<-left_join(expandPastMiss, ccdfData_WY, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare"))
+        expandPastMiss2<-left_join(expandPastMiss, ccdfData_WY, by=c("stateFIPS", "AKorHI", "famsize"))
         expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
         expandPastMiss2<-expandPastMiss2%>%
           group_by(Year)%>%
@@ -12120,7 +12389,7 @@ function.CCDFcopay<-function(data
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
-      temp<-left_join(temp, ccdfData_WY, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize", "numkidsInCare"))
+      temp<-left_join(temp, ccdfData_WY, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize"))
       
       
       # Adjust for the income disregard
@@ -12150,8 +12419,7 @@ function.CCDFcopay<-function(data
       temp$totcopay<-temp$FTcopay*(temp$daysofcareneeded0to4+temp$daysofcareneeded5to12)
       
       # Set copay to zero if no children
-      temp$totcopay[temp$numkidsincare0to4+temp$numkidsincare5to12==0]<-0
-      
+       
       temp$totcopay[is.na(temp$FTcopay)]<-NA
       # Note: code produces NAs for a good reason, because family is ineligible for CCDF
       # Copay is NOT zero for ineligible, but there are people who pay 0 copay
@@ -12669,7 +12937,7 @@ function.headstart<-function(data
   }
     
 
-#Pre K program -----
+# Pre K program -----
 
 function.prek<-function(data
                         , agePersonvar
@@ -12679,14 +12947,30 @@ function.prek<-function(data
                         , preK_ftorpt = "PT"
                         , schoolagesummercare="PT"
                         , contelig.headstart = TRUE
-                        , contelig.earlyheadstart = TRUE)
-{
+                        , contelig.earlyheadstart = TRUE){
+  
   
   data<-data %>% 
     rename("agePerson" = agePersonvar
            ,"value.headstart"=headstartPersonvar
-           ,"childcare.exp.person"=childcare.expvar
-    )
+           ,"childcare.exp.person"=childcare.expvar)
+  
+  # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+  years<-unique(data$ruleYear) # years in data set
+  yearsinexpdata<- unique(schoolmealData$ruleYear) # rule years in benefit data
+  yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+  yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+  # Create data for the future
+  maxyearofdata<-max(schoolmealData$ruleYear) # collect latest year of benefit data
+  futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+  if(length(futureYrs)>0){
+    # Create data frame with future years
+    expand<-expand.grid(AKorHI=unique(schoolmealData$AKorHI), famsize=unique(schoolmealData$famsize), Year=futureYrs)
+    # Collect latest benefit data there is and merge w/data frame
+    expand2<-schoolmealData[schoolmealData$ruleYear==maxyearofdata, ]
+    expand<-expand%>%left_join(expand2, by=c("AKorHI","famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+  }# Attach copied future, historical, and missing benefit data
+  if(length(futureYrs)>0) {schoolmealData<-schoolmealData %>% rbind(expand)}
   
   # We have historical rules for school meals
   data<-data %>% 
@@ -12791,6 +13075,24 @@ function.medicaid<-function(data
     data$ageofperson[data$ageofperson==2 & data$stateFIPS==27]<-0
     data$ageofperson[data$ageofperson==1 & data$stateFIPS==27]<-0
     
+    # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+    years<-unique(data$ruleYear) # years in data set
+    yearsinexpdata<- unique(medicaidData$ruleYear) # rule years in benefit data
+    yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+    yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+    # Create data for the future
+    maxyearofdata<-max(medicaidData$ruleYear) # collect latest year of benefit data
+    futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+    if(length(futureYrs)>0){
+      # Create data frame with future years
+      expand<-expand.grid(stateFIPS=unique(medicaidData$stateFIPS), famsize=unique(medicaidData$famsize), Year=futureYrs)
+      # Collect latest benefit data there is and merge w/data frame
+      expand2<-medicaidData[medicaidData$ruleYear==maxyearofdata, ]
+      expand<-expand%>%left_join(expand2, by=c("stateFIPS","famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+    }# Attach copied future, historical, and missing benefit data
+    if(length(futureYrs)>0) {medicaidData<-medicaidData %>% rbind(expand)}
+    
+    
     # We have historical rules
     data<-data %>% 
       left_join(medicaidData, by=c("ruleYear", "famsize", "stateFIPS")) %>% 
@@ -12842,7 +13144,7 @@ function.medicaid<-function(data
   
   
 
-#  Affordable Care Act ACA ----
+# Affordable Care Act ACA ----
 
 function.aca<-function(data){
   
@@ -12922,7 +13224,7 @@ function.aca<-function(data){
   }
   
 
-# Medicare - IN PROGRESS
+# Medicare - IN PROGRESS ----
 function.medicare<-function(data){
   
   # for testing - already done in Benefitscalcuator_functions file
@@ -13045,6 +13347,23 @@ function.medicare<-function(data){
 
 function.schoolmeals<-function(data){
   
+  # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+  years<-unique(data$ruleYear) # years in data set
+  yearsinexpdata<- unique(schoolmealData$ruleYear) # rule years in benefit data
+  yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+  yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+  # Create data for the future
+  maxyearofdata<-max(schoolmealData$ruleYear) # collect latest year of benefit data
+  futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+  if(length(futureYrs)>0){
+    # Create data frame with future years
+    expand<-expand.grid(AKorHI=unique(schoolmealData$AKorHI), famsize=unique(schoolmealData$famsize), Year=futureYrs)
+    # Collect latest benefit data there is and merge w/data frame
+    expand2<-schoolmealData[schoolmealData$ruleYear==maxyearofdata, ]
+    expand<-expand%>%left_join(expand2, by=c("AKorHI","famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+  }# Attach copied future, historical, and missing benefit data
+  if(length(futureYrs)>0) {schoolmealData<-schoolmealData %>% rbind(expand)}
+  
     data<-left_join(data, schoolmealData, by=c("ruleYear", "famsize", "AKorHI"))
 
     data$value.schoolmeals<-0
@@ -13143,6 +13462,23 @@ function.fedinctax<-function(data
     
     data$income.base<-data$income.base+data$income.investment # For now, tax investment income at a income tax rate
     
+    # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+    years<-unique(data$ruleYear) # years in data set
+    yearsinexpdata<- unique(fedinctaxData$ruleYear) # rule years in benefit data
+    yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+    yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+    # Create data for the future
+    maxyearofdata<-max(fedinctaxData$ruleYear) # collect latest year of benefit data
+    futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+    if(length(futureYrs)>0){
+      # Create data frame with future years
+      expand<-expand.grid(FilingStatus=unique(fedinctaxData$FilingStatus), Year=futureYrs)
+      # Collect latest benefit data there is and merge w/data frame
+      expand2<-fedinctaxData[fedinctaxData$ruleYear==maxyearofdata, ]
+      expand<-expand%>%left_join(expand2, by=c("FilingStatus")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+    }# Attach copied future, historical, and missing benefit data
+    if(length(futureYrs)>0) {fedinctaxData<-fedinctaxData %>% rbind(expand)}
+    
     data<-left_join(data, fedinctaxData, by=c("ruleYear", "FilingStatus"))
     
     data$value.fedinctax<-0
@@ -13211,6 +13547,23 @@ function.stateinctax<-function(data
              ,"fedincometax" = fedincometaxvar
              ,"fedtaxcredits" = fedtaxcreditsvar)
     
+    # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+    years<-unique(data$ruleYear) # years in data set
+    yearsinexpdata<- unique(stateinctaxData$ruleYear) # rule years in benefit data
+    yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+    yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+    # Create data for the future
+    maxyearofdata<-max(stateinctaxData$ruleYear) # collect latest year of benefit data
+    futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+    if(length(futureYrs)>0){
+      # Create data frame with future years
+      expand<-expand.grid(stateFIPS=unique(stateinctaxData$stateFIPS), FilingStatus=unique(stateinctaxData$FilingStatus), Year=futureYrs)
+      # Collect latest benefit data there is and merge w/data frame
+      expand2<-stateinctaxData[stateinctaxData$ruleYear==maxyearofdata, ]
+      expand<-expand%>%left_join(expand2, by=c("stateFIPS","FilingStatus")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+    }# Attach copied future, historical, and missing benefit data
+    if(length(futureYrs)>0) {stateinctaxData<-stateinctaxData %>% rbind(expand)}
+    
     data<-left_join(data, stateinctaxData, by=c("ruleYear", "stateFIPS", "FilingStatus"))
     
     # Net Federal Income Tax
@@ -13273,7 +13626,7 @@ function.stateinctax<-function(data
     return(data$value.stateinctax)
   }
   
-# Local income Tax
+# Local income Tax ----
 
 function.localinctax<-function(data
                                , incomevar){
@@ -13339,64 +13692,163 @@ function.fedctc<-function(data
     
     data$value.fedctc<-0
     
-    if(2023 %in% unique(data$ruleYear)){ # make sure that year is in the list
+    if(2024 %in% unique(data$ruleYear)){ # make sure that year is in the list
       
-      temp<-data[data$ruleYear==2023,]
+      temp<-data[data$ruleYear==2024,]
       
-      #----------------------------------
-      # Step 1: Assign copays
-      #----------------------------------
       temp<-left_join(temp, fedctcData, by=c("ruleYear", "FilingStatus"))
       
       # Calculate number of eligible dependents
       temp$numkidsunder17=rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)<=temp$AgeofDependentMax & cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)>=temp$AgeofDependentMin, na.rm=TRUE)
       
-      subset1<-temp$income.base<=temp$IncomeBin1Max # Fully non-refundable
-      temp$value.fedctc[subset1]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset1],temp$value.fedctc.refundable[subset1])),temp$CreditBin1[subset1]))
+      # Case 1: Income below phase-in threshold
+      subset1<-temp$income.base<=temp$IncomeBin1Max
       
-      subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max
-      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),temp$RefundableCredit[subset2]))
-      temp$value.fedctc[subset2]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset2],temp$value.fedctc.refundable[subset2])),temp$CreditBin1[subset2]))
+      temp$value.fedctc.refundable[subset1]<-0
+      temp$value.fedctc.nonrefundable[subset1]<-0
       
-      subset3<-temp$income.base>temp$IncomeBin2Max
-      temp$value.fedctc[subset3]<-rowMaxs(cbind(temp$CreditBin1[subset3]-(temp$income.base[subset3]-temp$IncomeBin2Max[subset3])*temp$PhaseOutSlope1[subset3],0))
+      # Case 2: Income between phase-in and phase-out thresholds, no tax liability
+      subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max & temp$totalfederaltax<=0
       
-      temp$value.fedctc<-temp$value.fedctc*temp$numkidsunder17
+      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),
+                                                           temp$numkidsunder17[subset2]*temp$RefundableCredit[subset2]))
+      temp$value.fedctc.nonrefundable[subset2]<-0
+      
+      # Case 3: Income between phase-in and phase-out thresholds, positive tax liability below max total CTC credit
+      subset3<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max & temp$totalfederaltax>0 & temp$totalfederaltax<(temp$IncomeBin2Max*temp$numkidsunder17)
+      
+      temp$value.fedctc.refundable[subset3]<-rowMins(cbind(rowMins(cbind(temp$PhaseInRefundability[subset3]*(temp$income.base[subset3]-temp$IncomeBin1Max[subset3]),
+                                                                         temp$numkidsunder17[subset3]*temp$RefundableCredit[subset3])),
+                                                           (temp$CreditBin1[subset3]*temp$numkidsunder17[subset3])-temp$totalfederaltax[subset3]))
+      temp$value.fedctc.nonrefundable[subset3]<-temp$totalfederaltax[subset3]
+      
+      # Case 4: Income between phase-in and phase-out thresholds, tax liability above max total CTC credit
+      subset4<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$CreditBin1 & temp$totalfederaltax>=(temp$RefundableCredit*temp$numkidsunder17)
+      
+      temp$value.fedctc.refundable[subset4]<-0
+      temp$value.fedctc.nonrefundable[subset4]<-rowMaxs(cbind(temp$numkidsunder17[subset4]*temp$RefundableCredit[subset4],0))
+      
+      # Case 5: Income above phase-out threshold
+      subset5<-temp$income.base>temp$IncomeBin2Max
+      
+      temp$value.fedctc.refundable[subset5]<-0
+      temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
+      
+      # Add refundable and non-refundable portions of CTC
+      temp$value.fedctc<-rowMaxs(cbind(temp$value.fedctc.refundable+temp$value.fedctc.nonrefundable, 0), na.rm=TRUE)
       
       # Make sure the variables names are the same
-      temp<-temp %>% 
+      temp<-temp %>%
+        select(colnames(data),"value.fedctc")
+      
+      # Merge back
+      data[data$ruleYear==2024,]<-temp
+      
+    
+      }
+    
+    
+    if(2023 %in% unique(data$ruleYear)){ # make sure that year is in the list
+      
+      temp<-data[data$ruleYear==2023,]
+      
+      temp<-left_join(temp, fedctcData, by=c("ruleYear", "FilingStatus"))
+      
+      # Calculate number of eligible dependents
+      temp$numkidsunder17=rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)<=temp$AgeofDependentMax & cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)>=temp$AgeofDependentMin, na.rm=TRUE)
+      
+      # Case 1: Income below phase-in threshold
+      subset1<-temp$income.base<=temp$IncomeBin1Max
+      
+      temp$value.fedctc.refundable[subset1]<-0
+      temp$value.fedctc.nonrefundable[subset1]<-0
+      
+      # Case 2: Income between phase-in and phase-out thresholds, no tax liability
+      subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max & temp$totalfederaltax<=0
+      
+      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),
+                                                           temp$numkidsunder17[subset2]*temp$RefundableCredit[subset2]))
+      temp$value.fedctc.nonrefundable[subset2]<-0
+      
+      # Case 3: Income between phase-in and phase-out thresholds, positive tax liability below max total CTC credit
+      subset3<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max & temp$totalfederaltax>0 & temp$totalfederaltax<(temp$IncomeBin2Max*temp$numkidsunder17)
+      
+      temp$value.fedctc.refundable[subset3]<-rowMins(cbind(rowMins(cbind(temp$PhaseInRefundability[subset3]*(temp$income.base[subset3]-temp$IncomeBin1Max[subset3]),
+                                                                         temp$numkidsunder17[subset3]*temp$RefundableCredit[subset3])),
+                                                           (temp$CreditBin1[subset3]*temp$numkidsunder17[subset3])-temp$totalfederaltax[subset3]))
+      temp$value.fedctc.nonrefundable[subset3]<-temp$totalfederaltax[subset3]
+      
+      # Case 4: Income between phase-in and phase-out thresholds, tax liability above max total CTC credit
+      subset4<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$CreditBin1 & temp$totalfederaltax>=(temp$RefundableCredit*temp$numkidsunder17)
+      
+      temp$value.fedctc.refundable[subset4]<-0
+      temp$value.fedctc.nonrefundable[subset4]<-rowMaxs(cbind(temp$numkidsunder17[subset4]*temp$RefundableCredit[subset4],0))
+      
+      # Case 5: Income above phase-out threshold
+      subset5<-temp$income.base>temp$IncomeBin2Max
+      
+      temp$value.fedctc.refundable[subset5]<-0
+      temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
+      
+      # Add refundable and non-refundable portions of CTC
+      temp$value.fedctc<-rowMaxs(cbind(temp$value.fedctc.refundable+temp$value.fedctc.nonrefundable, 0), na.rm=TRUE)
+      
+      # Make sure the variables names are the same
+      temp<-temp %>%
         select(colnames(data),"value.fedctc")
       
       # Merge back
       data[data$ruleYear==2023,]<-temp
     }
     
+    
     if(2022 %in% unique(data$ruleYear)){ # make sure that year is in the list
       
       temp<-data[data$ruleYear==2022,]
       
-      #----------------------------------
-      # Step 1: Assign copays
-      #----------------------------------
       temp<-left_join(temp, fedctcData, by=c("ruleYear", "FilingStatus"))
       
       # Calculate number of eligible dependents
       temp$numkidsunder17=rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)<=temp$AgeofDependentMax & cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)>=temp$AgeofDependentMin, na.rm=TRUE)
       
-      subset1<-temp$income.base<=temp$IncomeBin1Max # Fully non-refundable
-      temp$value.fedctc[subset1]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset1],temp$value.fedctc.refundable[subset1])),temp$CreditBin1[subset1]))
+      # Case 1: Income below phase-in threshold
+      subset1<-temp$income.base<=temp$IncomeBin1Max
       
-      subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max
-      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),temp$RefundableCredit[subset2]))
-      temp$value.fedctc[subset2]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset2],temp$value.fedctc.refundable[subset2])),temp$CreditBin1[subset2]))
+      temp$value.fedctc.refundable[subset1]<-0
+      temp$value.fedctc.nonrefundable[subset1]<-0
       
-      subset3<-temp$income.base>temp$IncomeBin2Max
-      temp$value.fedctc[subset3]<-rowMaxs(cbind(temp$CreditBin1[subset3]-(temp$income.base[subset3]-temp$IncomeBin2Max[subset3])*temp$PhaseOutSlope1[subset3],0))
+      # Case 2: Income between phase-in and phase-out thresholds, no tax liability
+      subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max & temp$totalfederaltax<=0
       
-      temp$value.fedctc<-temp$value.fedctc*temp$numkidsunder17
+      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),
+                                                           temp$numkidsunder17[subset2]*temp$RefundableCredit[subset2]))
+      temp$value.fedctc.nonrefundable[subset2]<-0
+      
+      # Case 3: Income between phase-in and phase-out thresholds, positive tax liability below max total CTC credit
+      subset3<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max & temp$totalfederaltax>0 & temp$totalfederaltax<(temp$IncomeBin2Max*temp$numkidsunder17)
+      
+      temp$value.fedctc.refundable[subset3]<-rowMins(cbind(rowMins(cbind(temp$PhaseInRefundability[subset3]*(temp$income.base[subset3]-temp$IncomeBin1Max[subset3]),
+                                                                         temp$numkidsunder17[subset3]*temp$RefundableCredit[subset3])),
+                                                           (temp$CreditBin1[subset3]*temp$numkidsunder17[subset3])-temp$totalfederaltax[subset3]))
+      temp$value.fedctc.nonrefundable[subset3]<-temp$totalfederaltax[subset3]
+      
+      # Case 4: Income between phase-in and phase-out thresholds, tax liability above max total CTC credit
+      subset4<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$CreditBin1 & temp$totalfederaltax>=(temp$RefundableCredit*temp$numkidsunder17)
+      
+      temp$value.fedctc.refundable[subset4]<-0
+      temp$value.fedctc.nonrefundable[subset4]<-rowMaxs(cbind(temp$numkidsunder17[subset4]*temp$RefundableCredit[subset4],0))
+      
+      # Case 5: Income above phase-out threshold
+      subset5<-temp$income.base>temp$IncomeBin2Max
+      
+      temp$value.fedctc.refundable[subset5]<-0
+      temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
+      
+      # Add refundable and non-refundable portions of CTC
+      temp$value.fedctc<-rowMaxs(cbind(temp$value.fedctc.refundable+temp$value.fedctc.nonrefundable, 0), na.rm=TRUE)
       
       # Make sure the variables names are the same
-      temp<-temp %>% 
+      temp<-temp %>%
         select(colnames(data),"value.fedctc")
       
       # Merge back
@@ -13416,9 +13868,8 @@ function.fedctc<-function(data
       temp$numkidsunder17=rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)<=temp$AgeofDependentMax & cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)>=temp$AgeofDependentMin, na.rm=TRUE)
       temp$numkidsunder7=rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)<=5 & cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)>=temp$AgeofDependentMin, na.rm=TRUE)
       
-      
       subset1<-temp$income.base<=temp$IncomeBin1Max
-      temp$value.fedctc[subset1]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset1],temp$value.fedctc.refundable[subset1])),temp$CreditBin1[subset1]))
+      temp$value.fedctc[subset1]<-0 
       
       subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max
       temp$value.fedctc[subset2]<-temp$numkidsunder17[subset2]*temp$CreditBin1[subset2]+600*temp$numkidsunder7[subset2]
@@ -13441,28 +13892,49 @@ function.fedctc<-function(data
       
       temp<-data[data$ruleYear==2020,]
       
-      #----------------------------------
-      # Step 1: Assign copays
-      #----------------------------------
       temp<-left_join(temp, fedctcData, by=c("ruleYear", "FilingStatus"))
       
       # Calculate number of eligible dependents
       temp$numkidsunder17=rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)<=temp$AgeofDependentMax & cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)>=temp$AgeofDependentMin, na.rm=TRUE)
       
-      subset1<-temp$income.base<=temp$IncomeBin1Max # Fully non-refundable
-      temp$value.fedctc[subset1]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset1],temp$value.fedctc.refundable[subset1])),temp$CreditBin1[subset1]))
+      # Case 1: Income below phase-in threshold
+      subset1<-temp$income.base<=temp$IncomeBin1Max
       
-      subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max
-      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),temp$RefundableCredit[subset2]))
-      temp$value.fedctc[subset2]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset2],temp$value.fedctc.refundable[subset2])),temp$CreditBin1[subset2]))
+      temp$value.fedctc.refundable[subset1]<-0
+      temp$value.fedctc.nonrefundable[subset1]<-0
       
-      subset3<-temp$income.base>temp$IncomeBin2Max
-      temp$value.fedctc[subset3]<-rowMaxs(cbind(temp$CreditBin1[subset3]-(temp$income.base[subset3]-temp$IncomeBin2Max[subset3])*temp$PhaseOutSlope1[subset3],0))
+      # Case 2: Income between phase-in and phase-out thresholds, no tax liability
+      subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max & temp$totalfederaltax<=0
       
-      temp$value.fedctc<-temp$value.fedctc*temp$numkidsunder17
+      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),
+                                                           temp$numkidsunder17[subset2]*temp$RefundableCredit[subset2]))
+      temp$value.fedctc.nonrefundable[subset2]<-0
+      
+      # Case 3: Income between phase-in and phase-out thresholds, positive tax liability below max total CTC credit
+      subset3<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max & temp$totalfederaltax>0 & temp$totalfederaltax<(temp$IncomeBin2Max*temp$numkidsunder17)
+      
+      temp$value.fedctc.refundable[subset3]<-rowMins(cbind(rowMins(cbind(temp$PhaseInRefundability[subset3]*(temp$income.base[subset3]-temp$IncomeBin1Max[subset3]),
+                                                                         temp$numkidsunder17[subset3]*temp$RefundableCredit[subset3])),
+                                                           (temp$CreditBin1[subset3]*temp$numkidsunder17[subset3])-temp$totalfederaltax[subset3]))
+      temp$value.fedctc.nonrefundable[subset3]<-temp$totalfederaltax[subset3]
+      
+      # Case 4: Income between phase-in and phase-out thresholds, tax liability above max total CTC credit
+      subset4<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$CreditBin1 & temp$totalfederaltax>=(temp$RefundableCredit*temp$numkidsunder17)
+      
+      temp$value.fedctc.refundable[subset4]<-0
+      temp$value.fedctc.nonrefundable[subset4]<-rowMaxs(cbind(temp$numkidsunder17[subset4]*temp$RefundableCredit[subset4],0))
+      
+      # Case 5: Income above phase-out threshold
+      subset5<-temp$income.base>temp$IncomeBin2Max
+      
+      temp$value.fedctc.refundable[subset5]<-0
+      temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
+      
+      # Add refundable and non-refundable portions of CTC
+      temp$value.fedctc<-rowMaxs(cbind(temp$value.fedctc.refundable+temp$value.fedctc.nonrefundable, 0), na.rm=TRUE)
       
       # Make sure the variables names are the same
-      temp<-temp %>% 
+      temp<-temp %>%
         select(colnames(data),"value.fedctc")
       
       # Merge back
@@ -13473,60 +13945,103 @@ function.fedctc<-function(data
       
       temp<-data[data$ruleYear==2019,]
       
-      #----------------------------------
-      # Step 1: Assign copays
-      #----------------------------------
       temp<-left_join(temp, fedctcData, by=c("ruleYear", "FilingStatus"))
       
       # Calculate number of eligible dependents
       temp$numkidsunder17=rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)<=temp$AgeofDependentMax & cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)>=temp$AgeofDependentMin, na.rm=TRUE)
       
-      subset1<-temp$income.base<=temp$IncomeBin1Max # Fully non-refundable
-      temp$value.fedctc[subset1]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset1],temp$value.fedctc.refundable[subset1])),temp$CreditBin1[subset1]))
+      # Case 1: Income below phase-in threshold
+      subset1<-temp$income.base<=temp$IncomeBin1Max
       
-      subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max
-      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),temp$RefundableCredit[subset2]))
-      temp$value.fedctc[subset2]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset2],temp$value.fedctc.refundable[subset2])),temp$CreditBin1[subset2]))
+      temp$value.fedctc.refundable[subset1]<-0
+      temp$value.fedctc.nonrefundable[subset1]<-0
       
-      subset3<-temp$income.base>temp$IncomeBin2Max
-      temp$value.fedctc[subset3]<-rowMaxs(cbind(temp$CreditBin1[subset3]-(temp$income.base[subset3]-temp$IncomeBin2Max[subset3])*temp$PhaseOutSlope1[subset3],0))
+      # Case 2: Income between phase-in and phase-out thresholds, no tax liability
+      subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max & temp$totalfederaltax<=0
       
-      temp$value.fedctc<-temp$value.fedctc*temp$numkidsunder17
+      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),
+                                                           temp$numkidsunder17[subset2]*temp$RefundableCredit[subset2]))
+      temp$value.fedctc.nonrefundable[subset2]<-0
+      
+      # Case 3: Income between phase-in and phase-out thresholds, positive tax liability below max total CTC credit
+      subset3<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max & temp$totalfederaltax>0 & temp$totalfederaltax<(temp$IncomeBin2Max*temp$numkidsunder17)
+      
+      temp$value.fedctc.refundable[subset3]<-rowMins(cbind(rowMins(cbind(temp$PhaseInRefundability[subset3]*(temp$income.base[subset3]-temp$IncomeBin1Max[subset3]),
+                                                                         temp$numkidsunder17[subset3]*temp$RefundableCredit[subset3])),
+                                                           (temp$CreditBin1[subset3]*temp$numkidsunder17[subset3])-temp$totalfederaltax[subset3]))
+      temp$value.fedctc.nonrefundable[subset3]<-temp$totalfederaltax[subset3]
+      
+      # Case 4: Income between phase-in and phase-out thresholds, tax liability above max total CTC credit
+      subset4<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$CreditBin1 & temp$totalfederaltax>=(temp$RefundableCredit*temp$numkidsunder17)
+      
+      temp$value.fedctc.refundable[subset4]<-0
+      temp$value.fedctc.nonrefundable[subset4]<-rowMaxs(cbind(temp$numkidsunder17[subset4]*temp$RefundableCredit[subset4],0))
+      
+      # Case 5: Income above phase-out threshold
+      subset5<-temp$income.base>temp$IncomeBin2Max
+      
+      temp$value.fedctc.refundable[subset5]<-0
+      temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
+      
+      # Add refundable and non-refundable portions of CTC
+      temp$value.fedctc<-temp$value.fedctc.refundable+temp$value.fedctc.nonrefundable
       
       # Make sure the variables names are the same
-      temp<-temp %>% 
+      temp<-temp %>%
         select(colnames(data),"value.fedctc")
       
       # Merge back
       data[data$ruleYear==2019,]<-temp
+      
     }
     
     if(2018 %in% unique(data$ruleYear)){ # make sure that year is in the list
       
       temp<-data[data$ruleYear==2018,]
       
-      #----------------------------------
-      # Step 1: Assign copays
-      #----------------------------------
       temp<-left_join(temp, fedctcData, by=c("ruleYear", "FilingStatus"))
       
       # Calculate number of eligible dependents
       temp$numkidsunder17=rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)<=temp$AgeofDependentMax & cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)>=temp$AgeofDependentMin, na.rm=TRUE)
       
-      subset1<-temp$income.base<=temp$IncomeBin1Max # Fully non-refundable
-      temp$value.fedctc[subset1]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset1],temp$value.fedctc.refundable[subset1])),temp$CreditBin1[subset1]))
+      # Case 1: Income below phase-in threshold
+      subset1<-temp$income.base<=temp$IncomeBin1Max
       
-      subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max
-      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),temp$RefundableCredit[subset2]))
-      temp$value.fedctc[subset2]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset2],temp$value.fedctc.refundable[subset2])),temp$CreditBin1[subset2]))
+      temp$value.fedctc.refundable[subset1]<-0
+      temp$value.fedctc.nonrefundable[subset1]<-0
       
-      subset3<-temp$income.base>temp$IncomeBin2Max
-      temp$value.fedctc[subset3]<-rowMaxs(cbind(temp$CreditBin1[subset3]-(temp$income.base[subset3]-temp$IncomeBin2Max[subset3])*temp$PhaseOutSlope1[subset3],0))
+      # Case 2: Income between phase-in and phase-out thresholds, no tax liability
+      subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max & temp$totalfederaltax<=0
       
-      temp$value.fedctc<-temp$value.fedctc*temp$numkidsunder17
+      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),
+                                                           temp$numkidsunder17[subset2]*temp$RefundableCredit[subset2]))
+      temp$value.fedctc.nonrefundable[subset2]<-0
+      
+      # Case 3: Income between phase-in and phase-out thresholds, positive tax liability below max total CTC credit
+      subset3<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max & temp$totalfederaltax>0 & temp$totalfederaltax<(temp$IncomeBin2Max*temp$numkidsunder17)
+      
+      temp$value.fedctc.refundable[subset3]<-rowMins(cbind(rowMins(cbind(temp$PhaseInRefundability[subset3]*(temp$income.base[subset3]-temp$IncomeBin1Max[subset3]),
+                                                                         temp$numkidsunder17[subset3]*temp$RefundableCredit[subset3])),
+                                                           (temp$CreditBin1[subset3]*temp$numkidsunder17[subset3])-temp$totalfederaltax[subset3]))
+      temp$value.fedctc.nonrefundable[subset3]<-temp$totalfederaltax[subset3]
+      
+      # Case 4: Income between phase-in and phase-out thresholds, tax liability above max total CTC credit
+      subset4<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$CreditBin1 & temp$totalfederaltax>=(temp$RefundableCredit*temp$numkidsunder17)
+      
+      temp$value.fedctc.refundable[subset4]<-0
+      temp$value.fedctc.nonrefundable[subset4]<-rowMaxs(cbind(temp$numkidsunder17[subset4]*temp$RefundableCredit[subset4],0))
+      
+      # Case 5: Income above phase-out threshold
+      subset5<-temp$income.base>temp$IncomeBin2Max
+      
+      temp$value.fedctc.refundable[subset5]<-0
+      temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
+      
+      # Add refundable and non-refundable portions of CTC
+      temp$value.fedctc<-rowMaxs(cbind(temp$value.fedctc.refundable+temp$value.fedctc.nonrefundable, 0), na.rm=TRUE)
       
       # Make sure the variables names are the same
-      temp<-temp %>% 
+      temp<-temp %>%
         select(colnames(data),"value.fedctc")
       
       # Merge back
@@ -13537,28 +14052,49 @@ function.fedctc<-function(data
       
       temp<-data[data$ruleYear==2017,]
       
-      #----------------------------------
-      # Step 1: Assign copays
-      #----------------------------------
       temp<-left_join(temp, fedctcData, by=c("ruleYear", "FilingStatus"))
       
       # Calculate number of eligible dependents
       temp$numkidsunder17=rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)<=temp$AgeofDependentMax & cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)>=temp$AgeofDependentMin, na.rm=TRUE)
       
-      subset1<-temp$income.base<=temp$IncomeBin1Max # Fully non-refundable
-      temp$value.fedctc[subset1]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset1],temp$value.fedctc.refundable[subset1])),temp$CreditBin1[subset1]))
+      # Case 1: Income below phase-in threshold
+      subset1<-temp$income.base<=temp$IncomeBin1Max
       
-      subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max
-      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),temp$RefundableCredit[subset2]))
-      temp$value.fedctc[subset2]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset2],temp$value.fedctc.refundable[subset2])),temp$CreditBin1[subset2]))
+      temp$value.fedctc.refundable[subset1]<-0
+      temp$value.fedctc.nonrefundable[subset1]<-0
       
-      subset3<-temp$income.base>temp$IncomeBin2Max
-      temp$value.fedctc[subset3]<-rowMaxs(cbind(temp$CreditBin1[subset3]-(temp$income.base[subset3]-temp$IncomeBin2Max[subset3])*temp$PhaseOutSlope1[subset3],0))
+      # Case 2: Income between phase-in and phase-out thresholds, no tax liability
+      subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max & temp$totalfederaltax<=0
       
-      temp$value.fedctc<-temp$value.fedctc*temp$numkidsunder17
+      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),
+                                                           temp$numkidsunder17[subset2]*temp$RefundableCredit[subset2]))
+      temp$value.fedctc.nonrefundable[subset2]<-0
+      
+      # Case 3: Income between phase-in and phase-out thresholds, positive tax liability below max total CTC credit
+      subset3<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max & temp$totalfederaltax>0 & temp$totalfederaltax<(temp$IncomeBin2Max*temp$numkidsunder17)
+      
+      temp$value.fedctc.refundable[subset3]<-rowMins(cbind(rowMins(cbind(temp$PhaseInRefundability[subset3]*(temp$income.base[subset3]-temp$IncomeBin1Max[subset3]),
+                                                                         temp$numkidsunder17[subset3]*temp$RefundableCredit[subset3])),
+                                                           (temp$CreditBin1[subset3]*temp$numkidsunder17[subset3])-temp$totalfederaltax[subset3]))
+      temp$value.fedctc.nonrefundable[subset3]<-temp$totalfederaltax[subset3]
+      
+      # Case 4: Income between phase-in and phase-out thresholds, tax liability above max total CTC credit
+      subset4<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$CreditBin1 & temp$totalfederaltax>=(temp$RefundableCredit*temp$numkidsunder17)
+      
+      temp$value.fedctc.refundable[subset4]<-0
+      temp$value.fedctc.nonrefundable[subset4]<-rowMaxs(cbind(temp$numkidsunder17[subset4]*temp$RefundableCredit[subset4],0))
+      
+      # Case 5: Income above phase-out threshold
+      subset5<-temp$income.base>temp$IncomeBin2Max
+      
+      temp$value.fedctc.refundable[subset5]<-0
+      temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
+      
+      # Add refundable and non-refundable portions of CTC
+      temp$value.fedctc<-rowMaxs(cbind(temp$value.fedctc.refundable+temp$value.fedctc.nonrefundable, 0), na.rm=TRUE)
       
       # Make sure the variables names are the same
-      temp<-temp %>% 
+      temp<-temp %>%
         select(colnames(data),"value.fedctc")
       
       # Merge back
@@ -13569,28 +14105,49 @@ function.fedctc<-function(data
       
       temp<-data[data$ruleYear==2016,]
       
-      #----------------------------------
-      # Step 1: Assign copays
-      #----------------------------------
       temp<-left_join(temp, fedctcData, by=c("ruleYear", "FilingStatus"))
       
       # Calculate number of eligible dependents
       temp$numkidsunder17=rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)<=temp$AgeofDependentMax & cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)>=temp$AgeofDependentMin, na.rm=TRUE)
       
-      subset1<-temp$income.base<=temp$IncomeBin1Max # Fully non-refundable
-      temp$value.fedctc[subset1]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset1],temp$value.fedctc.refundable[subset1])),temp$CreditBin1[subset1]))
+      # Case 1: Income below phase-in threshold
+      subset1<-temp$income.base<=temp$IncomeBin1Max
       
-      subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max
-      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),temp$RefundableCredit[subset2]))
-      temp$value.fedctc[subset2]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset2],temp$value.fedctc.refundable[subset2])),temp$CreditBin1[subset2]))
+      temp$value.fedctc.refundable[subset1]<-0
+      temp$value.fedctc.nonrefundable[subset1]<-0
       
-      subset3<-temp$income.base>temp$IncomeBin2Max
-      temp$value.fedctc[subset3]<-rowMaxs(cbind(temp$CreditBin1[subset3]-(temp$income.base[subset3]-temp$IncomeBin2Max[subset3])*temp$PhaseOutSlope1[subset3],0))
+      # Case 2: Income between phase-in and phase-out thresholds, no tax liability
+      subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max & temp$totalfederaltax<=0
       
-      temp$value.fedctc<-temp$value.fedctc*temp$numkidsunder17
+      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),
+                                                           temp$numkidsunder17[subset2]*temp$RefundableCredit[subset2]))
+      temp$value.fedctc.nonrefundable[subset2]<-0
+      
+      # Case 3: Income between phase-in and phase-out thresholds, positive tax liability below max total CTC credit
+      subset3<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max & temp$totalfederaltax>0 & temp$totalfederaltax<(temp$IncomeBin2Max*temp$numkidsunder17)
+      
+      temp$value.fedctc.refundable[subset3]<-rowMins(cbind(rowMins(cbind(temp$PhaseInRefundability[subset3]*(temp$income.base[subset3]-temp$IncomeBin1Max[subset3]),
+                                                                         temp$numkidsunder17[subset3]*temp$RefundableCredit[subset3])),
+                                                           (temp$CreditBin1[subset3]*temp$numkidsunder17[subset3])-temp$totalfederaltax[subset3]))
+      temp$value.fedctc.nonrefundable[subset3]<-temp$totalfederaltax[subset3]
+      
+      # Case 4: Income between phase-in and phase-out thresholds, tax liability above max total CTC credit
+      subset4<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$CreditBin1 & temp$totalfederaltax>=(temp$RefundableCredit*temp$numkidsunder17)
+      
+      temp$value.fedctc.refundable[subset4]<-0
+      temp$value.fedctc.nonrefundable[subset4]<-rowMaxs(cbind(temp$numkidsunder17[subset4]*temp$RefundableCredit[subset4],0))
+      
+      # Case 5: Income above phase-out threshold
+      subset5<-temp$income.base>temp$IncomeBin2Max
+      
+      temp$value.fedctc.refundable[subset5]<-0
+      temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
+      
+      # Add refundable and non-refundable portions of CTC
+      temp$value.fedctc<-rowMaxs(cbind(temp$value.fedctc.refundable+temp$value.fedctc.nonrefundable, 0), na.rm=TRUE)
       
       # Make sure the variables names are the same
-      temp<-temp %>% 
+      temp<-temp %>%
         select(colnames(data),"value.fedctc")
       
       # Merge back
@@ -13601,28 +14158,49 @@ function.fedctc<-function(data
       
       temp<-data[data$ruleYear==2015,]
       
-      #----------------------------------
-      # Step 1: Assign copays
-      #----------------------------------
       temp<-left_join(temp, fedctcData, by=c("ruleYear", "FilingStatus"))
       
       # Calculate number of eligible dependents
       temp$numkidsunder17=rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)<=temp$AgeofDependentMax & cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)>=temp$AgeofDependentMin, na.rm=TRUE)
       
-      subset1<-temp$income.base<=temp$IncomeBin1Max # Fully non-refundable
-      temp$value.fedctc[subset1]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset1],temp$value.fedctc.refundable[subset1])),temp$CreditBin1[subset1]))
+      # Case 1: Income below phase-in threshold
+      subset1<-temp$income.base<=temp$IncomeBin1Max
       
-      subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max
-      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),temp$RefundableCredit[subset2]))
-      temp$value.fedctc[subset2]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset2],temp$value.fedctc.refundable[subset2])),temp$CreditBin1[subset2]))
+      temp$value.fedctc.refundable[subset1]<-0
+      temp$value.fedctc.nonrefundable[subset1]<-0
       
-      subset3<-temp$income.base>temp$IncomeBin2Max
-      temp$value.fedctc[subset3]<-rowMaxs(cbind(temp$CreditBin1[subset3]-(temp$income.base[subset3]-temp$IncomeBin2Max[subset3])*temp$PhaseOutSlope1[subset3],0))
+      # Case 2: Income between phase-in and phase-out thresholds, no tax liability
+      subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max & temp$totalfederaltax<=0
       
-      temp$value.fedctc<-temp$value.fedctc*temp$numkidsunder17
+      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),
+                                                           temp$numkidsunder17[subset2]*temp$RefundableCredit[subset2]))
+      temp$value.fedctc.nonrefundable[subset2]<-0
+      
+      # Case 3: Income between phase-in and phase-out thresholds, positive tax liability below max total CTC credit
+      subset3<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max & temp$totalfederaltax>0 & temp$totalfederaltax<(temp$IncomeBin2Max*temp$numkidsunder17)
+      
+      temp$value.fedctc.refundable[subset3]<-rowMins(cbind(rowMins(cbind(temp$PhaseInRefundability[subset3]*(temp$income.base[subset3]-temp$IncomeBin1Max[subset3]),
+                                                                         temp$numkidsunder17[subset3]*temp$RefundableCredit[subset3])),
+                                                           (temp$CreditBin1[subset3]*temp$numkidsunder17[subset3])-temp$totalfederaltax[subset3]))
+      temp$value.fedctc.nonrefundable[subset3]<-temp$totalfederaltax[subset3]
+      
+      # Case 4: Income between phase-in and phase-out thresholds, tax liability above max total CTC credit
+      subset4<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$CreditBin1 & temp$totalfederaltax>=(temp$RefundableCredit*temp$numkidsunder17)
+      
+      temp$value.fedctc.refundable[subset4]<-0
+      temp$value.fedctc.nonrefundable[subset4]<-rowMaxs(cbind(temp$numkidsunder17[subset4]*temp$RefundableCredit[subset4],0))
+      
+      # Case 5: Income above phase-out threshold
+      subset5<-temp$income.base>temp$IncomeBin2Max
+      
+      temp$value.fedctc.refundable[subset5]<-0
+      temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
+      
+      # Add refundable and non-refundable portions of CTC
+      temp$value.fedctc<-rowMaxs(cbind(temp$value.fedctc.refundable+temp$value.fedctc.nonrefundable, 0), na.rm=TRUE)
       
       # Make sure the variables names are the same
-      temp<-temp %>% 
+      temp<-temp %>%
         select(colnames(data),"value.fedctc")
       
       # Merge back
@@ -13633,28 +14211,49 @@ function.fedctc<-function(data
       
       temp<-data[data$ruleYear==2014,]
       
-      #----------------------------------
-      # Step 1: Assign copays
-      #----------------------------------
       temp<-left_join(temp, fedctcData, by=c("ruleYear", "FilingStatus"))
       
       # Calculate number of eligible dependents
       temp$numkidsunder17=rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)<=temp$AgeofDependentMax & cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)>=temp$AgeofDependentMin, na.rm=TRUE)
       
-      subset1<-temp$income.base<=temp$IncomeBin1Max # Fully non-refundable
-      temp$value.fedctc[subset1]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset1],temp$value.fedctc.refundable[subset1])),temp$CreditBin1[subset1]))
+      # Case 1: Income below phase-in threshold
+      subset1<-temp$income.base<=temp$IncomeBin1Max
       
-      subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max
-      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),temp$RefundableCredit[subset2]))
-      temp$value.fedctc[subset2]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset2],temp$value.fedctc.refundable[subset2])),temp$CreditBin1[subset2]))
+      temp$value.fedctc.refundable[subset1]<-0
+      temp$value.fedctc.nonrefundable[subset1]<-0
       
-      subset3<-temp$income.base>temp$IncomeBin2Max
-      temp$value.fedctc[subset3]<-rowMaxs(cbind(temp$CreditBin1[subset3]-(temp$income.base[subset3]-temp$IncomeBin2Max[subset3])*temp$PhaseOutSlope1[subset3],0))
+      # Case 2: Income between phase-in and phase-out thresholds, no tax liability
+      subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max & temp$totalfederaltax<=0
       
-      temp$value.fedctc<-temp$value.fedctc*temp$numkidsunder17
+      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),
+                                                           temp$numkidsunder17[subset2]*temp$RefundableCredit[subset2]))
+      temp$value.fedctc.nonrefundable[subset2]<-0
+      
+      # Case 3: Income between phase-in and phase-out thresholds, positive tax liability below max total CTC credit
+      subset3<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max & temp$totalfederaltax>0 & temp$totalfederaltax<(temp$IncomeBin2Max*temp$numkidsunder17)
+      
+      temp$value.fedctc.refundable[subset3]<-rowMins(cbind(rowMins(cbind(temp$PhaseInRefundability[subset3]*(temp$income.base[subset3]-temp$IncomeBin1Max[subset3]),
+                                                                         temp$numkidsunder17[subset3]*temp$RefundableCredit[subset3])),
+                                                           (temp$CreditBin1[subset3]*temp$numkidsunder17[subset3])-temp$totalfederaltax[subset3]))
+      temp$value.fedctc.nonrefundable[subset3]<-temp$totalfederaltax[subset3]
+      
+      # Case 4: Income between phase-in and phase-out thresholds, tax liability above max total CTC credit
+      subset4<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$CreditBin1 & temp$totalfederaltax>=(temp$RefundableCredit*temp$numkidsunder17)
+      
+      temp$value.fedctc.refundable[subset4]<-0
+      temp$value.fedctc.nonrefundable[subset4]<-rowMaxs(cbind(temp$numkidsunder17[subset4]*temp$RefundableCredit[subset4],0))
+      
+      # Case 5: Income above phase-out threshold
+      subset5<-temp$income.base>temp$IncomeBin2Max
+      
+      temp$value.fedctc.refundable[subset5]<-0
+      temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
+      
+      # Add refundable and non-refundable portions of CTC
+      temp$value.fedctc<-rowMaxs(cbind(temp$value.fedctc.refundable+temp$value.fedctc.nonrefundable, 0), na.rm=TRUE)
       
       # Make sure the variables names are the same
-      temp<-temp %>% 
+      temp<-temp %>%
         select(colnames(data),"value.fedctc")
       
       # Merge back
@@ -13665,28 +14264,49 @@ function.fedctc<-function(data
       
       temp<-data[data$ruleYear==2013,]
       
-      #----------------------------------
-      # Step 1: Assign copays
-      #----------------------------------
       temp<-left_join(temp, fedctcData, by=c("ruleYear", "FilingStatus"))
       
       # Calculate number of eligible dependents
       temp$numkidsunder17=rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)<=temp$AgeofDependentMax & cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)>=temp$AgeofDependentMin, na.rm=TRUE)
       
-      subset1<-temp$income.base<=temp$IncomeBin1Max # Fully non-refundable
-      temp$value.fedctc[subset1]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset1],temp$value.fedctc.refundable[subset1])),temp$CreditBin1[subset1]))
+      # Case 1: Income below phase-in threshold
+      subset1<-temp$income.base<=temp$IncomeBin1Max
       
-      subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max
-      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),temp$RefundableCredit[subset2]))
-      temp$value.fedctc[subset2]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset2],temp$value.fedctc.refundable[subset2])),temp$CreditBin1[subset2]))
+      temp$value.fedctc.refundable[subset1]<-0
+      temp$value.fedctc.nonrefundable[subset1]<-0
       
-      subset3<-temp$income.base>temp$IncomeBin2Max
-      temp$value.fedctc[subset3]<-rowMaxs(cbind(temp$CreditBin1[subset3]-(temp$income.base[subset3]-temp$IncomeBin2Max[subset3])*temp$PhaseOutSlope1[subset3],0))
+      # Case 2: Income between phase-in and phase-out thresholds, no tax liability
+      subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max & temp$totalfederaltax<=0
       
-      temp$value.fedctc<-temp$value.fedctc*temp$numkidsunder17
+      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),
+                                                           temp$numkidsunder17[subset2]*temp$RefundableCredit[subset2]))
+      temp$value.fedctc.nonrefundable[subset2]<-0
+      
+      # Case 3: Income between phase-in and phase-out thresholds, positive tax liability below max total CTC credit
+      subset3<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max & temp$totalfederaltax>0 & temp$totalfederaltax<(temp$IncomeBin2Max*temp$numkidsunder17)
+      
+      temp$value.fedctc.refundable[subset3]<-rowMins(cbind(rowMins(cbind(temp$PhaseInRefundability[subset3]*(temp$income.base[subset3]-temp$IncomeBin1Max[subset3]),
+                                                                         temp$numkidsunder17[subset3]*temp$RefundableCredit[subset3])),
+                                                           (temp$CreditBin1[subset3]*temp$numkidsunder17[subset3])-temp$totalfederaltax[subset3]))
+      temp$value.fedctc.nonrefundable[subset3]<-temp$totalfederaltax[subset3]
+      
+      # Case 4: Income between phase-in and phase-out thresholds, tax liability above max total CTC credit
+      subset4<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$CreditBin1 & temp$totalfederaltax>=(temp$RefundableCredit*temp$numkidsunder17)
+      
+      temp$value.fedctc.refundable[subset4]<-0
+      temp$value.fedctc.nonrefundable[subset4]<-rowMaxs(cbind(temp$numkidsunder17[subset4]*temp$RefundableCredit[subset4],0))
+      
+      # Case 5: Income above phase-out threshold
+      subset5<-temp$income.base>temp$IncomeBin2Max
+      
+      temp$value.fedctc.refundable[subset5]<-0
+      temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
+      
+      # Add refundable and non-refundable portions of CTC
+      temp$value.fedctc<-rowMaxs(cbind(temp$value.fedctc.refundable+temp$value.fedctc.nonrefundable, 0), na.rm=TRUE)
       
       # Make sure the variables names are the same
-      temp<-temp %>% 
+      temp<-temp %>%
         select(colnames(data),"value.fedctc")
       
       # Merge back
@@ -13697,28 +14317,49 @@ function.fedctc<-function(data
       
       temp<-data[data$ruleYear==2012,]
       
-      #----------------------------------
-      # Step 1: Assign copays
-      #----------------------------------
       temp<-left_join(temp, fedctcData, by=c("ruleYear", "FilingStatus"))
       
       # Calculate number of eligible dependents
       temp$numkidsunder17=rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)<=temp$AgeofDependentMax & cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)>=temp$AgeofDependentMin, na.rm=TRUE)
       
-      subset1<-temp$income.base<=temp$IncomeBin1Max # Fully non-refundable
-      temp$value.fedctc[subset1]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset1],temp$value.fedctc.refundable[subset1])),temp$CreditBin1[subset1]))
+      # Case 1: Income below phase-in threshold
+      subset1<-temp$income.base<=temp$IncomeBin1Max
       
-      subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max
-      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),temp$RefundableCredit[subset2]))
-      temp$value.fedctc[subset2]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset2],temp$value.fedctc.refundable[subset2])),temp$CreditBin1[subset2]))
+      temp$value.fedctc.refundable[subset1]<-0
+      temp$value.fedctc.nonrefundable[subset1]<-0
       
-      subset3<-temp$income.base>temp$IncomeBin2Max
-      temp$value.fedctc[subset3]<-rowMaxs(cbind(temp$CreditBin1[subset3]-(temp$income.base[subset3]-temp$IncomeBin2Max[subset3])*temp$PhaseOutSlope1[subset3],0))
+      # Case 2: Income between phase-in and phase-out thresholds, no tax liability
+      subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max & temp$totalfederaltax<=0
       
-      temp$value.fedctc<-temp$value.fedctc*temp$numkidsunder17
+      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),
+                                                           temp$numkidsunder17[subset2]*temp$RefundableCredit[subset2]))
+      temp$value.fedctc.nonrefundable[subset2]<-0
+      
+      # Case 3: Income between phase-in and phase-out thresholds, positive tax liability below max total CTC credit
+      subset3<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max & temp$totalfederaltax>0 & temp$totalfederaltax<(temp$IncomeBin2Max*temp$numkidsunder17)
+      
+      temp$value.fedctc.refundable[subset3]<-rowMins(cbind(rowMins(cbind(temp$PhaseInRefundability[subset3]*(temp$income.base[subset3]-temp$IncomeBin1Max[subset3]),
+                                                                         temp$numkidsunder17[subset3]*temp$RefundableCredit[subset3])),
+                                                           (temp$CreditBin1[subset3]*temp$numkidsunder17[subset3])-temp$totalfederaltax[subset3]))
+      temp$value.fedctc.nonrefundable[subset3]<-temp$totalfederaltax[subset3]
+      
+      # Case 4: Income between phase-in and phase-out thresholds, tax liability above max total CTC credit
+      subset4<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$CreditBin1 & temp$totalfederaltax>=(temp$RefundableCredit*temp$numkidsunder17)
+      
+      temp$value.fedctc.refundable[subset4]<-0
+      temp$value.fedctc.nonrefundable[subset4]<-rowMaxs(cbind(temp$numkidsunder17[subset4]*temp$RefundableCredit[subset4],0))
+      
+      # Case 5: Income above phase-out threshold
+      subset5<-temp$income.base>temp$IncomeBin2Max
+      
+      temp$value.fedctc.refundable[subset5]<-0
+      temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
+      
+      # Add refundable and non-refundable portions of CTC
+      temp$value.fedctc<-rowMaxs(cbind(temp$value.fedctc.refundable+temp$value.fedctc.nonrefundable, 0), na.rm=TRUE)
       
       # Make sure the variables names are the same
-      temp<-temp %>% 
+      temp<-temp %>%
         select(colnames(data),"value.fedctc")
       
       # Merge back
@@ -13729,28 +14370,49 @@ function.fedctc<-function(data
       
       temp<-data[data$ruleYear==2011,]
       
-      #----------------------------------
-      # Step 1: Assign copays
-      #----------------------------------
       temp<-left_join(temp, fedctcData, by=c("ruleYear", "FilingStatus"))
       
       # Calculate number of eligible dependents
       temp$numkidsunder17=rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)<=temp$AgeofDependentMax & cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)>=temp$AgeofDependentMin, na.rm=TRUE)
       
-      subset1<-temp$income.base<=temp$IncomeBin1Max # Fully non-refundable
-      temp$value.fedctc[subset1]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset1],temp$value.fedctc.refundable[subset1])),temp$CreditBin1[subset1]))
+      # Case 1: Income below phase-in threshold
+      subset1<-temp$income.base<=temp$IncomeBin1Max
       
-      subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max
-      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),temp$RefundableCredit[subset2]))
-      temp$value.fedctc[subset2]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset2],temp$value.fedctc.refundable[subset2])),temp$CreditBin1[subset2]))
+      temp$value.fedctc.refundable[subset1]<-0
+      temp$value.fedctc.nonrefundable[subset1]<-0
       
-      subset3<-temp$income.base>temp$IncomeBin2Max
-      temp$value.fedctc[subset3]<-rowMaxs(cbind(temp$CreditBin1[subset3]-(temp$income.base[subset3]-temp$IncomeBin2Max[subset3])*temp$PhaseOutSlope1[subset3],0))
+      # Case 2: Income between phase-in and phase-out thresholds, no tax liability
+      subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max & temp$totalfederaltax<=0
       
-      temp$value.fedctc<-temp$value.fedctc*temp$numkidsunder17
+      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),
+                                                           temp$numkidsunder17[subset2]*temp$RefundableCredit[subset2]))
+      temp$value.fedctc.nonrefundable[subset2]<-0
+      
+      # Case 3: Income between phase-in and phase-out thresholds, positive tax liability below max total CTC credit
+      subset3<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max & temp$totalfederaltax>0 & temp$totalfederaltax<(temp$IncomeBin2Max*temp$numkidsunder17)
+      
+      temp$value.fedctc.refundable[subset3]<-rowMins(cbind(rowMins(cbind(temp$PhaseInRefundability[subset3]*(temp$income.base[subset3]-temp$IncomeBin1Max[subset3]),
+                                                                         temp$numkidsunder17[subset3]*temp$RefundableCredit[subset3])),
+                                                           (temp$CreditBin1[subset3]*temp$numkidsunder17[subset3])-temp$totalfederaltax[subset3]))
+      temp$value.fedctc.nonrefundable[subset3]<-temp$totalfederaltax[subset3]
+      
+      # Case 4: Income between phase-in and phase-out thresholds, tax liability above max total CTC credit
+      subset4<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$CreditBin1 & temp$totalfederaltax>=(temp$RefundableCredit*temp$numkidsunder17)
+      
+      temp$value.fedctc.refundable[subset4]<-0
+      temp$value.fedctc.nonrefundable[subset4]<-rowMaxs(cbind(temp$numkidsunder17[subset4]*temp$RefundableCredit[subset4],0))
+      
+      # Case 5: Income above phase-out threshold
+      subset5<-temp$income.base>temp$IncomeBin2Max
+      
+      temp$value.fedctc.refundable[subset5]<-0
+      temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
+      
+      # Add refundable and non-refundable portions of CTC
+      temp$value.fedctc<-rowMaxs(cbind(temp$value.fedctc.refundable+temp$value.fedctc.nonrefundable, 0), na.rm=TRUE)
       
       # Make sure the variables names are the same
-      temp<-temp %>% 
+      temp<-temp %>%
         select(colnames(data),"value.fedctc")
       
       # Merge back
@@ -13761,28 +14423,49 @@ function.fedctc<-function(data
       
       temp<-data[data$ruleYear==2010,]
       
-      #----------------------------------
-      # Step 1: Assign copays
-      #----------------------------------
       temp<-left_join(temp, fedctcData, by=c("ruleYear", "FilingStatus"))
       
       # Calculate number of eligible dependents
       temp$numkidsunder17=rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)<=temp$AgeofDependentMax & cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)>=temp$AgeofDependentMin, na.rm=TRUE)
       
-      subset1<-temp$income.base<=temp$IncomeBin1Max # Fully non-refundable
-      temp$value.fedctc[subset1]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset1],temp$value.fedctc.refundable[subset1])),temp$CreditBin1[subset1]))
+      # Case 1: Income below phase-in threshold
+      subset1<-temp$income.base<=temp$IncomeBin1Max
       
-      subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max
-      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),temp$RefundableCredit[subset2]))
-      temp$value.fedctc[subset2]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset2],temp$value.fedctc.refundable[subset2])),temp$CreditBin1[subset2]))
+      temp$value.fedctc.refundable[subset1]<-0
+      temp$value.fedctc.nonrefundable[subset1]<-0
       
-      subset3<-temp$income.base>temp$IncomeBin2Max
-      temp$value.fedctc[subset3]<-rowMaxs(cbind(temp$CreditBin1[subset3]-(temp$income.base[subset3]-temp$IncomeBin2Max[subset3])*temp$PhaseOutSlope1[subset3],0))
+      # Case 2: Income between phase-in and phase-out thresholds, no tax liability
+      subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max & temp$totalfederaltax<=0
       
-      temp$value.fedctc<-temp$value.fedctc*temp$numkidsunder17
+      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),
+                                                           temp$numkidsunder17[subset2]*temp$RefundableCredit[subset2]))
+      temp$value.fedctc.nonrefundable[subset2]<-0
+      
+      # Case 3: Income between phase-in and phase-out thresholds, positive tax liability below max total CTC credit
+      subset3<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max & temp$totalfederaltax>0 & temp$totalfederaltax<(temp$IncomeBin2Max*temp$numkidsunder17)
+      
+      temp$value.fedctc.refundable[subset3]<-rowMins(cbind(rowMins(cbind(temp$PhaseInRefundability[subset3]*(temp$income.base[subset3]-temp$IncomeBin1Max[subset3]),
+                                                                         temp$numkidsunder17[subset3]*temp$RefundableCredit[subset3])),
+                                                           (temp$CreditBin1[subset3]*temp$numkidsunder17[subset3])-temp$totalfederaltax[subset3]))
+      temp$value.fedctc.nonrefundable[subset3]<-temp$totalfederaltax[subset3]
+      
+      # Case 4: Income between phase-in and phase-out thresholds, tax liability above max total CTC credit
+      subset4<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$CreditBin1 & temp$totalfederaltax>=(temp$RefundableCredit*temp$numkidsunder17)
+      
+      temp$value.fedctc.refundable[subset4]<-0
+      temp$value.fedctc.nonrefundable[subset4]<-rowMaxs(cbind(temp$numkidsunder17[subset4]*temp$RefundableCredit[subset4],0))
+      
+      # Case 5: Income above phase-out threshold
+      subset5<-temp$income.base>temp$IncomeBin2Max
+      
+      temp$value.fedctc.refundable[subset5]<-0
+      temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
+      
+      # Add refundable and non-refundable portions of CTC
+      temp$value.fedctc<-rowMaxs(cbind(temp$value.fedctc.refundable+temp$value.fedctc.nonrefundable, 0), na.rm=TRUE)
       
       # Make sure the variables names are the same
-      temp<-temp %>% 
+      temp<-temp %>%
         select(colnames(data),"value.fedctc")
       
       # Merge back
@@ -13793,28 +14476,49 @@ function.fedctc<-function(data
       
       temp<-data[data$ruleYear==2009,]
       
-      #----------------------------------
-      # Step 1: Assign copays
-      #----------------------------------
       temp<-left_join(temp, fedctcData, by=c("ruleYear", "FilingStatus"))
       
       # Calculate number of eligible dependents
       temp$numkidsunder17=rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)<=temp$AgeofDependentMax & cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)>=temp$AgeofDependentMin, na.rm=TRUE)
       
-      subset1<-temp$income.base<=temp$IncomeBin1Max # Fully non-refundable
-      temp$value.fedctc[subset1]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset1],temp$value.fedctc.refundable[subset1])),temp$CreditBin1[subset1]))
+      # Case 1: Income below phase-in threshold
+      subset1<-temp$income.base<=temp$IncomeBin1Max
       
-      subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max
-      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),temp$RefundableCredit[subset2]))
-      temp$value.fedctc[subset2]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset2],temp$value.fedctc.refundable[subset2])),temp$CreditBin1[subset2]))
+      temp$value.fedctc.refundable[subset1]<-0
+      temp$value.fedctc.nonrefundable[subset1]<-0
       
-      subset3<-temp$income.base>temp$IncomeBin2Max
-      temp$value.fedctc[subset3]<-rowMaxs(cbind(temp$CreditBin1[subset3]-(temp$income.base[subset3]-temp$IncomeBin2Max[subset3])*temp$PhaseOutSlope1[subset3],0))
+      # Case 2: Income between phase-in and phase-out thresholds, no tax liability
+      subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max & temp$totalfederaltax<=0
       
-      temp$value.fedctc<-temp$value.fedctc*temp$numkidsunder17
+      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),
+                                                           temp$numkidsunder17[subset2]*temp$RefundableCredit[subset2]))
+      temp$value.fedctc.nonrefundable[subset2]<-0
+      
+      # Case 3: Income between phase-in and phase-out thresholds, positive tax liability below max total CTC credit
+      subset3<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max & temp$totalfederaltax>0 & temp$totalfederaltax<(temp$IncomeBin2Max*temp$numkidsunder17)
+      
+      temp$value.fedctc.refundable[subset3]<-rowMins(cbind(rowMins(cbind(temp$PhaseInRefundability[subset3]*(temp$income.base[subset3]-temp$IncomeBin1Max[subset3]),
+                                                                         temp$numkidsunder17[subset3]*temp$RefundableCredit[subset3])),
+                                                           (temp$CreditBin1[subset3]*temp$numkidsunder17[subset3])-temp$totalfederaltax[subset3]))
+      temp$value.fedctc.nonrefundable[subset3]<-temp$totalfederaltax[subset3]
+      
+      # Case 4: Income between phase-in and phase-out thresholds, tax liability above max total CTC credit
+      subset4<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$CreditBin1 & temp$totalfederaltax>=(temp$RefundableCredit*temp$numkidsunder17)
+      
+      temp$value.fedctc.refundable[subset4]<-0
+      temp$value.fedctc.nonrefundable[subset4]<-rowMaxs(cbind(temp$numkidsunder17[subset4]*temp$RefundableCredit[subset4],0))
+      
+      # Case 5: Income above phase-out threshold
+      subset5<-temp$income.base>temp$IncomeBin2Max
+      
+      temp$value.fedctc.refundable[subset5]<-0
+      temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
+      
+      # Add refundable and non-refundable portions of CTC
+      temp$value.fedctc<-rowMaxs(cbind(temp$value.fedctc.refundable+temp$value.fedctc.nonrefundable, 0), na.rm=TRUE)
       
       # Make sure the variables names are the same
-      temp<-temp %>% 
+      temp<-temp %>%
         select(colnames(data),"value.fedctc")
       
       # Merge back
@@ -13825,28 +14529,49 @@ function.fedctc<-function(data
       
       temp<-data[data$ruleYear==2008,]
       
-      #----------------------------------
-      # Step 1: Assign copays
-      #----------------------------------
       temp<-left_join(temp, fedctcData, by=c("ruleYear", "FilingStatus"))
       
       # Calculate number of eligible dependents
       temp$numkidsunder17=rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)<=temp$AgeofDependentMax & cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)>=temp$AgeofDependentMin, na.rm=TRUE)
       
-      subset1<-temp$income.base<=temp$IncomeBin1Max # Fully non-refundable
-      temp$value.fedctc[subset1]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset1],temp$value.fedctc.refundable[subset1])),temp$CreditBin1[subset1]))
+      # Case 1: Income below phase-in threshold
+      subset1<-temp$income.base<=temp$IncomeBin1Max
       
-      subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max
-      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),temp$RefundableCredit[subset2]))
-      temp$value.fedctc[subset2]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset2],temp$value.fedctc.refundable[subset2])),temp$CreditBin1[subset2]))
+      temp$value.fedctc.refundable[subset1]<-0
+      temp$value.fedctc.nonrefundable[subset1]<-0
       
-      subset3<-temp$income.base>temp$IncomeBin2Max
-      temp$value.fedctc[subset3]<-rowMaxs(cbind(temp$CreditBin1[subset3]-(temp$income.base[subset3]-temp$IncomeBin2Max[subset3])*temp$PhaseOutSlope1[subset3],0))
+      # Case 2: Income between phase-in and phase-out thresholds, no tax liability
+      subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max & temp$totalfederaltax<=0
       
-      temp$value.fedctc<-temp$value.fedctc*temp$numkidsunder17
+      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),
+                                                           temp$numkidsunder17[subset2]*temp$RefundableCredit[subset2]))
+      temp$value.fedctc.nonrefundable[subset2]<-0
+      
+      # Case 3: Income between phase-in and phase-out thresholds, positive tax liability below max total CTC credit
+      subset3<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max & temp$totalfederaltax>0 & temp$totalfederaltax<(temp$IncomeBin2Max*temp$numkidsunder17)
+      
+      temp$value.fedctc.refundable[subset3]<-rowMins(cbind(rowMins(cbind(temp$PhaseInRefundability[subset3]*(temp$income.base[subset3]-temp$IncomeBin1Max[subset3]),
+                                                                         temp$numkidsunder17[subset3]*temp$RefundableCredit[subset3])),
+                                                           (temp$CreditBin1[subset3]*temp$numkidsunder17[subset3])-temp$totalfederaltax[subset3]))
+      temp$value.fedctc.nonrefundable[subset3]<-temp$totalfederaltax[subset3]
+      
+      # Case 4: Income between phase-in and phase-out thresholds, tax liability above max total CTC credit
+      subset4<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$CreditBin1 & temp$totalfederaltax>=(temp$RefundableCredit*temp$numkidsunder17)
+      
+      temp$value.fedctc.refundable[subset4]<-0
+      temp$value.fedctc.nonrefundable[subset4]<-rowMaxs(cbind(temp$numkidsunder17[subset4]*temp$RefundableCredit[subset4],0))
+      
+      # Case 5: Income above phase-out threshold
+      subset5<-temp$income.base>temp$IncomeBin2Max
+      
+      temp$value.fedctc.refundable[subset5]<-0
+      temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
+      
+      # Add refundable and non-refundable portions of CTC
+      temp$value.fedctc<-rowMaxs(cbind(temp$value.fedctc.refundable+temp$value.fedctc.nonrefundable, 0), na.rm=TRUE)
       
       # Make sure the variables names are the same
-      temp<-temp %>% 
+      temp<-temp %>%
         select(colnames(data),"value.fedctc")
       
       # Merge back
@@ -13857,28 +14582,49 @@ function.fedctc<-function(data
       
       temp<-data[data$ruleYear==2007,]
       
-      #----------------------------------
-      # Step 1: Assign copays
-      #----------------------------------
       temp<-left_join(temp, fedctcData, by=c("ruleYear", "FilingStatus"))
       
       # Calculate number of eligible dependents
       temp$numkidsunder17=rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)<=temp$AgeofDependentMax & cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)>=temp$AgeofDependentMin, na.rm=TRUE)
       
-      subset1<-temp$income.base<=temp$IncomeBin1Max # Fully non-refundable
-      temp$value.fedctc[subset1]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset1],temp$value.fedctc.refundable[subset1])),temp$CreditBin1[subset1]))
+      # Case 1: Income below phase-in threshold
+      subset1<-temp$income.base<=temp$IncomeBin1Max
       
-      subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max
-      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),temp$RefundableCredit[subset2]))
-      temp$value.fedctc[subset2]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset2],temp$value.fedctc.refundable[subset2])),temp$CreditBin1[subset2]))
+      temp$value.fedctc.refundable[subset1]<-0
+      temp$value.fedctc.nonrefundable[subset1]<-0
       
-      subset3<-temp$income.base>temp$IncomeBin2Max
-      temp$value.fedctc[subset3]<-rowMaxs(cbind(temp$CreditBin1[subset3]-(temp$income.base[subset3]-temp$IncomeBin2Max[subset3])*temp$PhaseOutSlope1[subset3],0))
+      # Case 2: Income between phase-in and phase-out thresholds, no tax liability
+      subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max & temp$totalfederaltax<=0
       
-      temp$value.fedctc<-temp$value.fedctc*temp$numkidsunder17
+      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),
+                                                           temp$numkidsunder17[subset2]*temp$RefundableCredit[subset2]))
+      temp$value.fedctc.nonrefundable[subset2]<-0
+      
+      # Case 3: Income between phase-in and phase-out thresholds, positive tax liability below max total CTC credit
+      subset3<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max & temp$totalfederaltax>0 & temp$totalfederaltax<(temp$IncomeBin2Max*temp$numkidsunder17)
+      
+      temp$value.fedctc.refundable[subset3]<-rowMins(cbind(rowMins(cbind(temp$PhaseInRefundability[subset3]*(temp$income.base[subset3]-temp$IncomeBin1Max[subset3]),
+                                                                         temp$numkidsunder17[subset3]*temp$RefundableCredit[subset3])),
+                                                           (temp$CreditBin1[subset3]*temp$numkidsunder17[subset3])-temp$totalfederaltax[subset3]))
+      temp$value.fedctc.nonrefundable[subset3]<-temp$totalfederaltax[subset3]
+      
+      # Case 4: Income between phase-in and phase-out thresholds, tax liability above max total CTC credit
+      subset4<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$CreditBin1 & temp$totalfederaltax>=(temp$RefundableCredit*temp$numkidsunder17)
+      
+      temp$value.fedctc.refundable[subset4]<-0
+      temp$value.fedctc.nonrefundable[subset4]<-rowMaxs(cbind(temp$numkidsunder17[subset4]*temp$RefundableCredit[subset4],0))
+      
+      # Case 5: Income above phase-out threshold
+      subset5<-temp$income.base>temp$IncomeBin2Max
+      
+      temp$value.fedctc.refundable[subset5]<-0
+      temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
+      
+      # Add refundable and non-refundable portions of CTC
+      temp$value.fedctc<-rowMaxs(cbind(temp$value.fedctc.refundable+temp$value.fedctc.nonrefundable, 0), na.rm=TRUE)
       
       # Make sure the variables names are the same
-      temp<-temp %>% 
+      temp<-temp %>%
         select(colnames(data),"value.fedctc")
       
       # Merge back
@@ -13889,28 +14635,49 @@ function.fedctc<-function(data
       
       temp<-data[data$ruleYear==2006,]
       
-      #----------------------------------
-      # Step 1: Assign copays
-      #----------------------------------
       temp<-left_join(temp, fedctcData, by=c("ruleYear", "FilingStatus"))
       
       # Calculate number of eligible dependents
       temp$numkidsunder17=rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)<=temp$AgeofDependentMax & cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)>=temp$AgeofDependentMin, na.rm=TRUE)
       
-      subset1<-temp$income.base<=temp$IncomeBin1Max # Fully non-refundable
-      temp$value.fedctc[subset1]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset1],temp$value.fedctc.refundable[subset1])),temp$CreditBin1[subset1]))
+      # Case 1: Income below phase-in threshold
+      subset1<-temp$income.base<=temp$IncomeBin1Max
       
-      subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max
-      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),temp$RefundableCredit[subset2]))
-      temp$value.fedctc[subset2]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset2],temp$value.fedctc.refundable[subset2])),temp$CreditBin1[subset2]))
+      temp$value.fedctc.refundable[subset1]<-0
+      temp$value.fedctc.nonrefundable[subset1]<-0
       
-      subset3<-temp$income.base>temp$IncomeBin2Max
-      temp$value.fedctc[subset3]<-rowMaxs(cbind(temp$CreditBin1[subset3]-(temp$income.base[subset3]-temp$IncomeBin2Max[subset3])*temp$PhaseOutSlope1[subset3],0))
+      # Case 2: Income between phase-in and phase-out thresholds, no tax liability
+      subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max & temp$totalfederaltax<=0
       
-      temp$value.fedctc<-temp$value.fedctc*temp$numkidsunder17
+      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),
+                                                           temp$numkidsunder17[subset2]*temp$RefundableCredit[subset2]))
+      temp$value.fedctc.nonrefundable[subset2]<-0
+      
+      # Case 3: Income between phase-in and phase-out thresholds, positive tax liability below max total CTC credit
+      subset3<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max & temp$totalfederaltax>0 & temp$totalfederaltax<(temp$IncomeBin2Max*temp$numkidsunder17)
+      
+      temp$value.fedctc.refundable[subset3]<-rowMins(cbind(rowMins(cbind(temp$PhaseInRefundability[subset3]*(temp$income.base[subset3]-temp$IncomeBin1Max[subset3]),
+                                                                         temp$numkidsunder17[subset3]*temp$RefundableCredit[subset3])),
+                                                           (temp$CreditBin1[subset3]*temp$numkidsunder17[subset3])-temp$totalfederaltax[subset3]))
+      temp$value.fedctc.nonrefundable[subset3]<-temp$totalfederaltax[subset3]
+      
+      # Case 4: Income between phase-in and phase-out thresholds, tax liability above max total CTC credit
+      subset4<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$CreditBin1 & temp$totalfederaltax>=(temp$RefundableCredit*temp$numkidsunder17)
+      
+      temp$value.fedctc.refundable[subset4]<-0
+      temp$value.fedctc.nonrefundable[subset4]<-rowMaxs(cbind(temp$numkidsunder17[subset4]*temp$RefundableCredit[subset4],0))
+      
+      # Case 5: Income above phase-out threshold
+      subset5<-temp$income.base>temp$IncomeBin2Max
+      
+      temp$value.fedctc.refundable[subset5]<-0
+      temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
+      
+      # Add refundable and non-refundable portions of CTC
+      temp$value.fedctc<-rowMaxs(cbind(temp$value.fedctc.refundable+temp$value.fedctc.nonrefundable, 0), na.rm=TRUE)
       
       # Make sure the variables names are the same
-      temp<-temp %>% 
+      temp<-temp %>%
         select(colnames(data),"value.fedctc")
       
       # Merge back
@@ -13921,28 +14688,49 @@ function.fedctc<-function(data
       
       temp<-data[data$ruleYear==2005,]
       
-      #----------------------------------
-      # Step 1: Assign copays
-      #----------------------------------
       temp<-left_join(temp, fedctcData, by=c("ruleYear", "FilingStatus"))
       
       # Calculate number of eligible dependents
       temp$numkidsunder17=rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)<=temp$AgeofDependentMax & cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)>=temp$AgeofDependentMin, na.rm=TRUE)
       
-      subset1<-temp$income.base<=temp$IncomeBin1Max # Fully non-refundable
-      temp$value.fedctc[subset1]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset1],temp$value.fedctc.refundable[subset1])),temp$CreditBin1[subset1]))
+      # Case 1: Income below phase-in threshold
+      subset1<-temp$income.base<=temp$IncomeBin1Max
       
-      subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max
-      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),temp$RefundableCredit[subset2]))
-      temp$value.fedctc[subset2]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset2],temp$value.fedctc.refundable[subset2])),temp$CreditBin1[subset2]))
+      temp$value.fedctc.refundable[subset1]<-0
+      temp$value.fedctc.nonrefundable[subset1]<-0
       
-      subset3<-temp$income.base>temp$IncomeBin2Max
-      temp$value.fedctc[subset3]<-rowMaxs(cbind(temp$CreditBin1[subset3]-(temp$income.base[subset3]-temp$IncomeBin2Max[subset3])*temp$PhaseOutSlope1[subset3],0))
+      # Case 2: Income between phase-in and phase-out thresholds, no tax liability
+      subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max & temp$totalfederaltax<=0
       
-      temp$value.fedctc<-temp$value.fedctc*temp$numkidsunder17
+      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),
+                                                           temp$numkidsunder17[subset2]*temp$RefundableCredit[subset2]))
+      temp$value.fedctc.nonrefundable[subset2]<-0
+      
+      # Case 3: Income between phase-in and phase-out thresholds, positive tax liability below max total CTC credit
+      subset3<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max & temp$totalfederaltax>0 & temp$totalfederaltax<(temp$IncomeBin2Max*temp$numkidsunder17)
+      
+      temp$value.fedctc.refundable[subset3]<-rowMins(cbind(rowMins(cbind(temp$PhaseInRefundability[subset3]*(temp$income.base[subset3]-temp$IncomeBin1Max[subset3]),
+                                                                         temp$numkidsunder17[subset3]*temp$RefundableCredit[subset3])),
+                                                           (temp$CreditBin1[subset3]*temp$numkidsunder17[subset3])-temp$totalfederaltax[subset3]))
+      temp$value.fedctc.nonrefundable[subset3]<-temp$totalfederaltax[subset3]
+      
+      # Case 4: Income between phase-in and phase-out thresholds, tax liability above max total CTC credit
+      subset4<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$CreditBin1 & temp$totalfederaltax>=(temp$RefundableCredit*temp$numkidsunder17)
+      
+      temp$value.fedctc.refundable[subset4]<-0
+      temp$value.fedctc.nonrefundable[subset4]<-rowMaxs(cbind(temp$numkidsunder17[subset4]*temp$RefundableCredit[subset4],0))
+      
+      # Case 5: Income above phase-out threshold
+      subset5<-temp$income.base>temp$IncomeBin2Max
+      
+      temp$value.fedctc.refundable[subset5]<-0
+      temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
+      
+      # Add refundable and non-refundable portions of CTC
+      temp$value.fedctc<-rowMaxs(cbind(temp$value.fedctc.refundable+temp$value.fedctc.nonrefundable, 0), na.rm=TRUE)
       
       # Make sure the variables names are the same
-      temp<-temp %>% 
+      temp<-temp %>%
         select(colnames(data),"value.fedctc")
       
       # Merge back
@@ -13953,28 +14741,49 @@ function.fedctc<-function(data
       
       temp<-data[data$ruleYear==2004,]
       
-      #----------------------------------
-      # Step 1: Assign copays
-      #----------------------------------
       temp<-left_join(temp, fedctcData, by=c("ruleYear", "FilingStatus"))
       
       # Calculate number of eligible dependents
       temp$numkidsunder17=rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)<=temp$AgeofDependentMax & cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)>=temp$AgeofDependentMin, na.rm=TRUE)
       
-      subset1<-temp$income.base<=temp$IncomeBin1Max # Fully non-refundable
-      temp$value.fedctc[subset1]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset1],temp$value.fedctc.refundable[subset1])),temp$CreditBin1[subset1]))
+      # Case 1: Income below phase-in threshold
+      subset1<-temp$income.base<=temp$IncomeBin1Max
       
-      subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max
-      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),temp$RefundableCredit[subset2]))
-      temp$value.fedctc[subset2]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset2],temp$value.fedctc.refundable[subset2])),temp$CreditBin1[subset2]))
+      temp$value.fedctc.refundable[subset1]<-0
+      temp$value.fedctc.nonrefundable[subset1]<-0
       
-      subset3<-temp$income.base>temp$IncomeBin2Max
-      temp$value.fedctc[subset3]<-rowMaxs(cbind(temp$CreditBin1[subset3]-(temp$income.base[subset3]-temp$IncomeBin2Max[subset3])*temp$PhaseOutSlope1[subset3],0))
+      # Case 2: Income between phase-in and phase-out thresholds, no tax liability
+      subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max & temp$totalfederaltax<=0
       
-      temp$value.fedctc<-temp$value.fedctc*temp$numkidsunder17
+      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),
+                                                           temp$numkidsunder17[subset2]*temp$RefundableCredit[subset2]))
+      temp$value.fedctc.nonrefundable[subset2]<-0
+      
+      # Case 3: Income between phase-in and phase-out thresholds, positive tax liability below max total CTC credit
+      subset3<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max & temp$totalfederaltax>0 & temp$totalfederaltax<(temp$IncomeBin2Max*temp$numkidsunder17)
+      
+      temp$value.fedctc.refundable[subset3]<-rowMins(cbind(rowMins(cbind(temp$PhaseInRefundability[subset3]*(temp$income.base[subset3]-temp$IncomeBin1Max[subset3]),
+                                                                         temp$numkidsunder17[subset3]*temp$RefundableCredit[subset3])),
+                                                           (temp$CreditBin1[subset3]*temp$numkidsunder17[subset3])-temp$totalfederaltax[subset3]))
+      temp$value.fedctc.nonrefundable[subset3]<-temp$totalfederaltax[subset3]
+      
+      # Case 4: Income between phase-in and phase-out thresholds, tax liability above max total CTC credit
+      subset4<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$CreditBin1 & temp$totalfederaltax>=(temp$RefundableCredit*temp$numkidsunder17)
+      
+      temp$value.fedctc.refundable[subset4]<-0
+      temp$value.fedctc.nonrefundable[subset4]<-rowMaxs(cbind(temp$numkidsunder17[subset4]*temp$RefundableCredit[subset4],0))
+      
+      # Case 5: Income above phase-out threshold
+      subset5<-temp$income.base>temp$IncomeBin2Max
+      
+      temp$value.fedctc.refundable[subset5]<-0
+      temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
+      
+      # Add refundable and non-refundable portions of CTC
+      temp$value.fedctc<-rowMaxs(cbind(temp$value.fedctc.refundable+temp$value.fedctc.nonrefundable, 0), na.rm=TRUE)
       
       # Make sure the variables names are the same
-      temp<-temp %>% 
+      temp<-temp %>%
         select(colnames(data),"value.fedctc")
       
       # Merge back
@@ -13985,28 +14794,49 @@ function.fedctc<-function(data
       
       temp<-data[data$ruleYear==2003,]
       
-      #----------------------------------
-      # Step 1: Assign copays
-      #----------------------------------
       temp<-left_join(temp, fedctcData, by=c("ruleYear", "FilingStatus"))
       
       # Calculate number of eligible dependents
       temp$numkidsunder17=rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)<=temp$AgeofDependentMax & cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)>=temp$AgeofDependentMin, na.rm=TRUE)
       
-      subset1<-temp$income.base<=temp$IncomeBin1Max # Fully non-refundable
-      temp$value.fedctc[subset1]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset1],temp$value.fedctc.refundable[subset1])),temp$CreditBin1[subset1]))
+      # Case 1: Income below phase-in threshold
+      subset1<-temp$income.base<=temp$IncomeBin1Max
       
-      subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max
-      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),temp$RefundableCredit[subset2]))
-      temp$value.fedctc[subset2]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset2],temp$value.fedctc.refundable[subset2])),temp$CreditBin1[subset2]))
+      temp$value.fedctc.refundable[subset1]<-0
+      temp$value.fedctc.nonrefundable[subset1]<-0
       
-      subset3<-temp$income.base>temp$IncomeBin2Max
-      temp$value.fedctc[subset3]<-rowMaxs(cbind(temp$CreditBin1[subset3]-(temp$income.base[subset3]-temp$IncomeBin2Max[subset3])*temp$PhaseOutSlope1[subset3],0))
+      # Case 2: Income between phase-in and phase-out thresholds, no tax liability
+      subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max & temp$totalfederaltax<=0
       
-      temp$value.fedctc<-temp$value.fedctc*temp$numkidsunder17
+      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),
+                                                           temp$numkidsunder17[subset2]*temp$RefundableCredit[subset2]))
+      temp$value.fedctc.nonrefundable[subset2]<-0
+      
+      # Case 3: Income between phase-in and phase-out thresholds, positive tax liability below max total CTC credit
+      subset3<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max & temp$totalfederaltax>0 & temp$totalfederaltax<(temp$IncomeBin2Max*temp$numkidsunder17)
+      
+      temp$value.fedctc.refundable[subset3]<-rowMins(cbind(rowMins(cbind(temp$PhaseInRefundability[subset3]*(temp$income.base[subset3]-temp$IncomeBin1Max[subset3]),
+                                                                         temp$numkidsunder17[subset3]*temp$RefundableCredit[subset3])),
+                                                           (temp$CreditBin1[subset3]*temp$numkidsunder17[subset3])-temp$totalfederaltax[subset3]))
+      temp$value.fedctc.nonrefundable[subset3]<-temp$totalfederaltax[subset3]
+      
+      # Case 4: Income between phase-in and phase-out thresholds, tax liability above max total CTC credit
+      subset4<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$CreditBin1 & temp$totalfederaltax>=(temp$RefundableCredit*temp$numkidsunder17)
+      
+      temp$value.fedctc.refundable[subset4]<-0
+      temp$value.fedctc.nonrefundable[subset4]<-rowMaxs(cbind(temp$numkidsunder17[subset4]*temp$RefundableCredit[subset4],0))
+      
+      # Case 5: Income above phase-out threshold
+      subset5<-temp$income.base>temp$IncomeBin2Max
+      
+      temp$value.fedctc.refundable[subset5]<-0
+      temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
+      
+      # Add refundable and non-refundable portions of CTC
+      temp$value.fedctc<-rowMaxs(cbind(temp$value.fedctc.refundable+temp$value.fedctc.nonrefundable, 0), na.rm=TRUE)
       
       # Make sure the variables names are the same
-      temp<-temp %>% 
+      temp<-temp %>%
         select(colnames(data),"value.fedctc")
       
       # Merge back
@@ -14017,28 +14847,49 @@ function.fedctc<-function(data
       
       temp<-data[data$ruleYear==2002,]
       
-      #----------------------------------
-      # Step 1: Assign copays
-      #----------------------------------
       temp<-left_join(temp, fedctcData, by=c("ruleYear", "FilingStatus"))
       
       # Calculate number of eligible dependents
       temp$numkidsunder17=rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)<=temp$AgeofDependentMax & cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)>=temp$AgeofDependentMin, na.rm=TRUE)
       
-      subset1<-temp$income.base<=temp$IncomeBin1Max # Fully non-refundable
-      temp$value.fedctc[subset1]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset1],temp$value.fedctc.refundable[subset1])),temp$CreditBin1[subset1]))
+      # Case 1: Income below phase-in threshold
+      subset1<-temp$income.base<=temp$IncomeBin1Max
       
-      subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max
-      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),temp$RefundableCredit[subset2]))
-      temp$value.fedctc[subset2]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset2],temp$value.fedctc.refundable[subset2])),temp$CreditBin1[subset2]))
+      temp$value.fedctc.refundable[subset1]<-0
+      temp$value.fedctc.nonrefundable[subset1]<-0
       
-      subset3<-temp$income.base>temp$IncomeBin2Max
-      temp$value.fedctc[subset3]<-rowMaxs(cbind(temp$CreditBin1[subset3]-(temp$income.base[subset3]-temp$IncomeBin2Max[subset3])*temp$PhaseOutSlope1[subset3],0))
+      # Case 2: Income between phase-in and phase-out thresholds, no tax liability
+      subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max & temp$totalfederaltax<=0
       
-      temp$value.fedctc<-temp$value.fedctc*temp$numkidsunder17
+      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),
+                                                           temp$numkidsunder17[subset2]*temp$RefundableCredit[subset2]))
+      temp$value.fedctc.nonrefundable[subset2]<-0
+      
+      # Case 3: Income between phase-in and phase-out thresholds, positive tax liability below max total CTC credit
+      subset3<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max & temp$totalfederaltax>0 & temp$totalfederaltax<(temp$IncomeBin2Max*temp$numkidsunder17)
+      
+      temp$value.fedctc.refundable[subset3]<-rowMins(cbind(rowMins(cbind(temp$PhaseInRefundability[subset3]*(temp$income.base[subset3]-temp$IncomeBin1Max[subset3]),
+                                                                         temp$numkidsunder17[subset3]*temp$RefundableCredit[subset3])),
+                                                           (temp$CreditBin1[subset3]*temp$numkidsunder17[subset3])-temp$totalfederaltax[subset3]))
+      temp$value.fedctc.nonrefundable[subset3]<-temp$totalfederaltax[subset3]
+      
+      # Case 4: Income between phase-in and phase-out thresholds, tax liability above max total CTC credit
+      subset4<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$CreditBin1 & temp$totalfederaltax>=(temp$RefundableCredit*temp$numkidsunder17)
+      
+      temp$value.fedctc.refundable[subset4]<-0
+      temp$value.fedctc.nonrefundable[subset4]<-rowMaxs(cbind(temp$numkidsunder17[subset4]*temp$RefundableCredit[subset4],0))
+      
+      # Case 5: Income above phase-out threshold
+      subset5<-temp$income.base>temp$IncomeBin2Max
+      
+      temp$value.fedctc.refundable[subset5]<-0
+      temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
+      
+      # Add refundable and non-refundable portions of CTC
+      temp$value.fedctc<-rowMaxs(cbind(temp$value.fedctc.refundable+temp$value.fedctc.nonrefundable, 0), na.rm=TRUE)
       
       # Make sure the variables names are the same
-      temp<-temp %>% 
+      temp<-temp %>%
         select(colnames(data),"value.fedctc")
       
       # Merge back
@@ -14049,28 +14900,49 @@ function.fedctc<-function(data
       
       temp<-data[data$ruleYear==2001,]
       
-      #----------------------------------
-      # Step 1: Assign copays
-      #----------------------------------
       temp<-left_join(temp, fedctcData, by=c("ruleYear", "FilingStatus"))
       
       # Calculate number of eligible dependents
       temp$numkidsunder17=rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)<=temp$AgeofDependentMax & cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)>=temp$AgeofDependentMin, na.rm=TRUE)
       
-      subset1<-temp$income.base<=temp$IncomeBin1Max # Fully non-refundable
-      temp$value.fedctc[subset1]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset1],temp$value.fedctc.refundable[subset1])),temp$CreditBin1[subset1]))
+      # Case 1: Income below phase-in threshold
+      subset1<-temp$income.base<=temp$IncomeBin1Max
       
-      subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max
-      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),temp$RefundableCredit[subset2]))
-      temp$value.fedctc[subset2]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset2],temp$value.fedctc.refundable[subset2])),temp$CreditBin1[subset2]))
+      temp$value.fedctc.refundable[subset1]<-0
+      temp$value.fedctc.nonrefundable[subset1]<-0
       
-      subset3<-temp$income.base>temp$IncomeBin2Max
-      temp$value.fedctc[subset3]<-rowMaxs(cbind(temp$CreditBin1[subset3]-(temp$income.base[subset3]-temp$IncomeBin2Max[subset3])*temp$PhaseOutSlope1[subset3],0))
+      # Case 2: Income between phase-in and phase-out thresholds, no tax liability
+      subset2<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max & temp$totalfederaltax<=0
       
-      temp$value.fedctc<-temp$value.fedctc*temp$numkidsunder17
+      temp$value.fedctc.refundable[subset2]<-rowMins(cbind(temp$PhaseInRefundability[subset2]*(temp$income.base[subset2]-temp$IncomeBin1Max[subset2]),
+                                                           temp$numkidsunder17[subset2]*temp$RefundableCredit[subset2]))
+      temp$value.fedctc.nonrefundable[subset2]<-0
+      
+      # Case 3: Income between phase-in and phase-out thresholds, positive tax liability below max total CTC credit
+      subset3<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$IncomeBin2Max & temp$totalfederaltax>0 & temp$totalfederaltax<(temp$IncomeBin2Max*temp$numkidsunder17)
+      
+      temp$value.fedctc.refundable[subset3]<-rowMins(cbind(rowMins(cbind(temp$PhaseInRefundability[subset3]*(temp$income.base[subset3]-temp$IncomeBin1Max[subset3]),
+                                                                         temp$numkidsunder17[subset3]*temp$RefundableCredit[subset3])),
+                                                           (temp$CreditBin1[subset3]*temp$numkidsunder17[subset3])-temp$totalfederaltax[subset3]))
+      temp$value.fedctc.nonrefundable[subset3]<-temp$totalfederaltax[subset3]
+      
+      # Case 4: Income between phase-in and phase-out thresholds, tax liability above max total CTC credit
+      subset4<-temp$income.base>temp$IncomeBin1Max & temp$income.base<=temp$CreditBin1 & temp$totalfederaltax>=(temp$RefundableCredit*temp$numkidsunder17)
+      
+      temp$value.fedctc.refundable[subset4]<-0
+      temp$value.fedctc.nonrefundable[subset4]<-rowMaxs(cbind(temp$numkidsunder17[subset4]*temp$RefundableCredit[subset4],0))
+      
+      # Case 5: Income above phase-out threshold
+      subset5<-temp$income.base>temp$IncomeBin2Max
+      
+      temp$value.fedctc.refundable[subset5]<-0
+      temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
+      
+      # Add refundable and non-refundable portions of CTC
+      temp$value.fedctc<-rowMaxs(cbind(temp$value.fedctc.refundable+temp$value.fedctc.nonrefundable, 0), na.rm=TRUE)
       
       # Make sure the variables names are the same
-      temp<-temp %>% 
+      temp<-temp %>%
         select(colnames(data),"value.fedctc")
       
       # Merge back
@@ -14090,7 +14962,7 @@ function.fedctc<-function(data
       temp$numkidsunder17=rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)<=temp$AgeofDependentMax & cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)>=temp$AgeofDependentMin, na.rm=TRUE)
       
       subset1<-temp$income.base<=temp$IncomeBin2Max # Below this value CTC is non-refundable
-      temp$value.fedctc[subset1]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset1],temp$value.fedctc.refundable[subset1])),temp$CreditBin1[subset1]))
+      temp$value.fedctc[subset1]<-0
       
       subset2<-temp$income.base>temp$IncomeBin2Max
       temp$value.fedctc[subset2]<-rowMaxs(cbind(temp$CreditBin1[subset2]-(temp$income.base[subset2]-temp$IncomeBin2Max[subset2])*temp$PhaseOutSlope1[subset2],0))
@@ -14118,7 +14990,7 @@ function.fedctc<-function(data
       temp$numkidsunder17=rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)<=temp$AgeofDependentMax & cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)>=temp$AgeofDependentMin, na.rm=TRUE)
       
       subset1<-temp$income.base<=temp$IncomeBin2Max # Below this value CTC is non-refundable
-      temp$value.fedctc[subset1]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset1],temp$value.fedctc.refundable[subset1])),temp$CreditBin1[subset1]))
+      temp$value.fedctc[subset1]<-0 
       
       subset2<-temp$income.base>temp$IncomeBin2Max
       temp$value.fedctc[subset2]<-rowMaxs(cbind(temp$CreditBin1[subset2]-(temp$income.base[subset2]-temp$IncomeBin2Max[subset2])*temp$PhaseOutSlope1[subset2],0))
@@ -14146,7 +15018,7 @@ function.fedctc<-function(data
       temp$numkidsunder17=rowSums(cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)<=temp$AgeofDependentMax & cbind(temp$agePerson1, temp$agePerson2, temp$agePerson3, temp$agePerson4, temp$agePerson5, temp$agePerson6, temp$agePerson7, temp$agePerson8, temp$agePerson9, temp$agePerson10, temp$agePerson11, temp$agePerson12)>=temp$AgeofDependentMin, na.rm=TRUE)
       
       subset1<-temp$income.base<=temp$IncomeBin2Max # Below this value CTC is non-refundable
-      temp$value.fedctc[subset1]<-rowMins(cbind(rowMaxs(cbind(temp$totalfederaltax[subset1],temp$value.fedctc.refundable[subset1])),temp$CreditBin1[subset1]))
+      temp$value.fedctc[subset1]<-0
       
       subset2<-temp$income.base>temp$IncomeBin2Max
       temp$value.fedctc[subset2]<-rowMaxs(cbind(temp$CreditBin1[subset2]-(temp$income.base[subset2]-temp$IncomeBin2Max[subset2])*temp$PhaseOutSlope1[subset2],0))
@@ -15122,6 +15994,23 @@ function.ficatax<-function(data
                                , employmentincomevar){
     
     colnames(data)[colnames(data)==employmentincomevar]<-"income.base"
+    
+    # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+    years<-unique(data$ruleYear) # years in data set
+    yearsinexpdata<- unique(ficataxData$ruleYear) # rule years in benefit data
+    yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+    yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+    # Create data for the future
+    maxyearofdata<-max(ficataxData$ruleYear) # collect latest year of benefit data
+    futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+    if(length(futureYrs)>0){
+      # Create data frame with future years
+      expand<-expand.grid(FilingStatus=unique(ficataxData$FilingStatus), Year=futureYrs)
+      # Collect latest benefit data there is and merge w/data frame
+      expand2<-ficataxData[ficataxData$ruleYear==maxyearofdata, ]
+      expand<-expand%>%left_join(expand2, by=c("FilingStatus")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+    }# Attach copied future, historical, and missing benefit data
+    if(length(futureYrs)>0) {ficataxData<-ficataxData %>% rbind(expand)}
     
     # We have historical rules
     data<-left_join(data, ficataxData, by=c("ruleYear","FilingStatus"))
