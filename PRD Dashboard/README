@@ -1,1 +1,4 @@
+The PRD Dashboard is a tool that operates on RShiny. To use the dashboard, you'll need to download all the files and locally run one of the following: SERVER, GLOBAL, or UI.
+
+The PRD Dashboard offers an intuitive way to visualize data on public assistance programs and tax credits. Users can quickly understand how these policies support families across different locations of the United States.
 
