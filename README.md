@@ -101,6 +101,12 @@ To test changes/run PRD you can do the following:
 applyBenefitsCalculator.R program saves the resulted output into this folder
 
 
+**8. PRD Dashboard**
+
+
+The Policy Rules Database (PRD) Dashboard is a user-friendly visualization tool designed to provide comprehensive insights into how various public assistance programs and tax credits intersect to support families across different locations in the United States. 
+
+
 ## How to Use the Unit Test
 
 A unit test is a way of testing the smallest piece of code that can be logically isolated in a system.
