@@ -1,0 +1,78 @@
+.content-wrapper,
+.right-side {
+  background-color: #FFFFFF;
+}
+
+.skin-black .main-header .logo {
+  font-family: "Georgia";
+  font-weight: bold;
+  font-size: 24px;
+  color: #000000
+
+}
+
+.skin-black .main-sidebar .sidebar .sidebar-menu a:hover{
+   background-color: #9abac9;
+   color: #000000;
+}
+
+.skin-black .main-sidebar .sidebar .sidebar-menu a{
+          font-family: "Georgia"; 
+         background-color: #ffffff;
+          color: #000000;
+
+}
+
+
+
+/* toggle button when hovered  */                    
+.skin-black .main-header .navbar .sidebar-toggle:hover{
+  background-color: #9abac9;
+  
+
+}
+
+/* main sidebar */
+        .skin-black .main-sidebar {
+                              background-color: #ffffff;
+                              color: #000000;
+                              }  
+                              
+
+   /* navbar (rest of the header) */
+        .skin-blue .main-header .navbar {
+                              background-color: #ffffff;
+                              color: #000000;
+                              }    
+                              
+  /* logo oldcolor_#5588A3 */
+        .skin-black .main-header .logo {
+                              background-color: #9abac9;
+                              }
+
+        /* logo when hovered */
+        .skin-black .main-header .logo:hover {
+                              background-color: #9abac9;
+                              }
+
+        /* navbar (rest of the header) */
+        .skin-black .main-header .navbar {
+                              background-color: #9abac9;
+                              }        
+h1 {
+        font-family: 'Georgia', Times;
+        font-weight: 500;
+        line-height: 1.1;
+        color: #000000;
+}
+      
+h2 {
+        font-family: 'Georgia', Times;
+        font-weight: 500;
+        line-height: 1.1;
+        color: #000000;
+}
+      
+.btn {
+    background-color: red;
+}
