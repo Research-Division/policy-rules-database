@@ -126,7 +126,7 @@ proj_dir <-"/Users/....."
 
 To test the functions:
 
-Check the Readme file inside the folder tests
+Check the Readme file inside the folder tests.
 
 
 
