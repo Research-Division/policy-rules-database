@@ -116,7 +116,7 @@ data2<-data %>%
          , value.medicaid.adult, value.medicaid.child, value.aca, value.employerhealthcare
          , value.CCDF, value.HeadStart, value.PreK
          , value.cdctc.fed, value.cdctc.state, value.ctc.fed, value.ctc.state, value.eitc.fed, value.eitc.state
-         , value.eitc, value.ctc, value.cdctc, value.ssdi, value.ssi, value.tanf
+         , value.eitc, value.ctc, value.cdctc, value.ssdi, value.ssi, value.tanf, value.wic,
          , AfterTaxIncome, NetResources)
 
 
