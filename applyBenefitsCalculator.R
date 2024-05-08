@@ -31,8 +31,16 @@ source(paste0(current_directory,"/functions/expense_functions.R"), local=TRUE) #
 source(paste0(current_directory,"/functions/BenefitsCalculator_functions.R"), local=TRUE) # Benefits Calculator functions
 
 # SPECIFY PROJECT----
-PROJECT<-"TEST"
+# PROJECT<-"TEST"
 #PROJECT<-"unit_test"
+
+# get the project name from the command line, e.g. Rscript applyBenefitsCalculator.R wic_a
+args <- commandArgs(trailingOnly = TRUE)
+if(length(args) > 0){
+    PROJECT <- args[1]
+} else {
+    PROJECT <- "wic_b"
+}
 
 ## 1. Settings----
 
