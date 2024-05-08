@@ -12,7 +12,8 @@ jobs:
       - run: Rscript applyBenefitsCalculator.R wic_a
       - run: Rscript applyBenefitsCalculator.R wic_b
       - run: Rscript applyBenefitsCalculator.R wic_c
-      - run:
+      - name: "Print project csv output"
+        run: |
           echo "\nwic_a:"
           cat output/results_wic_a.csv
           echo "\nwic_b:"
