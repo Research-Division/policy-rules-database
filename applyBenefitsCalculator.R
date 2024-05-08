@@ -25,7 +25,10 @@ load(paste0(current_directory,"/prd_parameters/parameters.defaults.rdata"))
 
 ## Call all the functions----
 
-source(paste0(current_directory,"/libraries.R"), local=TRUE) # Load required packages
+# use a trimmed down variant of libraries excluding shiny etc
+source(paste0(current_directory,"/applyBenefitsLibraries.R"), local=TRUE) # Load required packages
+# source(paste0(current_directory,"/libraries.R"), local=TRUE) # Load required packages
+
 source(paste0(current_directory,"/functions/benefits_functions.R"), local=TRUE) # Benefits calculations
 source(paste0(current_directory,"/functions/expense_functions.R"), local=TRUE) # Expenses calculations
 source(paste0(current_directory,"/functions/BenefitsCalculator_functions.R"), local=TRUE) # Benefits Calculator functions
