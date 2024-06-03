@@ -1,5 +1,5 @@
 
-# This program reads-in input data and runs Benefits Calculator
+# This program reads in input data and runs Benefits Calculator
 
 # PREAMBLE----
 
