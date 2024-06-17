@@ -13542,8 +13542,7 @@ function.stateinctax<-function(data
                                  , fedincometaxvar
                                  , fedtaxcreditsvar){
  
-# new branch
-  
+
   data<-data %>% 
     rename("income.base" = incomevar
            ,"fedincometax" = fedincometaxvar
