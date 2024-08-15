@@ -1665,7 +1665,7 @@ function.CCDFcopay<-function(data
     temp$FTcopay[temp$income>temp$Bin17Max & temp$income<=temp$Bin18Max]<-temp$CopayBin18[temp$income>temp$Bin17Max & temp$income<=temp$Bin18Max]
     temp$FTcopay[temp$income>temp$Bin18Max & temp$income<=temp$Bin19Max]<-temp$CopayBin19[temp$income>temp$Bin18Max & temp$income<=temp$Bin19Max]
     temp$FTcopay[temp$income>temp$Bin19Max & temp$income<=temp$Bin20Max]<-temp$CopayBin20[temp$income>temp$Bin19Max & temp$income<=temp$Bin20Max]
-    temp$FTcopay[temp$income>temp$Bin20Max & temp$income<=temp$Bin21Max]<-0.25*temp$CopayBin21[temp$income>temp$Bin20Max & temp$income<=temp$Bin21Max]
+    temp$FTcopay[temp$income>temp$Bin20Max & temp$income<=temp$Bin21Max]<-temp$CopayBin21[temp$income>temp$Bin20Max & temp$income<=temp$Bin21Max]
     
     # CopayBin21 explanation:
     # Family Income in the following ranges at the time of redetermination will result in a 3-month eligibility extension, known as
