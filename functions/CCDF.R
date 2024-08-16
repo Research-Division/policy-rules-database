@@ -5748,7 +5748,7 @@ function.CCDFcopay<-function(data
     
     temp$totcopay[temp$ruleYear<2023]<-temp$income[temp$ruleYear<2023]*temp$FTcopay[temp$ruleYear<2023]
     
-    temp$totcopay[temp$ruleYear>=2023]<-temp$income[temp$ruleYear>=2023]*12
+    temp$totcopay[temp$ruleYear>=2023]<-temp$FTcopay[temp$ruleYear>=2023]*12
     
     temp$totcopay<-rowMins(cbind(temp$totcopay,temp$netexp.childcare))
     
