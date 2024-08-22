@@ -153,7 +153,7 @@ function.CCDFcopay<-function(data
     
     # Apply asset test
     subset<-temp$totalassets > temp$AssetTest
-    temp$totcopay[subset]<-NA_real_
+    temp$FTcopay[subset]<-NA_real_
     
     #----------------------------------
     # Step 2: Calculate total copays
@@ -319,7 +319,7 @@ function.CCDFcopay<-function(data
     
     # Apply asset test
     subset<-temp$totalassets > temp$AssetTest
-    temp$totcopay[subset]<-NA_real_
+    temp$FTcopay[subset]<-NA_real_
     
     
     #----------------------------------
@@ -410,7 +410,7 @@ function.CCDFcopay<-function(data
     
     # Apply asset test
     subset<-temp$totalassets > temp$AssetTest
-    temp$totcopay[subset]<-NA_real_
+    temp$FTcopay[subset]<-NA_real_
     
     #----------------------------------
     # Step 2: Calculate total copays
@@ -496,7 +496,7 @@ function.CCDFcopay<-function(data
     
     # Apply asset test
     subset<-temp$totalassets > temp$AssetTest
-    temp$totcopay[subset]<-NA_real_
+    temp$FTcopay[subset]<-NA_real_
     
     #----------------------------------
     # Step 2: Calculate total copays
@@ -622,7 +622,7 @@ function.CCDFcopay<-function(data
     
     # Apply asset test
     subset<-temp$totalassets > temp$AssetTest
-    temp$totcopay[subset]<-NA_real_
+    temp$FTcopay[subset]<-NA_real_
     
     #----------------------------------
     # Step 2: Calculate total copays
@@ -727,7 +727,7 @@ function.CCDFcopay<-function(data
     
     # Apply asset test
     subset<-temp$totalassets > temp$AssetTest
-    temp$totcopay[subset]<-NA_real_
+    temp$FTcopay[subset]<-NA_real_
     
     #----------------------------------
     # Step 2: Calculate total copays
@@ -817,7 +817,7 @@ function.CCDFcopay<-function(data
     
     # Apply asset test
     subset<-temp$totalassets > temp$AssetTest
-    temp$totcopay[subset]<-NA_real_
+    temp$FTcopay[subset]<-NA_real_
     
     #----------------------------------
     # Step 2: Calculate total copays
@@ -899,7 +899,7 @@ function.CCDFcopay<-function(data
     
     # Apply asset test
     subset<-temp$totalassets > temp$AssetTest
-    temp$totcopay[subset]<-NA_real_
+    temp$FTcopay[subset]<-NA_real_
     
     #----------------------------------
     # Step 2: Calculate total copays
@@ -1020,7 +1020,7 @@ function.CCDFcopay<-function(data
     
     # Apply asset test
     subset<-temp$totalassets > temp$AssetTest
-    temp$totcopay[subset]<-NA_real_
+    temp$FTcopay[subset]<-NA_real_
     
     #----------------------------------
     # Step 2: Calculate total copays
@@ -1150,7 +1150,7 @@ function.CCDFcopay<-function(data
     
     # Apply asset test
     subset<-temp$totalassets > temp$AssetTest
-    temp$totcopay[subset]<-NA_real_
+    temp$FTcopay[subset]<-NA_real_
     
     #----------------------------------
     # Step 2: Calculate total copays
@@ -1266,7 +1266,7 @@ function.CCDFcopay<-function(data
     
     # Apply asset test
     subset<-temp$totalassets > temp$AssetTest
-    temp$totcopay[subset]<-NA_real_
+    temp$FTcopay[subset]<-NA_real_
     
     #----------------------------------
     # Step 2: Calculate total copays
@@ -1355,7 +1355,7 @@ function.CCDFcopay<-function(data
     
     # Apply asset test
     subset<-temp$totalassets > temp$AssetTest
-    temp$totcopay[subset]<-NA_real_
+    temp$FTcopay[subset]<-NA_real_
     
     #----------------------------------
     # Step 2: Calculate total copays
@@ -1473,7 +1473,7 @@ function.CCDFcopay<-function(data
     
     # Apply asset test
     subset<-temp$totalassets > temp$AssetTest
-    temp$totcopay[subset]<-NA_real_
+    temp$FTcopay[subset]<-NA_real_
     
     #----------------------------------
     # Step 2: Calculate total copays
@@ -1563,7 +1563,7 @@ function.CCDFcopay<-function(data
     
     # Apply asset test
     subset<-temp$totalassets > temp$AssetTest
-    temp$totcopay[subset]<-NA_real_
+    temp$FTcopay[subset]<-NA_real_
     
     #----------------------------------
     # Step 2: Calculate total copays
@@ -1675,7 +1675,7 @@ function.CCDFcopay<-function(data
     
     # Apply asset test
     subset<-temp$totalassets > temp$AssetTest
-    temp$totcopay[subset]<-NA_real_
+    temp$FTcopay[subset]<-NA_real_
     
     #----------------------------------
     # Step 2: Calculate total copays
@@ -1787,7 +1787,7 @@ function.CCDFcopay<-function(data
     
     # Apply asset test
     subset<-temp$totalassets > temp$AssetTest
-    temp$totcopay[subset]<-NA_real_
+    temp$FTcopay[subset]<-NA_real_
     
     #----------------------------------
     # Step 2: Calculate total copays
@@ -1885,7 +1885,7 @@ function.CCDFcopay<-function(data
     
     # Apply asset test
     subset<-temp$totalassets > temp$AssetTest
-    temp$totcopay[subset]<-NA_real_
+    temp$FTcopay[subset]<-NA_real_
     
     #----------------------------------
     # Step 2: Calculate total copays
@@ -2004,7 +2004,7 @@ function.CCDFcopay<-function(data
     
     # Apply asset test
     subset<-temp$totalassets > temp$AssetTest
-    temp$totcopay[subset]<-NA_real_
+    temp$FTcopay[subset]<-NA_real_
     
     #----------------------------------
     # Step 2: Calculate total copays
@@ -2106,7 +2106,7 @@ function.CCDFcopay<-function(data
     
     # Apply asset test
     subset<-temp$totalassets > temp$AssetTest
-    temp$totcopay[subset]<-NA_real_
+    temp$FTcopay[subset]<-NA_real_
     
     #----------------------------------
     # Step 2: Calculate total copays
@@ -2203,7 +2203,7 @@ function.CCDFcopay<-function(data
     
     # Apply asset test
     subset<-temp$totalassets > temp$AssetTest
-    temp$totcopay[subset]<-NA_real_
+    temp$FTcopay[subset]<-NA_real_
     
     #----------------------------------
     # Step 2: Calculate total copays
@@ -2300,7 +2300,7 @@ function.CCDFcopay<-function(data
     
     # Apply asset test
     subset<-temp$totalassets > temp$AssetTest
-    temp$totcopay[subset]<-NA_real_
+    temp$FTcopay[subset]<-NA_real_
     
     #----------------------------------
     # Step 2: Calculate total copays
@@ -2412,7 +2412,7 @@ function.CCDFcopay<-function(data
     
     # Apply asset test
     subset<-temp$totalassets > temp$AssetTest
-    temp$totcopay[subset]<-NA_real_
+    temp$FTcopay[subset]<-NA_real_
     
     #----------------------------------
     # Step 2: Calculate total copays
@@ -2510,7 +2510,7 @@ function.CCDFcopay<-function(data
     
     # Apply asset test
     subset<-temp$totalassets > temp$AssetTest
-    temp$totcopay[subset]<-NA_real_
+    temp$FTcopay[subset]<-NA_real_
     
     #----------------------------------
     # Step 2: Calculate total copays
@@ -2625,7 +2625,7 @@ function.CCDFcopay<-function(data
     
     # Apply asset test
     subset<-temp$totalassets > temp$AssetTest
-    temp$totcopay[subset]<-NA_real_
+    temp$FTcopay[subset]<-NA_real_
     
     #----------------------------------
     # Step 2: Calculate total copays
@@ -2770,7 +2770,7 @@ function.CCDFcopay<-function(data
     
     # Apply asset test
     subset<-temp$totalassets > temp$AssetTest
-    temp$totcopay[subset]<-NA_real_
+    temp$FTcopay[subset]<-NA_real_
     
     
     #----------------------------------
@@ -2863,7 +2863,7 @@ function.CCDFcopay<-function(data
     
     # Apply asset test
     subset<-temp$totalassets > temp$AssetTest
-    temp$totcopay[subset]<-NA_real_
+    temp$FTcopay[subset]<-NA_real_
     
     #----------------------------------
     # Step 2: Calculate total copays
@@ -2974,7 +2974,7 @@ function.CCDFcopay<-function(data
     
     # Apply asset test
     subset<-temp$totalassets > temp$AssetTest
-    temp$totcopay[subset]<-NA_real_
+    temp$FTcopay[subset]<-NA_real_
     
     #----------------------------------
     # Step 2: Calculate total copays
@@ -3057,7 +3057,7 @@ function.CCDFcopay<-function(data
     
     # Apply asset test
     subset<-temp$totalassets > temp$AssetTest
-    temp$totcopay[subset]<-NA_real_
+    temp$FTcopay[subset]<-NA_real_
     
     #----------------------------------
     # Step 2: Calculate total copays
@@ -3394,7 +3394,7 @@ function.CCDFcopay<-function(data
     
     # Apply asset test
     subset<-temp$totalassets > temp$AssetTest
-    temp$totcopay[subset]<-NA_real_
+    temp$FTcopay[subset]<-NA_real_
     
     #----------------------------------
     # Step 2: Calculate total copays
@@ -3773,7 +3773,7 @@ function.CCDFcopay<-function(data
     
     # Apply asset test
     subset<-temp$totalassets > temp$AssetTest
-    temp$totcopay[subset]<-NA_real_
+    temp$FTcopay[subset]<-NA_real_
     
     #----------------------------------
     # Step 2: Calculate total copays
@@ -3859,7 +3859,7 @@ function.CCDFcopay<-function(data
     
     # Apply asset test
     subset<-temp$totalassets > temp$AssetTest
-    temp$totcopay[subset]<-NA_real_
+    temp$FTcopay[subset]<-NA_real_
     
     #----------------------------------
     # Step 2: Calculate total copays
@@ -3969,7 +3969,7 @@ function.CCDFcopay<-function(data
     
     # Apply asset test
     subset<-temp$totalassets > temp$AssetTest
-    temp$totcopay[subset]<-NA_real_
+    temp$FTcopay[subset]<-NA_real_
     
     #----------------------------------
     # Step 2: Calculate total copays
@@ -4056,7 +4056,7 @@ function.CCDFcopay<-function(data
     
     # Apply asset test
     subset<-temp$totalassets > temp$AssetTest
-    temp$totcopay[subset]<-NA_real_
+    temp$FTcopay[subset]<-NA_real_
     
     #----------------------------------
     # Step 2: Calculate total copays
@@ -4139,7 +4139,7 @@ function.CCDFcopay<-function(data
     
     # Apply asset test
     subset<-temp$totalassets > temp$AssetTest
-    temp$totcopay[subset]<-NA_real_
+    temp$FTcopay[subset]<-NA_real_
     
     #----------------------------------
     # Step 2: Calculate total copays
@@ -4225,7 +4225,7 @@ function.CCDFcopay<-function(data
     
     # Apply asset test
     subset<-temp$totalassets > temp$AssetTest
-    temp$totcopay[subset]<-NA_real_
+    temp$FTcopay[subset]<-NA_real_
     
     #----------------------------------
     # Step 2: Calculate total copays
@@ -4351,7 +4351,7 @@ function.CCDFcopay<-function(data
     
     # Apply asset test
     subset<-temp$totalassets > temp$AssetTest
-    temp$totcopay[subset]<-NA_real_
+    temp$FTcopay[subset]<-NA_real_
     
     
     
@@ -4458,7 +4458,7 @@ function.CCDFcopay<-function(data
     #View(temp[,c("countyortownName", "FTcopay", "numkidsincare0to4", "numkidsincare5to12", "SCHcopay", "SUMcopay", "netexp.childcare")])
     # Apply asset test
     subset<-temp$totalassets > temp$AssetTest
-    temp$totcopay[subset]<-NA_real_
+    temp$FTcopay[subset]<-NA_real_
     
     #----------------------------------
     # Step 2: Calculate total copays
@@ -4540,7 +4540,7 @@ function.CCDFcopay<-function(data
     
     # Apply asset test
     subset<-temp$totalassets > temp$AssetTest
-    temp$totcopay[subset]<-NA_real_
+    temp$FTcopay[subset]<-NA_real_
     
     #----------------------------------
     # Step 2: Calculate total copays
@@ -4677,7 +4677,7 @@ function.CCDFcopay<-function(data
     
     # Apply asset test
     subset<-temp$totalassets > temp$AssetTest
-    temp$totcopay[subset]<-NA_real_
+    temp$FTcopay[subset]<-NA_real_
     
     #----------------------------------
     # Step 2: Calculate total copays
@@ -4762,7 +4762,7 @@ function.CCDFcopay<-function(data
     
     # Apply asset test
     subset<-temp$totalassets > temp$AssetTest
-    temp$totcopay[subset]<-NA_real_
+    temp$FTcopay[subset]<-NA_real_
     
     #----------------------------------
     # Step 2: Calculate total copays
@@ -4845,7 +4845,7 @@ function.CCDFcopay<-function(data
     
     # Apply asset test
     subset<-temp$totalassets > temp$AssetTest
-    temp$totcopay[subset]<-NA_real_
+    temp$FTcopay[subset]<-NA_real_
     
     #----------------------------------
     # Step 2: Calculate total copays
@@ -4940,7 +4940,7 @@ function.CCDFcopay<-function(data
     
     # Apply asset test
     subset<-temp$totalassets > temp$AssetTest
-    temp$totcopay[subset]<-NA_real_
+    temp$FTcopay[subset]<-NA_real_
     
     #----------------------------------
     # Step 2: Calculate total copays
@@ -5049,7 +5049,7 @@ function.CCDFcopay<-function(data
     
     # Apply asset test
     subset<-temp$totalassets > temp$AssetTest
-    temp$totcopay[subset]<-NA_real_
+    temp$FTcopay[subset]<-NA_real_
     
     #----------------------------------
     # Step 2: Calculate total copays
@@ -5166,7 +5166,7 @@ function.CCDFcopay<-function(data
     
     # Apply asset test
     subset<-temp$totalassets > temp$AssetTest
-    temp$totcopay[subset]<-NA_real_
+    temp$FTcopay[subset]<-NA_real_
     
     #----------------------------------
     # Step 2: Calculate total copays
@@ -5285,7 +5285,7 @@ function.CCDFcopay<-function(data
     
     # Apply asset test
     subset<-temp$totalassets > temp$AssetTest
-    temp$totcopay[subset]<-NA_real_
+    temp$FTcopay[subset]<-NA_real_
     
     #----------------------------------
     # Step 2: Calculate total copays
@@ -5639,7 +5639,7 @@ function.CCDFcopay<-function(data
     
     # Apply asset test
     subset<-temp$totalassets > temp$AssetTest
-    temp$totcopay[subset]<-NA_real_
+    temp$FTcopay[subset]<-NA_real_
     
     
     
@@ -5738,7 +5738,7 @@ function.CCDFcopay<-function(data
     
     # Apply asset test
     subset<-temp$totalassets > temp$AssetTest
-    temp$totcopay[subset]<-NA_real_
+    temp$FTcopay[subset]<-NA_real_
     
     #----------------------------------
     # Step 2: Calculate total copays
@@ -6540,7 +6540,7 @@ function.CCDFcopay<-function(data
     
     # Apply asset test
     subset<-temp$totalassets > temp$AssetTest
-    temp$totcopay[subset]<-NA_real_
+    temp$FTcopay[subset]<-NA_real_
     
     #----------------------------------
     # Step 2: Calculate total copays
@@ -6630,7 +6630,7 @@ function.CCDFcopay<-function(data
     
     # Apply asset test
     subset<-temp$totalassets > temp$AssetTest
-    temp$totcopay[subset]<-NA_real_
+    temp$FTcopay[subset]<-NA_real_
     
     #----------------------------------
     # Step 2: Calculate total copays
@@ -6751,7 +6751,7 @@ function.CCDFcopay<-function(data
     
     # Apply asset test
     subset<-temp$totalassets > temp$AssetTest
-    temp$totcopay[subset]<-NA_real_
+    temp$FTcopay[subset]<-NA_real_
     
     #----------------------------------
     # Step 2: Calculate total copays
