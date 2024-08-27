@@ -4225,7 +4225,7 @@ function.CCDFcopay<-function(data
     
     # Apply asset test
     subset<-temp$totalassets > temp$AssetTest
-    temp$FTcopay[subset]<-NA_real_
+    temp$weeklyCopay[subset]<-NA_real_
     
     #----------------------------------
     # Step 2: Calculate total copays
