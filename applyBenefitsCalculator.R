@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 
 # This program reads-in input data and runs Benefits Calculator
 
@@ -125,7 +125,7 @@ data2<-data %>%
 write.csv(data2, file = paste0(current_directory,"/output/results_",PROJECT, ".csv"), row.names = FALSE)
 
 
-=======
+
 
 # This program reads in input data and runs Benefits Calculator
 
@@ -252,4 +252,3 @@ data2<-data %>%
 write.csv(data2, file = paste0(current_directory,"/output/results_",PROJECT, ".csv"), row.names = FALSE)
 
 
->>>>>>> 07cfbb985dbc8b63d57423d9fde6df078532bc79
