@@ -683,7 +683,7 @@ function.snapBenefit<-function(data){
     data$fail_netIncomeTest_Elder_Dis<-(data$disabled_count>0 | data$elderly_count>0) & data$netincome>data$NetIncomeEligibility_Elder_Dis
 
     # Determine if the family FAILS asset tests
-    data$fail_assetTest_regular<-(data$disabled_count==0 & data$elderly_count==0) & data$totalassets>data$AssetTest_nonelddis & (data$not_categ_elig_tanf==TRUE & data$not_categ_elig_ssi==TRUE) # regular asset test for families WITHOUT elderly/disabled
+    data$fail_assetTest_regular<-(data$disabled_count==0 & data$elderly_count==0) & data$totalassets>=data$AssetTest_nonelddis & (data$not_categ_elig_tanf==TRUE & data$not_categ_elig_ssi==TRUE) # regular asset test for families WITHOUT elderly/disabled
     data$fail_assetTest_Elderly_Disabled_under200FPL<-(data$disabled_count>0 | data$elderly_count>0) & data$income.gross <= 2*data$FPL & data$totalassets>data$AssetTest_Elder_Dis_under200FPL & (data$not_categ_elig_tanf==TRUE & data$not_categ_elig_ssi==TRUE) # regular asset test for families WITH elderly/disabled
     data$fail_assetTest_Elderly_Disabled_over200FPL<-(data$disabled_count>0 | data$elderly_count>0) & data$income.gross > 2*data$FPL & data$totalassets>data$AssetTest_Elder_Dis_over200FPL & (data$not_categ_elig_tanf==TRUE & data$not_categ_elig_ssi==TRUE) # special asset test for families WITH elderly/disabled and income > 200% FPL
 
