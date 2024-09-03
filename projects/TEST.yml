@@ -14,9 +14,9 @@ Year: [2024]
 
 # Age of each member of the household
 
-agePerson1: [30]
+agePerson1: [25]
 
-agePerson2: [8]
+agePerson2: [NA]
 
 agePerson3: [NA]
 
@@ -105,16 +105,16 @@ ssdiPIA6: [0]
 
 # Geographical location in the `Fulton County, GA' format (put 'all' of you want to add each county in the US)
 
-locations: ['all']
+locations: ['Arkansas County, AR']
 
 
 # Income vector from income_start to income_end with income_increase_by intervals
 
-income_start: 1000
+income_start: 0
 
 income_end: 100000
 
-income_increase_by: 30000
+income_increase_by: 1000
 
 
 # Income from different sources
@@ -138,7 +138,7 @@ ownorrent: ['rent']
 
 # Assets  
 
-assets.cash: [0]
+assets.cash: [2750]
 
 assets.car1: [0]
   
@@ -166,31 +166,31 @@ contelig.headstart: false
 
 contelig.earlyheadstart: false
 
-contelig.ccdf: true
+contelig.ccdf: false
 
 budget.ALICE: survivalforcliff
 
 # Transfer programs switches
 
-APPLY_CHILDCARE: true
+APPLY_CHILDCARE: false
 
-APPLY_HEADSTART: true
+APPLY_HEADSTART: false
 
-APPLY_CCDF: true
+APPLY_CCDF: false
 
-APPLY_PREK: true
+APPLY_PREK: false
 
 APPLY_LIHEAP: false
 
-APPLY_HEALTHCARE: true
+APPLY_HEALTHCARE: false
 
-APPLY_MEDICAID_ADULT: true
+APPLY_MEDICAID_ADULT: false
 
-APPLY_MEDICAID_CHILD: true
+APPLY_MEDICAID_CHILD: false
 
-APPLY_ACA: true
+APPLY_ACA: false
 
-APPLY_SECTION8: true 
+APPLY_SECTION8: false
 
 APPLY_RAP: false
 
@@ -198,23 +198,23 @@ APPLY_FRSP: false
 
 APPLY_SNAP: true
 
-APPLY_SLP: true
+APPLY_SLP: false
 
-APPLY_WIC: true
+APPLY_WIC: false
 
-APPLY_EITC: true
+APPLY_EITC: false
 
-APPLY_TAXES: true
+APPLY_TAXES: false
 
-APPLY_CTC: true
+APPLY_CTC: false
 
-APPLY_CDCTC: true
+APPLY_CDCTC: false
 
 APPLY_FATES: false
 
-APPLY_TANF: true
+APPLY_TANF: false
 
-APPLY_SSI: true
+APPLY_SSI: false
 
-APPLY_SSDI: true
+APPLY_SSDI: false
 
