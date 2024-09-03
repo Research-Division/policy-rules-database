@@ -90,7 +90,8 @@ UpdateGitHub <- function(repo=getwd(), untracked=TRUE, stage=TRUE, commit=TRUE, 
       }
       add(repo, unlist(status()["untracked"]))
       writeLines(paste0("Items have been Staged."))
-      commit(message = paste(Sys.time(), "Initial commit", sep = " - "))
+      #commit(message = paste(Sys.time(), "Initial commit", sep = " - "))
+      commit(message = readline(prompt = "Please enter your commit message: "))
       writeLines(paste0("Items have been Committed."))
       push(credentials = credentials)
       writeLines(paste0("Items have been Pushed."))
