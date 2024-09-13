@@ -608,10 +608,7 @@ function.snapBenefit<-function(data){
     # Step I: Calculate Earned Income Deduction
     data$EarnedIncomeDeduction<-0.2*data$income #earned income only
 
-    # Step II: Calculate adjusted income
-    data$adjustedincome<-rowMaxs(cbind(data$income.gross-data$EarnedIncomeDeduction-12*data$StandardDeduction-data$netexp.childcare,0),na.rm=TRUE)
-
-    # Step III: Calculate Utility Deductions
+    # Step II: Calculate Utility Deductions
     data$UtilityDeduction<-0
     subset<-which((data$netexp.utilities>0 | data$HeatandEatState=="Yes") & data$HCSUA=="Mandatory") #liheap >0 should be in list of "|" statements runs after this program so will always be 0
     data$UtilityDeduction[subset]<-12*data$HCSUAValue[subset]
@@ -620,7 +617,7 @@ function.snapBenefit<-function(data){
     data$UtilityDeduction[subset]<-rowMaxs(cbind(12*data$HCSUAValue[subset],data$netexp.utilities[subset]))
 
 
-    # # Step V: Calculate Medical Expense Deduction (those on SSI,SSDI, and elderly can deduct their medical expenses)
+    # # Step III: Calculate Medical Expense Deduction (those on SSI,SSDI, and elderly can deduct their medical expenses)
     data$MedicalDeduction.person1<-case_when( (data$value.ssiAdlt1>0 | data$ssdiPIA1>0 | data$agePerson1 >60) ~ data$oop.add_for_elderlyordisabled
                                              , TRUE ~ 0)
     data$MedicalDeduction.person2<-case_when( (data$value.ssiAdlt2>0 | data$ssdiPIA2>0 | data$agePerson2 >60) ~ data$oop.add_for_elderlyordisabled
@@ -651,11 +648,15 @@ function.snapBenefit<-function(data){
       mutate(MedicalDeduction = MedicalDeduction.person1+MedicalDeduction.person2+MedicalDeduction.person3+MedicalDeduction.person4+MedicalDeduction.person5+MedicalDeduction.person6+MedicalDeduction.person7+MedicalDeduction.person8+MedicalDeduction.person9+MedicalDeduction.person10+MedicalDeduction.person11+MedicalDeduction.person12)
 
     data$MedicalDeduction<-rowMaxs(cbind(data$MedicalDeduction-data$MedicalExpenseDeductionFloor*12,0)) # Floor
-
-    # Step IV: Calculate Net Income
-    data$netincome<-rowMaxs(cbind(0,data$adjustedincome-rowMins(cbind(data$netexp.rentormortgage + data$UtilityDeduction + data$MedicalDeduction - 0.5*data$adjustedincome,data$MaxShelterDeduction*12))))
-
-    # Step V-VI: Determine eligibility and calculate SNAP value
+    
+    # Step IV: Calculate adjusted income (All deductions except housing)
+    data$adjustedincome<-rowMaxs(cbind(data$income.gross-(data$EarnedIncomeDeduction +(12*data$StandardDeduction) + data$netexp.childcare + data$MedicalDeduction),0),na.rm=TRUE)
+    
+    
+    # Step V: Calculate Net Income (Deduct housing expenses)
+    data$netincome<-rowMaxs(cbind(0,(data$adjustedincome)-rowMins(cbind(rowMaxs(cbind((data$netexp.rentormortgage + data$UtilityDeduction) - 0.5*data$adjustedincome,0)),data$MaxShelterDeduction*12))))
+    
+    # Step VI-VII: Determine eligibility and calculate SNAP value
 
     #adjust for NY special rule that says those with dependent care expenses have a gross threhsold of 200% of FPL threshold ; others have 150%FPL)
     data$GrossIncomeEligibility[data$stateFIPS==36 & data$netexp.childcare >0]<- data$FPL[data$stateFIPS==36 & data$netexp.childcare >0]*2
@@ -676,8 +677,12 @@ function.snapBenefit<-function(data){
 
     data$not_categ_elig_tanf<-data$value.tanf==0 # if family doesn't receive TANF
 
-    # Determine if the family FAILS income tests
-    data$fail_grossIncomeTest<-data$income.gross>data$GrossIncomeEligibility & (data$not_categ_elig_tanf==TRUE & data$not_categ_elig_ssi==TRUE)
+    # Determine if the family FAILS income test
+    if (unique(data$elderly_count==0) & unique(data$disabled_count==0)){
+      data$fail_grossIncomeTest<-data$income.gross>data$GrossIncomeEligibility & (data$not_categ_elig_tanf==TRUE & data$not_categ_elig_ssi==TRUE)
+    } else {
+      data$fail_grossIncomeTest<-data$income.gross>2*data$FPL & (data$not_categ_elig_tanf==TRUE & data$not_categ_elig_ssi==TRUE) #Gross income eligibility for elderly and disable individuals is two times FPL
+    }
     #some states waive net income tests
     data$fail_netIncomeTest_nonelddis<-(data$disabled_count==0 & data$elderly_count==0) & data$netincome>data$NetIncomeEligibility_nonelddis
     data$fail_netIncomeTest_Elder_Dis<-(data$disabled_count>0 | data$elderly_count>0) & data$netincome>data$NetIncomeEligibility_Elder_Dis
