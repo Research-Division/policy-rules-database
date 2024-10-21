@@ -653,8 +653,13 @@ function.snapBenefit<-function(data){
     data$adjustedincome<-rowMaxs(cbind(data$income.gross-(data$EarnedIncomeDeduction +(12*data$StandardDeduction) + data$netexp.childcare + data$MedicalDeduction),0),na.rm=TRUE)
     
     
-    # Step V: Calculate Net Income (Deduct housing expenses)
+    # Step V: Calculate Net Income (Deduct housing expenses) 
+    # There is a special SNAP Rule that states: For a household with an elderly or disabled member, all shelter costs over half of the household's income may be deducted. 
+    if (unique(data$elderly_count==0) & unique(data$disabled_count==0)){
     data$netincome<-rowMaxs(cbind(0,(data$adjustedincome)-rowMins(cbind(rowMaxs(cbind((data$netexp.rentormortgage + data$UtilityDeduction) - 0.5*data$adjustedincome,0)),data$MaxShelterDeduction*12))))
+    } else {
+    data$netincome<-rowMaxs(cbind(0,data$adjustedincome - (rowMaxs(cbind(((data$netexp.rentormortgage + data$UtilityDeduction)-0.5*data$adjustedincome),0)))))
+    }
     
     # Step VI-VII: Determine eligibility and calculate SNAP value
 
