@@ -655,12 +655,9 @@ function.snapBenefit<-function(data){
     
     # Step V: Calculate Net Income (Deduct housing expenses) 
     # There is a special SNAP Rule that states: For a household with an elderly or disabled member, all shelter costs over half of the household's income may be deducted. 
-    if (unique(data$elderly_count==0) & unique(data$disabled_count==0)){
-    data$netincome<-rowMaxs(cbind(0,(data$adjustedincome)-rowMins(cbind(rowMaxs(cbind((data$netexp.rentormortgage + data$UtilityDeduction) - 0.5*data$adjustedincome,0)),data$MaxShelterDeduction*12))))
-    } else {
-    data$netincome<-rowMaxs(cbind(0,data$adjustedincome - (rowMaxs(cbind(((data$netexp.rentormortgage + data$UtilityDeduction)-0.5*data$adjustedincome),0)))))
-    }
-    
+    data$netincome[data$elderly_count == 0 & data$disabled_count == 0]<-rowMaxs(cbind(0,(data$adjustedincome)-rowMins(cbind(rowMaxs(cbind((data$netexp.rentormortgage + data$UtilityDeduction) - 0.5*data$adjustedincome,0)),data$MaxShelterDeduction*12))))
+    data$netincome[data$elderly_count != 0 | data$disabled_count != 0] <- rowMaxs(cbind(0,data$adjustedincome - (rowMaxs(cbind(((data$netexp.rentormortgage + data$UtilityDeduction)-0.5*data$adjustedincome),0)))))
+  
     # Step VI-VII: Determine eligibility and calculate SNAP value
 
     #adjust for NY special rule that says those with dependent care expenses have a gross threhsold of 200% of FPL threshold ; others have 150%FPL)
@@ -683,11 +680,10 @@ function.snapBenefit<-function(data){
     data$not_categ_elig_tanf<-data$value.tanf==0 # if family doesn't receive TANF
 
     # Determine if the family FAILS income test
-    if (unique(data$elderly_count==0) & unique(data$disabled_count==0)){
-      data$fail_grossIncomeTest<-data$income.gross>data$GrossIncomeEligibility & (data$not_categ_elig_tanf==TRUE & data$not_categ_elig_ssi==TRUE)
-    } else {
-      data$fail_grossIncomeTest<-data$income.gross>2*data$FPL & (data$not_categ_elig_tanf==TRUE & data$not_categ_elig_ssi==TRUE) #Gross income eligibility for elderly and disable individuals is two times FPL
-    }
+    data$fail_grossIncomeTest[data$elderly_count == 0 & data$disabled_count == 0]<-data$income.gross>data$GrossIncomeEligibility & (data$not_categ_elig_tanf==TRUE & data$not_categ_elig_ssi==TRUE)
+    data$fail_grossIncomeTest[data$elderly_count != 0 | data$disabled_count != 0]<-data$income.gross>2*data$FPL & (data$not_categ_elig_tanf==TRUE & data$not_categ_elig_ssi==TRUE) #Gross income eligibility for elderly and disable individuals is two times FPL
+    
+  
     #some states waive net income tests
     data$fail_netIncomeTest_nonelddis<-(data$disabled_count==0 & data$elderly_count==0) & data$netincome>data$NetIncomeEligibility_nonelddis
     data$fail_netIncomeTest_Elder_Dis<-(data$disabled_count>0 | data$elderly_count>0) & data$netincome>data$NetIncomeEligibility_Elder_Dis
