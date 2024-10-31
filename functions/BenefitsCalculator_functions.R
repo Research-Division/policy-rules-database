@@ -1773,7 +1773,7 @@ BenefitsCalculator.OtherBenefits<-function(data, APPLY_TANF, APPLY_SSDI, APPLY_S
 # FOOD and HOUSING----
 # (Housing Vouchers (Section 8, RAP), SNAP, SLP, WIC)
 
-BenefitsCalculator.FoodandHousing<-function(data, APPLY_SECTION8=FALSE, APPLY_LIHEAP=FALSE, APPLY_SNAP=FALSE, APPLY_SLP=FALSE, APPLY_WIC=FALSE, APPLY_RAP=FALSE, APPLY_FRSP=FALSE, frsp_share = 0.3){
+BenefitsCalculator.FoodandHousing<-function(data, APPLY_SECTION8=FALSE, APPLY_LIHEAP=FALSE, APPLY_SNAP=FALSE, APPLY_SLP=FALSE, APPLY_WIC=FALSE, APPLY_RAP=FALSE, APPLY_FRSP=FALSE, frsp_share = 0.3, CareerMAP=FALSE){
 
 #some programs rely on liheap, but liheap is run last
   data$value.liheap<-0
@@ -1862,7 +1862,8 @@ BenefitsCalculator.FoodandHousing<-function(data, APPLY_SECTION8=FALSE, APPLY_LI
     
   }
 
-  }}}
+  }}} 
+ 
   # SNAP
   if(APPLY_SNAP==FALSE){
     data$value.snap<-0
