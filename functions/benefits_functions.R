@@ -577,7 +577,7 @@ function.ssiBenefit<-function(data){
 # Supplemental Nutrition Assistance Program (SNAP)----
 
 function.snapBenefit<-function(data){
-
+  test.snap <<- data # data <- test.snap
   # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
   years<-unique(data$ruleYear) # years in data set
   yearsinexpdata<- unique(snapData$ruleYear) # rule years in benefit data
@@ -655,9 +655,9 @@ function.snapBenefit<-function(data){
     
     # Step V: Calculate Net Income (Deduct housing expenses) 
     # There is a special SNAP Rule that states: For a household with an elderly or disabled member, all shelter costs over half of the household's income may be deducted. 
-    data$netincome[data$elderly_count == 0 & data$disabled_count == 0]<-rowMaxs(cbind(0,(data$adjustedincome)-rowMins(cbind(rowMaxs(cbind((data$netexp.rentormortgage + data$UtilityDeduction) - 0.5*data$adjustedincome,0)),data$MaxShelterDeduction*12))))
-    data$netincome[data$elderly_count != 0 | data$disabled_count != 0] <- rowMaxs(cbind(0,data$adjustedincome - (rowMaxs(cbind(((data$netexp.rentormortgage + data$UtilityDeduction)-0.5*data$adjustedincome),0)))))
-  
+    data$netincome[data$elderly_count == 0 & data$disabled_count == 0]<-rowMaxs(cbind(0,(data$adjustedincome[data$elderly_count == 0 & data$disabled_count == 0])-rowMins(cbind(rowMaxs(cbind((data$netexp.rentormortgage[data$elderly_count == 0 & data$disabled_count == 0] + data$UtilityDeduction[data$elderly_count == 0 & data$disabled_count == 0]) - 0.5*data$adjustedincome[data$elderly_count == 0 & data$disabled_count == 0],0)),data$MaxShelterDeduction[data$elderly_count == 0 & data$disabled_count == 0]*12))))
+    data$netincome[data$elderly_count != 0 | data$disabled_count != 0] <- rowMaxs(cbind(0,data$adjustedincome[data$elderly_count != 0 | data$disabled_count != 0] - (rowMaxs(cbind(((data$netexp.rentormortgage[data$elderly_count != 0 | data$disabled_count != 0] + data$UtilityDeduction[data$elderly_count != 0 | data$disabled_count != 0])-0.5*data$adjustedincome[data$elderly_count != 0 | data$disabled_count != 0]),0)))))
+     
     # Step VI-VII: Determine eligibility and calculate SNAP value
 
     #adjust for NY special rule that says those with dependent care expenses have a gross threhsold of 200% of FPL threshold ; others have 150%FPL)
@@ -680,10 +680,10 @@ function.snapBenefit<-function(data){
     data$not_categ_elig_tanf<-data$value.tanf==0 # if family doesn't receive TANF
 
     # Determine if the family FAILS income test
-    data$fail_grossIncomeTest[data$elderly_count == 0 & data$disabled_count == 0]<-data$income.gross>data$GrossIncomeEligibility & (data$not_categ_elig_tanf==TRUE & data$not_categ_elig_ssi==TRUE)
-    data$fail_grossIncomeTest[data$elderly_count != 0 | data$disabled_count != 0]<-data$income.gross>2*data$FPL & (data$not_categ_elig_tanf==TRUE & data$not_categ_elig_ssi==TRUE) #Gross income eligibility for elderly and disable individuals is two times FPL
+    #Gross income eligibility for elderly and disable individuals is two times FPL
+    data$fail_grossIncomeTest[data$elderly_count == 0 & data$disabled_count == 0]<-data$income.gross[data$elderly_count == 0 & data$disabled_count == 0]>data$GrossIncomeEligibility[data$elderly_count == 0 & data$disabled_count == 0] & (data$not_categ_elig_tanf==TRUE & data$not_categ_elig_ssi==TRUE)
+    data$fail_grossIncomeTest[data$elderly_count != 0 | data$disabled_count != 0]<-data$income.gross[data$elderly_count != 0 | data$disabled_count != 0]>2*data$FPL[data$elderly_count != 0 | data$disabled_count != 0] & (data$not_categ_elig_tanf==TRUE & data$not_categ_elig_ssi==TRUE) 
     
-  
     #some states waive net income tests
     data$fail_netIncomeTest_nonelddis<-(data$disabled_count==0 & data$elderly_count==0) & data$netincome>data$NetIncomeEligibility_nonelddis
     data$fail_netIncomeTest_Elder_Dis<-(data$disabled_count>0 | data$elderly_count>0) & data$netincome>data$NetIncomeEligibility_Elder_Dis
