@@ -1073,6 +1073,7 @@ function.careerMap<-function(data, data_init){
   subset<-data$Year %in% seq(minYear, minYear + careerMapLength)
   
   data$netexp.rentormortgage[subset]<-temp$netexp.rentormortgage
+  data$netexp.housing[subset] <- temp$netexp.rentormortgage + temp$netexp.utilities
   data$value.section8[subset]<-temp$value.section8
   data$value.hhf[subset]<-temp$value.hhf
   
