@@ -1023,28 +1023,37 @@ function.careerMap<-function(data, data_init){
   
   temp <-data[data$Year %in% seq(minYear, minYear + careerMapLength), ]
   
-  # Calculate initial value of selected benefits
-  temp$value.snap_max<-data_init$value.snap[1]
-  temp$value.tanf_max<-data_init$value.tanf[1]
-  #  temp$netexp.childcare_min<-data_init$netexp.childcare[1]
-  # temp$netexp.healthcare_min<-data_init$netexp.healthcare[1]
+  tempTanf <-left_join(temp, tanfData, by=c("stateFIPS", "famsize")) # get the Max benefit since DC wants us to always use max amount possible
+  tempSnap <-left_join(temp, snapData, by=c("ruleYear","stateFIPS", "famsize")) # get the Max benefit since DC wants us to always use max amount possible
+  
+  # Calculate initial value of selected benefits.These lines condition on there being SNAP received or TANF received in the initial period. 
+  # ...do not want to apply HHF for SNAP or TANF if SNAP or TANF are not a chosen benefit.  
+  if(data_init$value.snap[1] > 0){ 
+    temp$value.snap_max<-tempSnap$MaxBenefit * 12 
+  } else{temp$value.snap_max<-data_init$value.snap[1]}
+  
+  if(data_init$value.tanf > 0) { 
+    temp$value.tanf_max<-tempTanf$Maxbenefit * 12 
+  } else(temp$value.tanf_max<-data_init$value.tanf[1])
+  
+  # set housing value for benefits calculation
   
   # SNAP HHF
   temp$hhf_snap_full<-rowMaxs(cbind(temp$value.snap_max-temp$value.snap,0)) # full HHF
-  temp$hhf_snap_rent<-rowMins(cbind(temp$hhf_snap_full,temp$netexp.rentormortgage)) # rent reduction
+  temp$hhf_snap_rent<-rowMins(cbind(temp$hhf_snap_full,temp$netexp.housing)) # rent reduction
   temp$hhf_snap_cash<-temp$hhf_snap_full-temp$hhf_snap_rent # cash
   
-  # Reduce rent and increase FRSP value by the amount of HHF
-  temp$netexp.rentormortgage<-temp$netexp.rentormortgage-temp$hhf_snap_rent
-  temp$value.section8<-temp$value.section8+temp$hhf_snap_rent
+  # Reduce housing and increase FRSP value by the amount of HHF
+  temp$netexp.housing <- temp$netexp.housing - temp$hhf_snap_rent
+  temp$value.section8 <-temp$value.section8+temp$hhf_snap_rent
   
   # TANF HHF
   temp$hhf_tanf_full<-rowMaxs(cbind(temp$value.tanf_max-temp$value.tanf,0)) # full HHF
-  temp$hhf_tanf_rent<-rowMins(cbind(temp$hhf_tanf_full,temp$netexp.rentormortgage)) # rent reduction
+  temp$hhf_tanf_rent<-rowMins(cbind(temp$hhf_tanf_full,temp$netexp.housing)) # rent reduction
   temp$hhf_tanf_cash<-temp$hhf_tanf_full-temp$hhf_tanf_rent # cash
   
   # Reduce rent and increase FRSP value by the amount of HHF
-  temp$netexp.rentormortgage<-temp$netexp.rentormortgage-temp$hhf_tanf_rent
+  temp$netexp.housing <-temp$netexp.housing-temp$hhf_tanf_rent
   temp$value.section8<-temp$value.section8+temp$hhf_tanf_rent
   
   # Childcare expense HHF, applied only if receiving CCDF
@@ -1062,7 +1071,7 @@ function.careerMap<-function(data, data_init){
     temp$hhf_healthcare_full <- temp$hhf_healthcare_full - temp$oop.health.family.ALICE
     
   } else{temp$hhf_healthcare_full <- 0}
-
+  
   # Total value of cash HHF
   temp$value.hhf<-temp$hhf_snap_cash+temp$hhf_tanf_cash+temp$hhf_childcare_full+temp$hhf_healthcare_full
   
@@ -1072,10 +1081,11 @@ function.careerMap<-function(data, data_init){
   # Override selected values up to 5 years
   subset<-data$Year %in% seq(minYear, minYear + careerMapLength)
   
-  data$netexp.rentormortgage[subset]<-temp$netexp.rentormortgage
-  data$netexp.housing[subset] <- temp$netexp.rentormortgage + temp$netexp.utilities
+  data$netexp.rentormortgage[subset]<-temp$netexp.housing
+  data$netexp.housing[subset] <- temp$netexp.housing
   data$value.section8[subset]<-temp$value.section8
   data$value.hhf[subset]<-temp$value.hhf
+  
   
   return(data)
   
