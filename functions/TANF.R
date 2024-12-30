@@ -40,12 +40,24 @@
 
 
 function.tanfBenefit<-function(data){
-  
   data$tanfValue<-0
   data$value.tanf <-0  
+  
 
-  if(min(data$ruleYear)<=2024){
-   
+  if(unique(data$ruleYear<=2025 & data$ruleYear>=2022)){
+    
+    #Match the entered ruleYear to ruleYear in the TANF data. If there isnt a match then match to the closest ruleYear
+    RuleYearInput<-unique(data$ruleYear) #isolate the rule year that was inputted by the user
+    tanfData<-tanfData%>%
+      group_by(stateName)%>%
+      filter(RuleYear<=RuleYearInput)%>% #drop any data from the TANF df that after the entered rule year
+      mutate(RuleYearDiff = c(RuleYearInput)-RuleYear)%>% #calculate the diff between the rule years in the TANF df and the entered rule year
+      filter(RuleYearDiff == min(RuleYearDiff))%>% #keep the most recent data 
+      select(-c(RuleYearDiff))
+ 
+    
+    
+    
     # Alabama----
   state_code=1 
   if(state_code %in% unique(data$stateFIPS)){
@@ -58,6 +70,8 @@ function.tanfBenefit<-function(data){
     
     # step 2
     temp<-left_join(temp, tanfData, by=c("stateFIPS", "famsize"))
+    
+    
     
     # Step 3: add gift income
     temp$income=temp$income+temp$income.gift 
@@ -769,6 +783,7 @@ function.tanfBenefit<-function(data){
     
     # filter by state code
     temp<-data[data$stateFIPS==9,]
+    
     # join w/ tanfdata
     temp<-left_join(temp, tanfData, by=c("stateFIPS", "famsize"))
     
@@ -1005,7 +1020,8 @@ function.tanfBenefit<-function(data){
   if(state_code %in% unique(data$stateFIPS)){ # make sure that state is in the list
     
     # filter based on the state code & join the data w/ the tanf information 
-    
+    test<<-data
+    data<-test
     temp<-data[data$stateFIPS==11,]
     
     temp<-left_join(temp, tanfData, by=c("stateFIPS", "famsize"))
@@ -1031,7 +1047,18 @@ function.tanfBenefit<-function(data){
     temp$net.income<-temp$net.income+(temp$value.ssdi)
     # Step II: Calculate value of the benefit
     temp$tanfValue<-0
+    #Standard Asset test
     subset<-temp$totalassets<temp$AssetTest
+    
+    #Asset Test for families with elderly / disabled members 
+    #create indicators for elderly / disabled 
+    temp$disabled_count<-rowSums(cbind(data$disability1, data$disability2, data$disability3, data$disability4, data$disability5, data$disability6, data$disability7, data$disability8, data$disability9, data$disability10, data$disability11, data$disability12)==1, na.rm=TRUE)
+    temp$elderly_count<-rowSums(cbind(data$agePerson1, data$agePerson2, data$agePerson3, data$agePerson4, data$agePerson5, data$agePerson6, data$agePerson7, data$agePerson8, data$agePerson9, data$agePerson10, data$agePerson11, data$agePerson12)>60, na.rm=TRUE)
+    
+    temp$AssetTest[temp$elderly_count>=1 | temp$disabled_count>=1]<-4500 
+    
+    subset<-temp$totalassets[temp$elderly_count>=1 | temp$disabled_count>=1]<temp$AssetTest[temp$elderly_count>=1 | temp$disabled_count>=1]
+    
     temp$tanfValue[subset]<-rowMaxs(cbind(12*temp$Maxbenefit[subset] - temp$net.income[subset],0))
     
     # Apply gross income test (if applicable) 
