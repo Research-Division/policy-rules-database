@@ -4,7 +4,7 @@ function.CCDFcopay<-function(data
                              , contelig.ccdf = TRUE
 ){
   
-  if(min(data$ruleYear)<=2024){
+  if(min(data$ruleYear)<=2025){
     
   
   data$income <- data$income+data$income.gift
@@ -117,9 +117,8 @@ function.CCDFcopay<-function(data
       expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
       expandPastMiss2<-expandPastMiss2%>%
         group_by(Year)%>%
-        mutate(minyeardiff = min(yeardiff))
-      expandPastMiss2<-expandPastMiss2 %>%
-        filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+        filter(yeardiff<0)%>%
+        filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
     }  # Attach copied future, historical, and missing benefit data
     if(length(futureYrs)>0) {ccdfData_AL<-ccdfData_AL %>% rbind(expand)}
     if(length(nonFutureYrs)>0) {ccdfData_AL<-ccdfData_AL %>% rbind(expandPastMiss2)}
@@ -214,9 +213,8 @@ function.CCDFcopay<-function(data
       expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
       expandPastMiss2<-expandPastMiss2%>%
         group_by(Year)%>%
-        mutate(minyeardiff = min(yeardiff))
-      expandPastMiss2<-expandPastMiss2 %>%
-        filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+        filter(yeardiff<0)%>%
+        filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
     }  # Attach copied future, historical, and missing benefit data
     if(length(futureYrs)>0) {ccdfData_AK<-ccdfData_AK %>% rbind(expand)}
     if(length(nonFutureYrs)>0) {ccdfData_AK<-ccdfData_AK %>% rbind(expandPastMiss2)}
@@ -383,9 +381,8 @@ function.CCDFcopay<-function(data
       expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
       expandPastMiss2<-expandPastMiss2%>%
         group_by(Year)%>%
-        mutate(minyeardiff = min(yeardiff))
-      expandPastMiss2<-expandPastMiss2 %>%
-        filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+        filter(yeardiff<0)%>%
+        filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
     }  # Attach copied future, historical, and missing benefit data
     if(length(futureYrs)>0) {ccdfData_AZ<-ccdfData_AZ %>% rbind(expand)}
     if(length(nonFutureYrs)>0) {ccdfData_AZ<-ccdfData_AZ %>% rbind(expandPastMiss2)}
@@ -474,9 +471,8 @@ function.CCDFcopay<-function(data
       expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
       expandPastMiss2<-expandPastMiss2%>%
         group_by(Year)%>%
-        mutate(minyeardiff = min(yeardiff))
-      expandPastMiss2<-expandPastMiss2 %>%
-        filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+        filter(yeardiff<0)%>%
+        filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
     }  # Attach copied future, historical, and missing benefit data
     if(length(futureYrs)>0) {ccdfData_AR<-ccdfData_AR %>% rbind(expand)}
     if(length(nonFutureYrs)>0) {ccdfData_AR<-ccdfData_AR %>% rbind(expandPastMiss2)}
@@ -561,9 +557,8 @@ function.CCDFcopay<-function(data
       expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
       expandPastMiss2<-expandPastMiss2%>%
         group_by(Year)%>%
-        mutate(minyeardiff = min(yeardiff))
-      expandPastMiss2<-expandPastMiss2 %>%
-        filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+        filter(yeardiff<0)%>%
+        filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
     }  # Attach copied future, historical, and missing benefit data
     if(length(futureYrs)>0) {ccdfData_CA<-ccdfData_CA %>% rbind(expand)}
     if(length(nonFutureYrs)>0) {ccdfData_CA<-ccdfData_CA %>% rbind(expandPastMiss2)}
@@ -695,9 +690,8 @@ function.CCDFcopay<-function(data
       expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
       expandPastMiss2<-expandPastMiss2%>%
         group_by(Year)%>%
-        mutate(minyeardiff = min(yeardiff))
-      expandPastMiss2<-expandPastMiss2 %>%
-        filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+        filter(yeardiff<0)%>%
+        filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
     }  # Attach copied future, historical, and missing benefit data
     if(length(futureYrs)>0) {ccdfData_CO<-ccdfData_CO %>% rbind(expand)}
     if(length(nonFutureYrs)>0) {ccdfData_CO<-ccdfData_CO %>% rbind(expandPastMiss2)}
@@ -791,9 +785,8 @@ function.CCDFcopay<-function(data
       expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
       expandPastMiss2<-expandPastMiss2%>%
         group_by(Year)%>%
-        mutate(minyeardiff = min(yeardiff))
-      expandPastMiss2<-expandPastMiss2 %>%
-        filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+        filter(yeardiff<0)%>%
+        filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
     }  # Attach copied future, historical, and missing benefit data
     if(length(futureYrs)>0) {ccdfData_CT<-ccdfData_CT %>% rbind(expand)}
     if(length(nonFutureYrs)>0) {ccdfData_CT<-ccdfData_CT %>% rbind(expandPastMiss2)}
@@ -875,9 +868,8 @@ function.CCDFcopay<-function(data
       expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
       expandPastMiss2<-expandPastMiss2%>%
         group_by(Year)%>%
-        mutate(minyeardiff = min(yeardiff))
-      expandPastMiss2<-expandPastMiss2 %>%
-        filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+        filter(yeardiff<0)%>%
+        filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
     }  # Attach copied future, historical, and missing benefit data
     if(length(futureYrs)>0) {ccdfData_DE<-ccdfData_DE %>% rbind(expand)}
     if(length(nonFutureYrs)>0) {ccdfData_DE<-ccdfData_DE %>% rbind(expandPastMiss2)}
@@ -960,9 +952,8 @@ function.CCDFcopay<-function(data
       expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
       expandPastMiss2<-expandPastMiss2%>%
         group_by(Year)%>%
-        mutate(minyeardiff = min(yeardiff))
-      expandPastMiss2<-expandPastMiss2 %>%
-        filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+        filter(yeardiff<0)%>%
+        filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
     }  # Attach copied future, historical, and missing benefit data
     if(length(futureYrs)>0) {ccdfData_DC<-ccdfData_DC %>% rbind(expand)}
     if(length(nonFutureYrs)>0) {ccdfData_DC<-ccdfData_DC %>% rbind(expandPastMiss2)}
@@ -1113,9 +1104,8 @@ function.CCDFcopay<-function(data
       expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
       expandPastMiss2<-expandPastMiss2%>%
         group_by(Year)%>%
-        mutate(minyeardiff = min(yeardiff))
-      expandPastMiss2<-expandPastMiss2 %>%
-        filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+        filter(yeardiff<0)%>%
+        filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
     }  # Attach copied future, historical, and missing benefit data
     if(length(futureYrs)>0) {ccdfData_FL<-ccdfData_FL %>% rbind(expand)}
     if(length(nonFutureYrs)>0) {ccdfData_FL<-ccdfData_FL %>% rbind(expandPastMiss2)}
@@ -1146,6 +1136,11 @@ function.CCDFcopay<-function(data
     temp$FTcopay[which(temp$income>temp$Bin14Max & temp$income<=temp$Bin15Max)]<-temp$CopayBin15[which(temp$income>temp$Bin14Max & temp$income<=temp$Bin15Max)]
     temp$FTcopay[which(temp$income>temp$Bin15Max & temp$income<=temp$Bin16Max)]<-temp$CopayBin16[which(temp$income>temp$Bin15Max & temp$income<=temp$Bin16Max)]
     temp$FTcopay[which(temp$income>temp$Bin16Max & temp$income<=temp$Bin17Max)]<-temp$CopayBin17[which(temp$income>temp$Bin16Max & temp$income<=temp$Bin17Max)]
+    temp$FTcopay[which(temp$income>temp$Bin17Max & temp$income<=temp$Bin18Max)]<-temp$CopayBin18[which(temp$income>temp$Bin17Max & temp$income<=temp$Bin18Max)]
+    temp$FTcopay[which(temp$income>temp$Bin18Max & temp$income<=temp$Bin19Max)]<-temp$CopayBin19[which(temp$income>temp$Bin18Max & temp$income<=temp$Bin19Max)]
+    temp$FTcopay[which(temp$income>temp$Bin19Max & temp$income<=temp$Bin20Max)]<-temp$CopayBin20[which(temp$income>temp$Bin19Max & temp$income<=temp$Bin20Max)]
+    
+    
     
     
     # Apply asset test
@@ -1238,9 +1233,8 @@ function.CCDFcopay<-function(data
       expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
       expandPastMiss2<-expandPastMiss2%>%
         group_by(Year)%>%
-        mutate(minyeardiff = min(yeardiff))
-      expandPastMiss2<-expandPastMiss2 %>%
-        filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+        filter(yeardiff<0)%>%
+        filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
     }  # Attach copied future, historical, and missing benefit data
     if(length(futureYrs)>0) {ccdfData_GA<-ccdfData_GA %>% rbind(expand)}
     if(length(nonFutureYrs)>0) {ccdfData_GA<-ccdfData_GA %>% rbind(expandPastMiss2)}
@@ -1323,9 +1317,8 @@ function.CCDFcopay<-function(data
       expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
       expandPastMiss2<-expandPastMiss2%>%
         group_by(Year)%>%
-        mutate(minyeardiff = min(yeardiff))
-      expandPastMiss2<-expandPastMiss2 %>%
-        filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+        filter(yeardiff<0)%>%
+        filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
     }  # Attach copied future, historical, and missing benefit data
     if(length(futureYrs)>0) {ccdfData_HI<-ccdfData_HI %>% rbind(expand)}
     if(length(nonFutureYrs)>0) {ccdfData_HI<-ccdfData_HI %>% rbind(expandPastMiss2)}
@@ -1425,9 +1418,8 @@ function.CCDFcopay<-function(data
       expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
       expandPastMiss2<-expandPastMiss2%>%
         group_by(Year)%>%
-        mutate(minyeardiff = min(yeardiff))
-      expandPastMiss2<-expandPastMiss2 %>%
-        filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+        filter(yeardiff<0)%>%
+        filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
     }  # Attach copied future, historical, and missing benefit data
     if(length(futureYrs)>0) {ccdfData_IA<-ccdfData_IA %>% rbind(expand)}
     if(length(nonFutureYrs)>0) {ccdfData_IA<-ccdfData_IA %>% rbind(expandPastMiss2)}
@@ -1538,9 +1530,8 @@ function.CCDFcopay<-function(data
       expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
       expandPastMiss2<-expandPastMiss2%>%
         group_by(Year)%>%
-        mutate(minyeardiff = min(yeardiff))
-      expandPastMiss2<-expandPastMiss2 %>%
-        filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+        filter(yeardiff<0)%>%
+        filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
     }  # Attach copied future, historical, and missing benefit data
     if(length(futureYrs)>0) {ccdfData_ID<-ccdfData_ID %>% rbind(expand)}
     if(length(nonFutureYrs)>0) {ccdfData_ID<-ccdfData_ID %>% rbind(expandPastMiss2)}
@@ -1627,9 +1618,8 @@ function.CCDFcopay<-function(data
       expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
       expandPastMiss2<-expandPastMiss2%>%
         group_by(Year)%>%
-        mutate(minyeardiff = min(yeardiff))
-      expandPastMiss2<-expandPastMiss2 %>%
-        filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+        filter(yeardiff<0)%>%
+        filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
     }  # Attach copied future, historical, and missing benefit data
     if(length(futureYrs)>0) {ccdfData_IL<-ccdfData_IL %>% rbind(expand)}
     if(length(nonFutureYrs)>0) {ccdfData_IL<-ccdfData_IL %>% rbind(expandPastMiss2)}
@@ -1754,9 +1744,8 @@ function.CCDFcopay<-function(data
       expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
       expandPastMiss2<-expandPastMiss2%>%
         group_by(Year)%>%
-        mutate(minyeardiff = min(yeardiff))
-      expandPastMiss2<-expandPastMiss2 %>%
-        filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+        filter(yeardiff<0)%>%
+        filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
     }  # Attach copied future, historical, and missing benefit data
     if(length(futureYrs)>0) {ccdfData_IN<-ccdfData_IN %>% rbind(expand)}
     if(length(nonFutureYrs)>0) {ccdfData_IN<-ccdfData_IN %>% rbind(expandPastMiss2)}
@@ -1850,9 +1839,8 @@ function.CCDFcopay<-function(data
       expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
       expandPastMiss2<-expandPastMiss2%>%
         group_by(Year)%>%
-        mutate(minyeardiff = min(yeardiff))
-      expandPastMiss2<-expandPastMiss2 %>%
-        filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+        filter(yeardiff<0)%>%
+        filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
     }  # Attach copied future, historical, and missing benefit data
     if(length(futureYrs)>0) {ccdfData_KS<-ccdfData_KS %>% rbind(expand)}
     if(length(nonFutureYrs)>0) {ccdfData_KS<-ccdfData_KS %>% rbind(expandPastMiss2)}
@@ -1952,9 +1940,8 @@ function.CCDFcopay<-function(data
       expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
       expandPastMiss2<-expandPastMiss2%>%
         group_by(Year)%>%
-        mutate(minyeardiff = min(yeardiff))
-      expandPastMiss2<-expandPastMiss2 %>%
-        filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+        filter(yeardiff<0)%>%
+        filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
     }  # Attach copied future, historical, and missing benefit data
     if(length(futureYrs)>0) {ccdfData_KY<-ccdfData_KY %>% rbind(expand)}
     if(length(nonFutureYrs)>0) {ccdfData_KY<-ccdfData_KY %>% rbind(expandPastMiss2)}
@@ -2035,22 +2022,10 @@ function.CCDFcopay<-function(data
   # No fee after certain number of children (under construction)
   if(22 %in% unique(data$stateFIPS)){ # make sure that state is in the list
     
-    ################ TEMP FIX FOR LA
-    
+    test_data<<-data
+    data<-test_data
     ccdfData_LA$stateFIPS <- 22
-    #ccdfData_LA$InitialEligibility <- c(22123, 28930, 35737, 42544, 49351, 56159, 62966, 69733, 76580, 83387, 90194, 97002)
-    #ccdfData_LA$ContinuousEligibility <- c(33108, 43296, 53483, 63670, 73857, 84045, 94232, 104419, 114606, 124793, 134981, 145168)
-    #ccdfData_LA$InitialEligibility <- as.numeric(ccdfData_LA$InitialEligibility)
-    #ccdfData_LA$Bin5Max <- ccdfData_LA$ContinuousEligibility
-    #ccdfData_LA$Bin5Max[1] <- 0
-    #ccdfData_LA$Bin1Max <- ccdfData_LA$ContinuousEligibility*0.43
-    ##ccdfData_LA$Bin2Max <- ccdfData_LA$ContinuousEligibility*0.59
-    #ccdfData_LA$Bin3Max <- ccdfData_LA$ContinuousEligibility*0.647
-    #ccdfData_LA$Bin4Max <- ccdfData_LA$ContinuousEligibility*0.823
-    #ccdfData_LA$Bin1Max[1] <- 0
-    #ccdfData_LA$Bin2Max[1] <- 0
-    #ccdfData_LA$Bin3Max[1] <- 0
-    #ccdfData_LA$Bin4Max[1] <- 0
+   
     
     temp<-data[data$stateFIPS==22,]
     
@@ -2058,7 +2033,7 @@ function.CCDFcopay<-function(data
     years<-unique(data$ruleYear) # years in data set
     yearsinexpdata<- unique(ccdfData_LA$ruleYear) # rule years in benefit data
     yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-    yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+    yearstouse[is.na(yearstouse)]<-years # keeps years from data set that are not in benefit data set
     # Create data for the future
     maxyearofdata<-max(ccdfData_LA$ruleYear) # collect latest year of benefit data
     futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
@@ -2079,9 +2054,8 @@ function.CCDFcopay<-function(data
       expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
       expandPastMiss2<-expandPastMiss2%>%
         group_by(Year)%>%
-        mutate(minyeardiff = min(yeardiff))
-      expandPastMiss2<-expandPastMiss2 %>%
-        filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+        filter(yeardiff<0)%>%
+        filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
     }  # Attach copied future, historical, and missing benefit data
     if(length(futureYrs)>0) {ccdfData_LA<-ccdfData_LA %>% rbind(expand)}
     if(length(nonFutureYrs)>0) {ccdfData_LA<-ccdfData_LA %>% rbind(expandPastMiss2)}
@@ -2174,9 +2148,8 @@ function.CCDFcopay<-function(data
       expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
       expandPastMiss2<-expandPastMiss2%>%
         group_by(Year)%>%
-        mutate(minyeardiff = min(yeardiff))
-      expandPastMiss2<-expandPastMiss2 %>%
-        filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+        filter(yeardiff<0)%>%
+        filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
     }  # Attach copied future, historical, and missing benefit data
     if(length(futureYrs)>0) {ccdfData_ME<-ccdfData_ME %>% rbind(expand)}
     if(length(nonFutureYrs)>0) {ccdfData_ME<-ccdfData_ME %>% rbind(expandPastMiss2)}
@@ -2269,9 +2242,8 @@ function.CCDFcopay<-function(data
       expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
       expandPastMiss2<-expandPastMiss2%>%
         group_by(Year)%>%
-        mutate(minyeardiff = min(yeardiff))
-      expandPastMiss2<-expandPastMiss2 %>%
-        filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+        filter(yeardiff<0)%>%
+        filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
     }  # Attach copied future, historical, and missing benefit data
     if(length(futureYrs)>0) {ccdfData_MD<-ccdfData_MD %>% rbind(expand)}
     if(length(nonFutureYrs)>0) {ccdfData_MD<-ccdfData_MD %>% rbind(expandPastMiss2)}
@@ -2363,9 +2335,8 @@ function.CCDFcopay<-function(data
       expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
       expandPastMiss2<-expandPastMiss2%>%
         group_by(Year)%>%
-        mutate(minyeardiff = min(yeardiff))
-      expandPastMiss2<-expandPastMiss2 %>%
-        filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+        filter(yeardiff<0)%>%
+        filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
     }  # Attach copied future, historical, and missing benefit data
     if(length(futureYrs)>0) {ccdfData_MA<-ccdfData_MA %>% rbind(expand)}
     if(length(nonFutureYrs)>0) {ccdfData_MA<-ccdfData_MA %>% rbind(expandPastMiss2)}
@@ -2479,13 +2450,11 @@ function.CCDFcopay<-function(data
       #Create data frame with past years and year for which we are missing benefit data
       expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_MI$stateFIPS), AKorHI=unique(ccdfData_MI$AKorHI), famsize=unique(ccdfData_MI$famsize), Year=nonFutureYrs)
       # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-      expandPastMiss2<-left_join(expandPastMiss, ccdfData_MI, by=c("stateFIPS", "AKorHI", "famsize"))
       expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
       expandPastMiss2<-expandPastMiss2%>%
         group_by(Year)%>%
-        mutate(minyeardiff = min(yeardiff))
-      expandPastMiss2<-expandPastMiss2 %>%
-        filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+        filter(yeardiff<0)%>%
+        filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
     }  # Attach copied future, historical, and missing benefit data
     if(length(futureYrs)>0) {ccdfData_MI<-ccdfData_MI %>% rbind(expand)}
     if(length(nonFutureYrs)>0) {ccdfData_MI<-ccdfData_MI %>% rbind(expandPastMiss2)}
@@ -2571,9 +2540,8 @@ function.CCDFcopay<-function(data
       expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
       expandPastMiss2<-expandPastMiss2%>%
         group_by(Year)%>%
-        mutate(minyeardiff = min(yeardiff))
-      expandPastMiss2<-expandPastMiss2 %>%
-        filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+        filter(yeardiff<0)%>%
+        filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
     }  # Attach copied future, historical, and missing benefit data
     if(length(futureYrs)>0) {ccdfData_MN<-ccdfData_MN %>% rbind(expand)}
     if(length(nonFutureYrs)>0) {ccdfData_MN<-ccdfData_MN %>% rbind(expandPastMiss2)}
@@ -2656,29 +2624,42 @@ function.CCDFcopay<-function(data
   # MISSISSIPPI
   
   if(28 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-    
+    test_data<<-data
+    data<-test_data
     ccdfData_MS$stateFIPS <- 28
     
     temp<-data[data$stateFIPS==28,]
     
-    years<-unique(data$Year)
-    maxYear<-max(ccdfData_MS$ruleYear)
-    for (yr in years){
-      if(yr %notin% ccdfData_MS$ruleYear & yr > maxYear){
-        copyLatestYear<-ccdfData_MS[rep(ccdfData_MS$ruleYear==maxYear), ]
-        copyLatestYear$ruleYear[copyLatestYear$ruleYear == maxYear]<-yr
-        ccdfData_MS<-ccdfData_MS%>%
-          rbind(copyLatestYear)
-      }}
-    # Adds historical rules if we do not have them
-    minYear<-min(ccdfData_MS$ruleYear)
-    for (yr in years){
-      if(yr %notin% ccdfData_MS$ruleYear & yr < minYear){
-        copyEarliestYear<-ccdfData_MS[rep(ccdfData_MS$ruleYear==minYear), ]
-        copyEarliestYear$ruleYear[copyEarliestYear$ruleYear == minYear]<-yr
-        ccdfData_MS<-ccdfData_MS%>%
-          rbind(copyEarliestYear)
-      }}
+    # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
+    years<-unique(data$ruleYear) # years in data set
+    yearsinexpdata<- unique(ccdfData_MS$ruleYear) # rule years in benefit data
+    yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
+    yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
+    # Create data for the future
+    maxyearofdata<-max(ccdfData_MS$ruleYear) # collect latest year of benefit data
+    futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
+    if(length(futureYrs)>0){
+      # Create data frame with future years
+      expand<-expand.grid(stateFIPS=unique(ccdfData_MS$stateFIPS), AKorHI=unique(ccdfData_MS$AKorHI), famsize=unique(ccdfData_MS$famsize), Year=futureYrs)
+      # Collect latest benefit data there is and merge w/data frame
+      expand2<-ccdfData_MS[ccdfData_MS$ruleYear==maxyearofdata, ]
+      expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
+    }
+    # Create data for past and gap years (missing data) - not the future
+    nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
+    if(length(nonFutureYrs)>0){
+      #Create data frame with past years and year for which we are missing benefit data
+      expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_MS$stateFIPS), AKorHI=unique(ccdfData_MS$AKorHI), famsize=unique(ccdfData_MS$famsize), Year=nonFutureYrs)
+      # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
+      expandPastMiss2<-left_join(expandPastMiss, ccdfData_MS, by=c("stateFIPS", "AKorHI", "famsize"))
+      expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
+      expandPastMiss2<-expandPastMiss2%>%
+        group_by(Year)%>%
+        filter(yeardiff<0)%>%
+        filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+    }  # Attach copied future, historical, and missing benefit data
+    if(length(futureYrs)>0) {ccdfData_MS<-ccdfData_MS %>% rbind(expand)}
+    if(length(nonFutureYrs)>0) {ccdfData_MS<-ccdfData_MS %>% rbind(expandPastMiss2)}
     
     #----------------------------------
     # Step 1: Assign copays
@@ -2771,7 +2752,7 @@ function.CCDFcopay<-function(data
     # Apply asset test
     subset<-temp$totalassets > temp$AssetTest
     temp$FTcopay[subset]<-NA_real_
-    
+    ms
     
     #----------------------------------
     # Step 2: Calculate total copays
@@ -2831,9 +2812,8 @@ function.CCDFcopay<-function(data
       expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
       expandPastMiss2<-expandPastMiss2%>%
         group_by(Year)%>%
-        mutate(minyeardiff = min(yeardiff))
-      expandPastMiss2<-expandPastMiss2 %>%
-        filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+        filter(yeardiff<0)%>%
+        filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
     }  # Attach copied future, historical, and missing benefit data
     if(length(futureYrs)>0) {ccdfData_MO<-ccdfData_MO %>% rbind(expand)}
     if(length(nonFutureYrs)>0) {ccdfData_MO<-ccdfData_MO %>% rbind(expandPastMiss2)}
@@ -2926,13 +2906,11 @@ function.CCDFcopay<-function(data
       #Create data frame with past years and year for which we are missing benefit data
       expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_MT$stateFIPS), AKorHI=unique(ccdfData_MT$AKorHI), famsize=unique(ccdfData_MT$famsize), Year=nonFutureYrs)
       # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-      expandPastMiss2<-left_join(expandPastMiss, ccdfData_MT, by=c("stateFIPS", "AKorHI", "famsize"))
       expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
       expandPastMiss2<-expandPastMiss2%>%
         group_by(Year)%>%
-        mutate(minyeardiff = min(yeardiff))
-      expandPastMiss2<-expandPastMiss2 %>%
-        filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+        filter(yeardiff<0)%>%
+        filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
     }  # Attach copied future, historical, and missing benefit data
     if(length(futureYrs)>0) {ccdfData_MT<-ccdfData_MT %>% rbind(expand)}
     if(length(nonFutureYrs)>0) {ccdfData_MT<-ccdfData_MT %>% rbind(expandPastMiss2)}
@@ -3034,9 +3012,8 @@ function.CCDFcopay<-function(data
       expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
       expandPastMiss2<-expandPastMiss2%>%
         group_by(Year)%>%
-        mutate(minyeardiff = min(yeardiff))
-      expandPastMiss2<-expandPastMiss2 %>%
-        filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+        filter(yeardiff<0)%>%
+        filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
     }  # Attach copied future, historical, and missing benefit data
     if(length(futureYrs)>0) {ccdfData_NE<-ccdfData_NE %>% rbind(expand)}
     if(length(nonFutureYrs)>0) {ccdfData_NE<-ccdfData_NE %>% rbind(expandPastMiss2)}
@@ -3122,9 +3099,8 @@ function.CCDFcopay<-function(data
       expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
       expandPastMiss2<-expandPastMiss2%>%
         group_by(Year)%>%
-        mutate(minyeardiff = min(yeardiff))
-      expandPastMiss2<-expandPastMiss2 %>%
-        filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+        filter(yeardiff<0)%>%
+        filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
     }  # Attach copied future, historical, and missing benefit data
     if(length(futureYrs)>0) {providercost_NV<-providercost_NV %>% rbind(expand)}
     if(length(nonFutureYrs)>0) {providercost_NV<-providercost_NV %>% rbind(expandPastMiss2)}
@@ -3459,9 +3435,8 @@ function.CCDFcopay<-function(data
       expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
       expandPastMiss2<-expandPastMiss2%>%
         group_by(Year)%>%
-        mutate(minyeardiff = min(yeardiff))
-      expandPastMiss2<-expandPastMiss2 %>%
-        filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+        filter(yeardiff<0)%>%
+        filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
     }  # Attach copied future, historical, and missing benefit data
     if(length(futureYrs)>0) {ccdfData_NM<-ccdfData_NM %>% rbind(expand)}
     if(length(nonFutureYrs)>0) {ccdfData_NM<-ccdfData_NM %>% rbind(expandPastMiss2)}
@@ -3834,9 +3809,8 @@ function.CCDFcopay<-function(data
       expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
       expandPastMiss2<-expandPastMiss2%>%
         group_by(Year)%>%
-        mutate(minyeardiff = min(yeardiff))
-      expandPastMiss2<-expandPastMiss2 %>%
-        filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+        filter(yeardiff<0)%>%
+        filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
     }  # Attach copied future, historical, and missing benefit data
     if(length(futureYrs)>0) {ccdfData_NH<-ccdfData_NH %>% rbind(expand)}
     if(length(nonFutureYrs)>0) {ccdfData_NH<-ccdfData_NH %>% rbind(expandPastMiss2)}
@@ -3864,7 +3838,24 @@ function.CCDFcopay<-function(data
     #----------------------------------
     # Step 2: Calculate total copays
     #----------------------------------
-    temp$totcopay<-rowMins(cbind(temp$income*temp$FTcopay,temp$netexp.childcare))
+    #temp$totcopay<-rowMins(cbind(temp$income*temp$FTcopay,temp$netexp.childcare))
+    
+    
+    #New Hampshie overhauled CCDF for ruleYear 2025
+    #they decreased the amount of bins from 7 to 3 and copay are caluated based on weekly dollar amounts (bins 1 & 2) or percentage of income (bin 3)
+
+    if (years>=2025){
+      temp$totcopay[temp$income>=0 & temp$income<=temp$Bin1Max]<-temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1Max]
+      temp$totcopay[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]<-temp$FTcopay[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]
+      temp$totcopay[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]<-rowMins(cbind(temp$income[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]*temp$FTcopay[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max],temp$netexp.childcare[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]))
+    }else{
+      temp$totcopay<-rowMins(cbind(temp$income*temp$FTcopay,temp$netexp.childcare))
+    }
+    
+    
+    
+    
+    
     
     # Set copay to zero if no children
     temp$totcopay[temp$numkidsincare0to4+temp$numkidsincare5to12==0]<-0
@@ -3918,9 +3909,8 @@ function.CCDFcopay<-function(data
       expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
       expandPastMiss2<-expandPastMiss2%>%
         group_by(Year)%>%
-        mutate(minyeardiff = min(yeardiff))
-      expandPastMiss2<-expandPastMiss2 %>%
-        filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+        filter(yeardiff<0)%>%
+        filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
     }  # Attach copied future, historical, and missing benefit data
     if(length(futureYrs)>0) {ccdfData_NJ<-ccdfData_NJ %>% rbind(expand)}
     if(length(nonFutureYrs)>0) {ccdfData_NJ<-ccdfData_NJ %>% rbind(expandPastMiss2)}
@@ -4036,9 +4026,8 @@ function.CCDFcopay<-function(data
       expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
       expandPastMiss2<-expandPastMiss2%>%
         group_by(Year)%>%
-        mutate(minyeardiff = min(yeardiff))
-      expandPastMiss2<-expandPastMiss2 %>%
-        filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+        filter(yeardiff<0)%>%
+        filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
     }  # Attach copied future, historical, and missing benefit data
     if(length(futureYrs)>0) {ccdfData_NC<-ccdfData_NC %>% rbind(expand)}
     if(length(nonFutureYrs)>0) {ccdfData_NC<-ccdfData_NC %>% rbind(expandPastMiss2)}
@@ -4114,9 +4103,8 @@ function.CCDFcopay<-function(data
       expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
       expandPastMiss2<-expandPastMiss2%>%
         group_by(Year)%>%
-        mutate(minyeardiff = min(yeardiff))
-      expandPastMiss2<-expandPastMiss2 %>%
-        filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+        filter(yeardiff<0)%>%
+        filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
     }  # Attach copied future, historical, and missing benefit data
     if(length(futureYrs)>0) {ccdfData_ND<-ccdfData_ND %>% rbind(expand)}
     if(length(nonFutureYrs)>0) {ccdfData_ND<-ccdfData_ND %>% rbind(expandPastMiss2)}
@@ -4200,9 +4188,8 @@ function.CCDFcopay<-function(data
       expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
       expandPastMiss2<-expandPastMiss2%>%
         group_by(Year)%>%
-        mutate(minyeardiff = min(yeardiff))
-      expandPastMiss2<-expandPastMiss2 %>%
-        filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+        filter(yeardiff<0)%>%
+        filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
     }  # Attach copied future, historical, and missing benefit data
     if(length(futureYrs)>0) {ccdfData_NY<-ccdfData_NY %>% rbind(expand)}
     if(length(nonFutureYrs)>0) {ccdfData_NY<-ccdfData_NY %>% rbind(expandPastMiss2)}
@@ -4291,9 +4278,8 @@ function.CCDFcopay<-function(data
       expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
       expandPastMiss2<-expandPastMiss2%>%
         group_by(Year)%>%
-        mutate(minyeardiff = min(yeardiff))
-      expandPastMiss2<-expandPastMiss2 %>%
-        filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+        filter(yeardiff<0)%>%
+        filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
     }  # Attach copied future, historical, and missing benefit data
     if(length(futureYrs)>0) {ccdfData_OH<-ccdfData_OH %>% rbind(expand)}
     if(length(nonFutureYrs)>0) {ccdfData_OH<-ccdfData_OH %>% rbind(expandPastMiss2)}
@@ -4426,9 +4412,8 @@ function.CCDFcopay<-function(data
       expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
       expandPastMiss2<-expandPastMiss2%>%
         group_by(Year)%>%
-        mutate(minyeardiff = min(yeardiff))
-      expandPastMiss2<-expandPastMiss2 %>%
-        filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+        filter(yeardiff<0)%>%
+        filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
     }  # Attach copied future, historical, and missing benefit data
     if(length(futureYrs)>0) {ccdfData_OK<-ccdfData_OK %>% rbind(expand)}
     if(length(nonFutureYrs)>0) {ccdfData_OK<-ccdfData_OK %>% rbind(expandPastMiss2)}
@@ -4515,9 +4500,8 @@ function.CCDFcopay<-function(data
       expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
       expandPastMiss2<-expandPastMiss2%>%
         group_by(Year)%>%
-        mutate(minyeardiff = min(yeardiff))
-      expandPastMiss2<-expandPastMiss2 %>%
-        filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+        filter(yeardiff<0)%>%
+        filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
     }  # Attach copied future, historical, and missing benefit data
     if(length(futureYrs)>0) {ccdfData_OR<-ccdfData_OR %>% rbind(expand)}
     if(length(nonFutureYrs)>0) {ccdfData_OR<-ccdfData_OR %>% rbind(expandPastMiss2)}
@@ -4596,9 +4580,8 @@ function.CCDFcopay<-function(data
       expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
       expandPastMiss2<-expandPastMiss2%>%
         group_by(Year)%>%
-        mutate(minyeardiff = min(yeardiff))
-      expandPastMiss2<-expandPastMiss2 %>%
-        filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+        filter(yeardiff<0)%>%
+        filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
     }  # Attach copied future, historical, and missing benefit data
     if(length(futureYrs)>0) {ccdfData_PA<-ccdfData_PA %>% rbind(expand)}
     if(length(nonFutureYrs)>0) {ccdfData_PA<-ccdfData_PA %>% rbind(expandPastMiss2)}
@@ -4737,9 +4720,8 @@ function.CCDFcopay<-function(data
       expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
       expandPastMiss2<-expandPastMiss2%>%
         group_by(Year)%>%
-        mutate(minyeardiff = min(yeardiff))
-      expandPastMiss2<-expandPastMiss2 %>%
-        filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+        filter(yeardiff<0)%>%
+        filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
     }  # Attach copied future, historical, and missing benefit data
     if(length(futureYrs)>0) {ccdfData_RI<-ccdfData_RI %>% rbind(expand)}
     if(length(nonFutureYrs)>0) {ccdfData_RI<-ccdfData_RI %>% rbind(expandPastMiss2)}
@@ -4820,9 +4802,8 @@ function.CCDFcopay<-function(data
       expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
       expandPastMiss2<-expandPastMiss2%>%
         group_by(Year)%>%
-        mutate(minyeardiff = min(yeardiff))
-      expandPastMiss2<-expandPastMiss2 %>%
-        filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+        filter(yeardiff<0)%>%
+        filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
     }  # Attach copied future, historical, and missing benefit data
     if(length(futureYrs)>0) {ccdfData_SC<-ccdfData_SC %>% rbind(expand)}
     if(length(nonFutureYrs)>0) {ccdfData_SC<-ccdfData_SC %>% rbind(expandPastMiss2)}
@@ -4905,9 +4886,8 @@ function.CCDFcopay<-function(data
       expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
       expandPastMiss2<-expandPastMiss2%>%
         group_by(Year)%>%
-        mutate(minyeardiff = min(yeardiff))
-      expandPastMiss2<-expandPastMiss2 %>%
-        filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+        filter(yeardiff<0)%>%
+        filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
     }  # Attach copied future, historical, and missing benefit data
     if(length(futureYrs)>0) {ccdfData_SD<-ccdfData_SD %>% rbind(expand)}
     if(length(nonFutureYrs)>0) {ccdfData_SD<-ccdfData_SD %>% rbind(expandPastMiss2)}
@@ -4966,7 +4946,7 @@ function.CCDFcopay<-function(data
   
   
   
-  # TENNESSE ----
+  # TENNESSEE ----
   # Description:
   # Copay is a dollar amount per child
   # Daily frequency
@@ -5006,9 +4986,8 @@ function.CCDFcopay<-function(data
       expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
       expandPastMiss2<-expandPastMiss2%>%
         group_by(Year)%>%
-        mutate(minyeardiff = min(yeardiff))
-      expandPastMiss2<-expandPastMiss2 %>%
-        filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+        filter(yeardiff<0)%>%
+        filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
     }  # Attach copied future, historical, and missing benefit data
     if(length(futureYrs)>0) {ccdfData_TN<-ccdfData_TN %>% rbind(expand)}
     if(length(nonFutureYrs)>0) {ccdfData_TN<-ccdfData_TN %>% rbind(expandPastMiss2)}
@@ -5125,9 +5104,8 @@ function.CCDFcopay<-function(data
       expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
       expandPastMiss2<-expandPastMiss2%>%
         group_by(Year)%>%
-        mutate(minyeardiff = min(yeardiff))
-      expandPastMiss2<-expandPastMiss2 %>%
-        filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+        filter(yeardiff<0)%>%
+        filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
     }  # Attach copied future, historical, and missing benefit data
     if(length(futureYrs)>0) {ccdfData_TX<-ccdfData_TX %>% rbind(expand)}
     if(length(nonFutureYrs)>0) {ccdfData_TX<-ccdfData_TX %>% rbind(expandPastMiss2)}
@@ -5247,9 +5225,8 @@ function.CCDFcopay<-function(data
       expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
       expandPastMiss2<-expandPastMiss2%>%
         group_by(Year)%>%
-        mutate(minyeardiff = min(yeardiff))
-      expandPastMiss2<-expandPastMiss2 %>%
-        filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+        filter(yeardiff<0)%>%
+        filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
     }  # Attach copied future, historical, and missing benefit data
     if(length(futureYrs)>0) {ccdfData_UT<-ccdfData_UT %>% rbind(expand)}
     if(length(nonFutureYrs)>0) {ccdfData_UT<-ccdfData_UT %>% rbind(expandPastMiss2)}
@@ -5345,9 +5322,8 @@ function.CCDFcopay<-function(data
       expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
       expandPastMiss2<-expandPastMiss2%>%
         group_by(Year)%>%
-        mutate(minyeardiff = min(yeardiff))
-      expandPastMiss2<-expandPastMiss2 %>%
-        filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+        filter(yeardiff<0)%>%
+        filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
     }  # Attach copied future, historical, and missing benefit data
     if(length(futureYrs)>0) {providercost_VT<-providercost_VT %>% rbind(expand)}
     if(length(nonFutureYrs)>0) {providercost_VT<-providercost_VT %>% rbind(expandPastMiss2)}
@@ -5598,9 +5574,8 @@ function.CCDFcopay<-function(data
       expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
       expandPastMiss2<-expandPastMiss2%>%
         group_by(Year)%>%
-        mutate(minyeardiff = min(yeardiff))
-      expandPastMiss2<-expandPastMiss2 %>%
-        filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+        filter(yeardiff<0)%>%
+        filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
     }  # Attach copied future, historical, and missing benefit data
     if(length(futureYrs)>0) {ccdfData_VT<-ccdfData_VT %>% rbind(expand)}
     if(length(nonFutureYrs)>0) {ccdfData_VT<-ccdfData_VT %>% rbind(expandPastMiss2)}
@@ -5709,12 +5684,12 @@ function.CCDFcopay<-function(data
       expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_VA$stateFIPS), AKorHI=unique(ccdfData_VA$AKorHI), famsize=unique(ccdfData_VA$famsize), countyortownName=unique(ccdfData_VA$countyortownName), Year=nonFutureYrs)
       # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
       expandPastMiss2<-left_join(expandPastMiss, ccdfData_VA, by=c("stateFIPS", "AKorHI", "famsize", "countyortownName"))
+      expandPastMiss2$yeardiff<-abs(expandPastMiss2$ruleYear-expandPastMiss2$Year)
       expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
       expandPastMiss2<-expandPastMiss2%>%
         group_by(Year)%>%
-        mutate(minyeardiff = min(yeardiff))
-      expandPastMiss2<-expandPastMiss2 %>%
-        filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+        filter(yeardiff<0)%>%
+        filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
     }  # Attach copied future, historical, and missing benefit data
     if(length(futureYrs)>0) {ccdfData_VA<-ccdfData_VA %>% rbind(expand)}
     if(length(nonFutureYrs)>0) {ccdfData_VA<-ccdfData_VA %>% rbind(expandPastMiss2)}
@@ -5804,9 +5779,8 @@ function.CCDFcopay<-function(data
       expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
       expandPastMiss2<-expandPastMiss2%>%
         group_by(Year)%>%
-        mutate(minyeardiff = min(yeardiff))
-      expandPastMiss2<-expandPastMiss2 %>%
-        filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+        filter(yeardiff<0)%>%
+        filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
     }  # Attach copied future, historical, and missing benefit data
     if(length(futureYrs)>0) {ccdfData_WA<-ccdfData_WA %>% rbind(expand)}
     if(length(nonFutureYrs)>0) {ccdfData_WA<-ccdfData_WA %>% rbind(expandPastMiss2)}
@@ -6503,9 +6477,8 @@ function.CCDFcopay<-function(data
       expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
       expandPastMiss2<-expandPastMiss2%>%
         group_by(Year)%>%
-        mutate(minyeardiff = min(yeardiff))
-      expandPastMiss2<-expandPastMiss2 %>%
-        filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+        filter(yeardiff<0)%>%
+        filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
     }  # Attach copied future, historical, and missing benefit data
     if(length(futureYrs)>0) {ccdfData_WV<-ccdfData_WV %>% rbind(expand)}
     if(length(nonFutureYrs)>0) {ccdfData_WV<-ccdfData_WV %>% rbind(expandPastMiss2)}
@@ -6603,9 +6576,8 @@ function.CCDFcopay<-function(data
       expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
       expandPastMiss2<-expandPastMiss2%>%
         group_by(Year)%>%
-        mutate(minyeardiff = min(yeardiff))
-      expandPastMiss2<-expandPastMiss2 %>%
-        filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+        filter(yeardiff<0)%>%
+        filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
     }  # Attach copied future, historical, and missing benefit data
     if(length(futureYrs)>0) {ccdfData_WY<-ccdfData_WY %>% rbind(expand)}
     if(length(nonFutureYrs)>0) {ccdfData_WY<-ccdfData_WY %>% rbind(expandPastMiss2)}
@@ -6697,9 +6669,8 @@ function.CCDFcopay<-function(data
       expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
       expandPastMiss2<-expandPastMiss2%>%
         group_by(Year)%>%
-        mutate(minyeardiff = min(yeardiff))
-      expandPastMiss2<-expandPastMiss2 %>%
-        filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+        filter(yeardiff<0)%>%
+        filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
     }  # Attach copied future, historical, and missing benefit data
     if(length(futureYrs)>0) {ccdfData_WI<-ccdfData_WI %>% rbind(expand)}
     if(length(nonFutureYrs)>0) {ccdfData_WI<-ccdfData_WI %>% rbind(expandPastMiss2)}

@@ -2161,9 +2161,8 @@ function.stateinctax<-function(data
     expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
     expandPastMiss2<-expandPastMiss2%>%
       group_by(Year)%>%
-      mutate(minyeardiff = min(yeardiff))
-    expandPastMiss2<-expandPastMiss2 %>%
-      filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
+      filter(yeardiff<0)%>%
+      filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
   }  # Attach copied future, historical, and missing benefit data
   if(length(futureYrs)>0) {stateinctaxData<-stateinctaxData %>% rbind(expand)}
   if(length(nonFutureYrs)>0) {stateinctaxData<-stateinctaxData %>% rbind(expandPastMiss2)}
@@ -2680,15 +2679,15 @@ function.stateinctax<-function(data
     data$taxableincome.bin2[subset0] <- rowMaxs(cbind(data$taxableincome.bin2[subset0] + data$firstReduction[subset0], 0), na.rm = TRUE)
 
     # Add the additional tax liability not to surpass the capped amount
-    susbet1 <- (data$income.base >= data$CT_TaxThreshold2) & data$ruleYear==2025 & data$stateAbbrev=="CT"
+    subset1 <- (data$income.base >= data$CT_TaxThreshold2) & data$ruleYear==2025 & data$stateAbbrev=="CT"
     data$AdditionalTaxAmt1<-0 # initialize
     data$AdditionalTaxAmt1[subset1] <- rowMins(cbind(floor((data$income.base[subset1] - data$CT_TaxThreshold2[subset1])/data$CT_TaxInterval2[subset1])*data$CT_AddTaxAmt1[subset1], data$CT_AddTaxMax1[subset1]), na.rm = TRUE)
 
-    susbet2 <- (data$income.base >= data$CT_TaxThreshold3) & data$ruleYear==2025 & data$stateAbbrev=="CT"
+    subset2 <- (data$income.base >= data$CT_TaxThreshold3) & data$ruleYear==2025 & data$stateAbbrev=="CT"
     data$AdditionalTaxAmt2<-0 # initialize
     data$AdditionalTaxAmt2[subset2] <- floor((data$income.base[subset2] - data$CT_TaxThreshold3[subset2])/data$CT_TaxInterval3[subset2])*data$CT_AddTaxAmt2[subset2]
 
-    susbet3 <- (data$income.base >= data$CT_TaxThreshold4) & data$ruleYear==2025 & data$stateAbbrev=="CT"
+    subset3 <- (data$income.base >= data$CT_TaxThreshold4) & data$ruleYear==2025 & data$stateAbbrev=="CT"
     data$AdditionalTaxAmt3<-0 # initialize
     data$AdditionalTaxAmt3[subset3] <- floor((data$income.base[subset3] - data$CT_TaxThreshold4[subset3])/data$CT_TaxInterval4[subset3])*data$CT_AddTaxAmt3[subset3]
 
