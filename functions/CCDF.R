@@ -3846,13 +3846,10 @@ function.CCDFcopay<-function(data
     #New Hampshie overhauled CCDF for ruleYear 2025
     #they decreased the amount of bins from 7 to 3 and copay are caluated based on weekly dollar amounts (bins 1 & 2) or percentage of income (bin 3)
 
-    if (years>=2025){
       temp$totcopay[temp$income>=0 & temp$income<=temp$Bin1Max]<-temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1Max]
       temp$totcopay[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]<-temp$FTcopay[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]
       temp$totcopay[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]<-rowMins(cbind(temp$income[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]*temp$FTcopay[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max],temp$netexp.childcare[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]))
-    }else{
-      temp$totcopay<-rowMins(cbind(temp$income*temp$FTcopay,temp$netexp.childcare))
-    }
+ 
     
     
     
