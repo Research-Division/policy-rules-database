@@ -830,10 +830,7 @@ function.tanfBenefit<-function(data){
         
         # group together the household ids and see what each household's starting point is (i.e. minimum year value)
         
-        # Connecticut has a 21 month time limit for tanf, with two six-month extensions if the household observed earns an income value less than the maximum tanf benefit value (based on their family size). 
-        # Once the first extension is used (if applicable), this requirement is re-analyzed. If the household is still earning less than the maximum tanf benefit value, they qualify for the second extension.
-        # After the second extension (if applicable), the household no longer qualifies for tanf benefits 
-        # We understand there are exceptions to this and more extensions may be applied, but we only include the income-relevant extensions for now 
+        # Connecticut has a 36 month time limit for tanf, with a six month extension if income is below 230% of FPL. 
         temp <- temp %>%
           group_by(householdid) %>%
           mutate(min_Year=min(Year)) %>% 
@@ -846,7 +843,7 @@ function.tanfBenefit<-function(data){
           
           # read in the time limit variable 
           timeLimit <- unique(temp$timeLimit)
-          if(timeLimit == 21){
+          if(timeLimit == 36){
             abc <- 1
             
             # establish dummy flags that are set to 1 depending on the income of the family, as well as what Year is being observed relative to the household's initial year 
