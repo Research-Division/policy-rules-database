@@ -934,7 +934,6 @@ function.RAPBenefit<-function(data){
   }
 
 
-
 # DC Specific Housing Program - Family Rehousing and Stabilization Program (FRSP) ----
 
 function.FRSPBenefit<-function(data
@@ -976,8 +975,8 @@ function.FRSPBenefit<-function(data
   section8Data<-section8Data%>%select(-c("stateName","stateAbbrev","townFIPS","stateFIPS"))
   
   data<-left_join(data, section8Data, by=c("ruleYear","stcountyfips2010","countyortownName","numadults", "numkids"))
-  
-  data$income.countable= data$income  + data$income.gift + data$value.tanf + data$value.ssi + data$value.ssdi + data$income.child_support
+
+  data$income.countable = data$income
   
   # Step I: Calculate Adjusted Income
   data$adjustedincome<-rowMaxs(cbind(data$income.countable - data$numkids*data$DependentDeduction,0))
@@ -1016,7 +1015,6 @@ function.FRSPBenefit<-function(data
 # DC Specific Housing Program - CareerMAP ----
 # function.careerMAP is called in the CLIFF tools. Not available to be called directly from the PRD
 function.careerMap<-function(data, data_init){
-  
   
   # Career MAP hold harmless fund available for up to 4 years only
   years<-unique(data$Year)
@@ -1092,6 +1090,7 @@ function.careerMap<-function(data, data_init){
   return(data)
   
 }
+
 
 
 # Low Income Home Energy Assistance Program (LIHEAP)----
@@ -2831,6 +2830,12 @@ function.localinctax<-function(data
 function.fedctc<-function(data
                             , incomevar
                             , totalfederaltaxvar){
+  
+  # Replace ruleYear > 2025 with 2025, you need to replace these numbers with the 
+  # most recent rule year
+  if ("ruleYear" %in% colnames(data)) {
+    data$ruleYear[data$ruleYear > 2025] <- 2025
+  }
 
     data<-data %>%
       rename("income.base" = incomevar
@@ -2838,7 +2843,9 @@ function.fedctc<-function(data
 
     data$value.fedctc<-0
     
-    if(data$rulyear >= 2025 %in% unique(data$ruleYear)){ # make sure that year is in the list
+    #Add new Federal CTC ruleYear code below
+    
+    if(2025 %in% unique(data$ruleYear)){ # make sure that year is in the list
       
       temp<-data[data$ruleYear==2025,]
       
