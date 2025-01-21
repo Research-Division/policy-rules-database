@@ -20,7 +20,7 @@ function.createData<-function(inputs){
   } else{
     inputs$locations<-inputs$locations
   }
-
+  
   # Income sequence
   inputs$income<-seq(inputs$income_start,inputs$income_end,by=inputs$income_increase_by)
 
@@ -75,7 +75,7 @@ function.createData<-function(inputs){
                     , disab.work.exp = inputs$disab.work.exp
                     , ruleYear = inputs$ruleYear) %>%
     mutate(Year = ruleYear)
-
+ 
   #make location two variables
   data<- data %>%
     separate(locations, c("countyortownName","stateAbbrev"), sep=", ")
@@ -122,6 +122,13 @@ function.InitialTransformations<-function(data){
   # By default - Disability programs determine the value of the benefit on an individual level. We allocate total family income EQUALLY to each adult family member (income1-income6)
   # Default Assumption 1: Equal allocation of income
   # Default Assumption 2: All adults are working
+  # When using the dashboard income1 - income6 are autopopulated with incorrect values so they need to be zeroed out here 
+  data$income1<-0
+  data$income2<-0
+  data$income3<-0
+  data$income4<-0
+  data$income5<-0
+  data$income6<-0
   data$income1[!is.na(data$agePerson1) & data$agePerson1>=19]<-data$income[!is.na(data$agePerson1) & data$agePerson1>=19]/data$numadults[!is.na(data$agePerson1) & data$agePerson1>=19]
   data$income2[!is.na(data$agePerson2) & data$agePerson2>=19]<-data$income[!is.na(data$agePerson2) & data$agePerson2>=19]/data$numadults[!is.na(data$agePerson2) & data$agePerson2>=19]
   data$income3[!is.na(data$agePerson3) & data$agePerson3>=19]<-data$income[!is.na(data$agePerson3) & data$agePerson3>=19]/data$numadults[!is.na(data$agePerson3) & data$agePerson3>=19]
@@ -2028,6 +2035,9 @@ data$tax.income.state<-function.stateinctax(data
                                             , incomevar = "income"
                                             , fedincometaxvar = "tax.income.fed"
                                             , fedtaxcreditsvar = "value.taxcredits.fed")
+   
+
+   
 data$tax.income.state[is.na(data$tax.income.state)]<-0
 
 # Current Year- local
