@@ -976,7 +976,7 @@ function.FRSPBenefit<-function(data
   
   data<-left_join(data, section8Data, by=c("ruleYear","stcountyfips2010","countyortownName","numadults", "numkids"))
 
-  data$income.countable = data$income
+  data$income.countable = data$income + data$income.gift + data$value.tanf + data$value.ssi + data$value.ssdi + data$income.child_support
   
   # Step I: Calculate Adjusted Income
   data$adjustedincome<-rowMaxs(cbind(data$income.countable - data$numkids*data$DependentDeduction,0))
