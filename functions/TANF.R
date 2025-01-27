@@ -779,7 +779,7 @@ function.tanfBenefit<-function(data){
   
   state_code=9
   if(state_code %in% unique(data$stateFIPS)){# make sure that state is in the list
-    
+    #test<<-data
     # filter by state code
     temp<-data[data$stateFIPS==9,]
     
@@ -797,29 +797,12 @@ function.tanfBenefit<-function(data){
     # Step II: Calculate value of the benefit - Connecticut provides full amount of benefit to those who have total net income (earned + unearned) less than 100% FPL
     temp$tanfValue<-0
     subset<-temp$totalassets<temp$AssetTest
-    #In CT there are 2 different values for TANF that depend on a household's income 
-    temp$tanfValue_max1[subset]<-rowMaxs(cbind(temp$Maxbenefit[subset],0))
-    temp$tanfValue_max2[subset]<-rowMaxs(cbind(temp$Maxbenefit2[subset],0))
-   
-    
+    temp$tanfValue[subset]<-rowMaxs(cbind(temp$Maxbenefit[subset],0))
     
     # Apply gross income test (if applicable)
     
     #Gross Income Test
-    temp$tanfValue_max1[(temp$income/12)>temp$grossIncomeTest]<-0
-    temp$tanfValue_max2[(temp$income/12)>temp$grossIncomeTest]<-0
-    
-    
-    #Connecticut offers full benefit to people up to 170% of FPL but between 171 and 230 % of FPL the benefit is reduced by half. 
-    
-    temp$tanfValue[income <= EarnedIncomeDisregard*12*1.7]<-temp$tanfValue_max1[income <= EarnedIncomeDisregard*12*1.7]
-    temp$tanfValue[income > EarnedIncomeDisregard*12*1.7 & income <= EarnedIncomeDisregard*12*2.3]<-temp$tanfValue_max2[income > EarnedIncomeDisregard*12*1.7 & income <= EarnedIncomeDisregard*12*2.3]
-    
-    #income is above 100% of FPL they only recieve the benefit for 6 months 
-    temp$tanfValue[income > EarnedIncomeDisregard] <- temp$tanfValue[income > EarnedIncomeDisregard] / 2
-  
-    
-    
+    temp$tanfValue[(temp$income/12)>temp$grossIncomeTest]<-0
     
     # Two parent TANF policy: if 'Yes' then two parent homes are eligible
     temp$tanfValue[temp$FilingStatus==2 & temp$twoParents_tanf_policy=="No"]<-0
