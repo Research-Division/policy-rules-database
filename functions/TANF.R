@@ -779,7 +779,8 @@ function.tanfBenefit<-function(data){
   
   state_code=9
   if(state_code %in% unique(data$stateFIPS)){# make sure that state is in the list
-    
+    test<<-data
+    data<-test
     # filter by state code
     temp<-data[data$stateFIPS==9,]
     
@@ -799,6 +800,15 @@ function.tanfBenefit<-function(data){
     subset<-temp$totalassets<temp$AssetTest
     temp$tanfValue[subset]<-rowMaxs(cbind(temp$Maxbenefit[subset],0))
     
+    ##adjust TANF value based on CT rules 
+    
+    #income above 100% but below 171% of FPL are only eligible for 6 months so values are cut in half
+    temp$tanfValue[temp$income > temp$EarnedIncomeDisregard*12 & temp$income <= 1.7*temp$EarnedIncomeDisregard*12] <- temp$tanfValue/2
+    
+    #income greater than or equal to 171% of FPL but less than 230% of FPL get a 20% reduction of the 6 month benefit 
+    temp$tanfValue[temp$income > temp$EarnedIncomeDisregard*1.70*12 & temp$income <= 2.3*temp$EarnedIncomeDisregard*12] <- (temp$tanfValue/2)*.8
+    
+  
     # Apply gross income test (if applicable)
     
     #Gross Income Test
