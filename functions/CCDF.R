@@ -4,7 +4,8 @@ function.CCDFcopay<-function(data
                              , contelig.ccdf = TRUE
 ){
   
-  if(min(data$ruleYear)<=2025){
+ 
+  if(min(data$ruleYear)==2025){
     
   
   data$income <- data$income+data$income.gift
@@ -1434,6 +1435,9 @@ function.CCDFcopay<-function(data
     # Adjust for the income disregard
     temp$income<-temp$income-12*temp$IncomeDisregard
     
+    test<<-temp
+    temp<-test
+    
     temp$FTcopay<-NA
     
     temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1Max]<-temp$CopayBin1[temp$income>=0 & temp$income<=temp$Bin1Max]
@@ -1464,7 +1468,11 @@ function.CCDFcopay<-function(data
     temp$FTcopay[temp$income>temp$Bin25Max & temp$income<=temp$Bin26Max]<-temp$CopayBin26[temp$income>temp$Bin25Max & temp$income<=temp$Bin26Max]
     temp$FTcopay[temp$income>temp$Bin26Max & temp$income<=temp$Bin27Max]<-temp$CopayBin27[temp$income>temp$Bin26Max & temp$income<=temp$Bin27Max]
     temp$FTcopay[temp$income>temp$Bin27Max & temp$income<=temp$Bin28Max]<-temp$CopayBin28[temp$income>temp$Bin27Max & temp$income<=temp$Bin28Max]
-    
+    #Copays for bins 29 - 31 are based off of percentage of childcare cost
+    temp$FTcopay[temp$income>temp$Bin28Max & temp$income<=temp$Bin29Max]<-temp$CopayBin29[temp$income>temp$Bin28Max & temp$income<=temp$Bin29Max]*(temp$netexp.childcare[temp$income>temp$Bin28Max & temp$income<=temp$Bin29Max]/365)
+    temp$FTcopay[temp$income>temp$Bin29Max & temp$income<=temp$Bin30Max]<-temp$CopayBin30[temp$income>temp$Bin29Max & temp$income<=temp$Bin30Max]*(temp$netexp.childcare[temp$income>temp$Bin29Max & temp$income<=temp$Bin30Max]/365)
+    temp$FTcopay[temp$income>temp$Bin30Max & temp$income<=temp$Bin31Max]<-temp$CopayBin31[temp$income>temp$Bin30Max & temp$income<=temp$Bin31Max]*(temp$netexp.childcare[temp$income>temp$Bin30Max & temp$income<=temp$Bin31Max]/365)
+
     # Apply asset test
     subset<-temp$totalassets > temp$AssetTest
     temp$FTcopay[subset]<-NA_real_
@@ -1869,7 +1877,7 @@ function.CCDFcopay<-function(data
     temp$FTcopay[temp$income>temp$Bin9Max & temp$income<=temp$Bin10Max]<-temp$CopayBin10[temp$income>temp$Bin9Max & temp$income<=temp$Bin10Max]
     temp$FTcopay[temp$income>temp$Bin10Max & temp$income<=temp$Bin11Max]<-temp$CopayBin11[temp$income>temp$Bin10Max & temp$income<=temp$Bin11Max]
     temp$FTcopay[temp$income>temp$Bin11Max & temp$income<=temp$Bin12Max]<-temp$CopayBin12[temp$income>temp$Bin11Max & temp$income<=temp$Bin12Max]
-    temp$FTcopay[temp$income>temp$Bin12Max & temp$income<=temp$Bin13Max]<-temp$CopayBin13[temp$income>temp$Bin12Max & temp$income<=temp$Bin13Max]
+    #temp$FTcopay[temp$income>temp$Bin12Max & temp$income<=temp$Bin13Max]<-temp$CopayBin13[temp$income>temp$Bin12Max & temp$income<=temp$Bin13Max]
     
     
     
@@ -5129,6 +5137,7 @@ function.CCDFcopay<-function(data
     temp$FTcopay.FirstChild[temp$income>temp$Bin6Max & temp$income<=temp$Bin7Max]<-temp$CopayBin7.FirstChild[temp$income>temp$Bin6Max & temp$income<=temp$Bin7Max]
     temp$FTcopay.FirstChild[temp$income>temp$Bin7Max & temp$income<=temp$Bin8Max]<-temp$CopayBin8.FirstChild[temp$income>temp$Bin7Max & temp$income<=temp$Bin8Max]
     temp$FTcopay.FirstChild[temp$income>temp$Bin8Max & temp$income<=temp$Bin9Max]<-temp$CopayBin9.FirstChild[temp$income>temp$Bin8Max & temp$income<=temp$Bin9Max]
+    temp$FTcopay.FirstChild[temp$income>temp$Bin9Max & temp$income<=temp$Bin10Max]<-temp$CopayBin10.FirstChild[temp$income>temp$Bin9Max & temp$income<=temp$Bin10Max]
     
     temp$FTcopay.AdditionalChild[temp$income>0 & temp$income<=temp$Bin1Max]<-temp$CopayBin1.AdditionalChild[temp$income>0 & temp$income<=temp$Bin1Max]
     temp$FTcopay.AdditionalChild[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]<-temp$CopayBin2.AdditionalChild[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]
@@ -5139,7 +5148,7 @@ function.CCDFcopay<-function(data
     temp$FTcopay.AdditionalChild[temp$income>temp$Bin6Max & temp$income<=temp$Bin7Max]<-temp$CopayBin7.AdditionalChild[temp$income>temp$Bin6Max & temp$income<=temp$Bin7Max]
     temp$FTcopay.AdditionalChild[temp$income>temp$Bin7Max & temp$income<=temp$Bin8Max]<-temp$CopayBin8.AdditionalChild[temp$income>temp$Bin7Max & temp$income<=temp$Bin8Max]
     temp$FTcopay.AdditionalChild[temp$income>temp$Bin8Max & temp$income<=temp$Bin9Max]<-temp$CopayBin9.AdditionalChild[temp$income>temp$Bin8Max & temp$income<=temp$Bin9Max]
-    
+    temp$FTcopay.AdditionalChild[temp$income>temp$Bin9Max & temp$income<=temp$Bin10Max]<-temp$CopayBin10.AdditionalChild[temp$income>temp$Bin9Max & temp$income<=temp$Bin10Max]
     
     # Apply asset test
     subset<-temp$totalassets > temp$AssetTest
@@ -8239,7 +8248,7 @@ function.CCDFcopay<-function(data
       temp$FTcopay[temp$income>temp$Bin25Max & temp$income<=temp$Bin26Max]<-temp$CopayBin26[temp$income>temp$Bin25Max & temp$income<=temp$Bin26Max]
       temp$FTcopay[temp$income>temp$Bin26Max & temp$income<=temp$Bin27Max]<-temp$CopayBin27[temp$income>temp$Bin26Max & temp$income<=temp$Bin27Max]
       temp$FTcopay[temp$income>temp$Bin27Max & temp$income<=temp$Bin28Max]<-temp$CopayBin28[temp$income>temp$Bin27Max & temp$income<=temp$Bin28Max]
-      
+   
       # Apply asset test
       subset<-temp$totalassets > temp$AssetTest
       temp$FTcopay[subset]<-NA_real_
@@ -11921,7 +11930,7 @@ function.CCDFcopay<-function(data
       temp$FTcopay.FirstChild[temp$income>temp$Bin6Max & temp$income<=temp$Bin7Max]<-temp$CopayBin7.FirstChild[temp$income>temp$Bin6Max & temp$income<=temp$Bin7Max]
       temp$FTcopay.FirstChild[temp$income>temp$Bin7Max & temp$income<=temp$Bin8Max]<-temp$CopayBin8.FirstChild[temp$income>temp$Bin7Max & temp$income<=temp$Bin8Max]
       temp$FTcopay.FirstChild[temp$income>temp$Bin8Max & temp$income<=temp$Bin9Max]<-temp$CopayBin9.FirstChild[temp$income>temp$Bin8Max & temp$income<=temp$Bin9Max]
-      
+    
       temp$FTcopay.AdditionalChild[temp$income>0 & temp$income<=temp$Bin1Max]<-temp$CopayBin1.AdditionalChild[temp$income>0 & temp$income<=temp$Bin1Max]
       temp$FTcopay.AdditionalChild[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]<-temp$CopayBin2.AdditionalChild[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]
       temp$FTcopay.AdditionalChild[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]<-temp$CopayBin3.AdditionalChild[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]
@@ -11931,7 +11940,6 @@ function.CCDFcopay<-function(data
       temp$FTcopay.AdditionalChild[temp$income>temp$Bin6Max & temp$income<=temp$Bin7Max]<-temp$CopayBin7.AdditionalChild[temp$income>temp$Bin6Max & temp$income<=temp$Bin7Max]
       temp$FTcopay.AdditionalChild[temp$income>temp$Bin7Max & temp$income<=temp$Bin8Max]<-temp$CopayBin8.AdditionalChild[temp$income>temp$Bin7Max & temp$income<=temp$Bin8Max]
       temp$FTcopay.AdditionalChild[temp$income>temp$Bin8Max & temp$income<=temp$Bin9Max]<-temp$CopayBin9.AdditionalChild[temp$income>temp$Bin8Max & temp$income<=temp$Bin9Max]
-      
       
       # Apply asset test
       subset<-temp$totalassets > temp$AssetTest
