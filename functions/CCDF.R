@@ -1118,8 +1118,7 @@ function.CCDFcopay<-function(data
     # Adjust for the income disregard
     temp$income<-temp$income-12*temp$IncomeDisregard
     
-    test<<-temp
-    temp<-test
+   
     
     temp$FTcopay<-NA
     
@@ -1329,13 +1328,14 @@ function.CCDFcopay<-function(data
     #----------------------------------
     # Step 1: Assign copays
     #----------------------------------
+   
     temp<-left_join(temp, ccdfData_HI, by=c("stateFIPS", "AKorHI", "famsize", "ruleYear"))
     
     # Adjust for the income disregard
     temp$income<-temp$income-12*temp$IncomeDisregard
     
     temp$FTcopay<-NA
-    
+   
     temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1Max]<-temp$CopayBin1[temp$income>=0 & temp$income<=temp$Bin1Max]
     temp$FTcopay[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]<-temp$CopayBin2[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]
     temp$FTcopay[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]<-temp$CopayBin3[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]
@@ -1434,9 +1434,6 @@ function.CCDFcopay<-function(data
     
     # Adjust for the income disregard
     temp$income<-temp$income-12*temp$IncomeDisregard
-    
-    test<<-temp
-    temp<-test
     
     temp$FTcopay<-NA
     
@@ -1763,6 +1760,8 @@ function.CCDFcopay<-function(data
     #----------------------------------
     # Step 1: Assign copays
     #----------------------------------
+    
+    
     temp<-left_join(temp, ccdfData_IN, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize"))
     
     # Adjust for the income disregard
@@ -1996,7 +1995,7 @@ function.CCDFcopay<-function(data
     temp$FTcopay[temp$income>temp$Bin26Max & temp$income<=temp$Bin27Max]<-temp$CopayBin27[temp$income>temp$Bin26Max & temp$income<=temp$Bin27Max]
     temp$FTcopay[temp$income>temp$Bin27Max & temp$income<=temp$Bin28Max]<-temp$CopayBin28[temp$income>temp$Bin27Max & temp$income<=temp$Bin28Max]
     temp$FTcopay[temp$income>temp$Bin28Max & temp$income<=temp$Bin29Max]<-temp$CopayBin29[temp$income>temp$Bin28Max & temp$income<=temp$Bin29Max]
-    temp$FTcopay[temp$income>temp$Bin29Max & temp$income<=temp$Bin30Max]<-temp$CopayBin30[temp$income>temp$Bin29Max & temp$income<=temp$Bin30Max]
+    #temp$FTcopay[temp$income>temp$Bin29Max & temp$income<=temp$Bin30Max]<-temp$CopayBin30[temp$income>temp$Bin29Max & temp$income<=temp$Bin30Max]
     
     
     # Apply asset test
@@ -2354,6 +2353,7 @@ function.CCDFcopay<-function(data
     #----------------------------------
     # Step 1: Assign copays
     #----------------------------------
+    
     temp<-left_join(temp, ccdfData_MA, by=c("stateFIPS", "AKorHI", "famsize", "ruleYear"))
     
     # Adjust for the income disregard
@@ -4431,7 +4431,7 @@ function.CCDFcopay<-function(data
     
     # Adjust for the income disregard
     temp$income<-temp$income-12*temp$IncomeDisregard
-    
+    test<<-temp
     temp$FTcopay<-NA
     
     temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1Max]<-temp$CopayBin1[temp$income>=0 & temp$income<=temp$Bin1Max]
@@ -5704,9 +5704,10 @@ function.CCDFcopay<-function(data
     #----------------------------------
     # Step 1: Assign copays
     #----------------------------------
-    
+    test<<-temp
+    temp<-test
     temp<-left_join(temp, ccdfData_VA, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize", "countyortownName"))
-    
+ 
     # Adjust for the income disregard
     temp$income<-temp$income-12*temp$IncomeDisregard
     
@@ -5716,9 +5717,9 @@ function.CCDFcopay<-function(data
     temp$FTcopay[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]<-temp$CopayBin2[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]
     temp$FTcopay[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]<-temp$CopayBin3[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]
     temp$FTcopay[temp$income>temp$Bin3Max & temp$income<=temp$Bin4Max]<-temp$CopayBin4[temp$income>temp$Bin3Max & temp$income<=temp$Bin4Max]
-    temp$FTcopay[temp$income>temp$Bin4Max & temp$income<=temp$Bin5Max]<-temp$CopayBin5[temp$income>temp$Bin4Max & temp$income<=temp$Bin5Max]
-    temp$FTcopay[temp$income>temp$Bin5Max & temp$income<=temp$Bin6Max]<-temp$CopayBin6[temp$income>temp$Bin5Max & temp$income<=temp$Bin6Max]
-    
+    # temp$FTcopay[temp$income>temp$Bin4Max & temp$income<=temp$Bin5Max]<-temp$CopayBin5[temp$income>temp$Bin4Max & temp$income<=temp$Bin5Max]
+    # temp$FTcopay[temp$income>temp$Bin5Max & temp$income<=temp$Bin6Max]<-temp$CopayBin6[temp$income>temp$Bin5Max & temp$income<=temp$Bin6Max]
+    # 
     # Apply asset test
     subset<-temp$totalassets > temp$AssetTest
     temp$FTcopay[subset]<-NA_real_
@@ -5727,12 +5728,7 @@ function.CCDFcopay<-function(data
     # Step 2: Calculate total copays
     #----------------------------------
     
-    # Can't pay more than the total remaining expenses
-    
-    temp$totcopay[temp$ruleYear<2023]<-temp$income[temp$ruleYear<2023]*temp$FTcopay[temp$ruleYear<2023]
-    
-    temp$totcopay[temp$ruleYear>=2023]<-temp$FTcopay[temp$ruleYear>=2023]*12
-    
+    temp$totcopay<-temp$FTcopay*12
     temp$totcopay<-rowMins(cbind(temp$totcopay,temp$netexp.childcare))
     
     # Set copay to zero if no children
@@ -5749,6 +5745,10 @@ function.CCDFcopay<-function(data
     data$childcare.overage[data$stateFIPS==51]<-temp$childcare.overage
     data$totcopay[data$stateFIPS==51]<-temp$totcopay
     data$InitialEligibility[data$stateFIPS==51]<-temp$InitialEligibility.y
+    
+    
+
+    
   }
   
   
@@ -5797,651 +5797,51 @@ function.CCDFcopay<-function(data
     # Step 1: Assign copays
     #----------------------------------
     temp<-left_join(temp, ccdfData_WA, by=c("stateFIPS", "AKorHI", "ruleYear", "famsize"))
-    
-    #######################################
-    
-    if(2010 %in% unique(temp$ruleYear)){
-      
-      temp_2011<-temp[temp$ruleYear==2010,]
+
       
       # Adjust for the income disregard
-      temp_2011$income<-temp_2011$income-12*temp_2011$IncomeDisregard
+      temp$income<-temp$income-12*temp$IncomeDisregard
       
-      temp_2011$FTcopay<-NA
+      temp$FTcopay<-NA
       
-      temp_2011$FTcopay[temp_2011$income>=0 & temp_2011$income<=temp_2011$Bin1Max]<-temp_2011$CopayBin1[temp_2011$income>=0 & temp_2011$income<=temp_2011$Bin1Max]
-      temp_2011$FTcopay[temp_2011$income>temp_2011$Bin1Max & temp_2011$income<=temp_2011$Bin2Max]<-temp_2011$CopayBin2[temp_2011$income>temp_2011$Bin1Max & temp_2011$income<=temp_2011$Bin2Max]
-      temp_2011$FTcopay[temp_2011$income>temp_2011$Bin2Max & temp_2011$income<=temp_2011$Bin4Max]<-temp_2011$CopayBin2[temp_2011$income>temp_2011$Bin2Max & temp_2011$income<=temp_2011$Bin4Max]+0.5*(temp_2011$income[temp_2011$income>temp_2011$Bin2Max & temp_2011$income<=temp_2011$Bin4Max]-temp_2011$Bin2Max[temp_2011$income>temp_2011$Bin2Max & temp_2011$income<=temp_2011$Bin4Max])/12 # Apply sliding fee scale formula
+      temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1Max]<-temp$CopayBin1[temp$income>=0 & temp$income<=temp$Bin1Max]
+      temp$FTcopay[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]<-temp$CopayBin2[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]
+      temp$FTcopay[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]<-temp$CopayBin3[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]
+      temp$FTcopay[temp$income>temp$Bin3Max & temp$income<=temp$Bin4Max]<-temp$CopayBin4[temp$income>temp$Bin3Max & temp$income<=temp$Bin4Max]
+      temp$FTcopay[temp$income>temp$Bin4Max & temp$income<=temp$Bin5Max]<-temp$CopayBin5[temp$income>temp$Bin4Max & temp$income<=temp$Bin5Max]
+      temp$FTcopay[temp$income>temp$Bin5Max & temp$income<=temp$Bin6Max]<-temp$CopayBin6[temp$income>temp$Bin5Max & temp$income<=temp$Bin6Max]
+      temp$FTcopay[temp$income>temp$Bin6Max & temp$income<=temp$Bin7Max]<-temp$CopayBin7[temp$income>temp$Bin6Max & temp$income<=temp$Bin7Max]
       
+      
+      
+      
+      temp$FTcopay<-as.numeric(temp$FTcopay)
       
       # Apply asset test
-      subset<-temp_2011$totalassets > temp_2011$AssetTest
-      temp_2011$totcopay[subset]<-NA_real_
+      subset<-temp$totalassets > temp$AssetTest
+      temp$totcopay[subset]<-NA_real_
       
       #----------------------------------
       # Step 2: Calculate total copays
       #----------------------------------
       
       # Calculate total copay (12 months needed)
-      temp_2011$totcopay<-temp_2011$FTcopay*12
+      temp$totcopay<-temp$FTcopay*12
       
       # Set copay to zero if no children
-      temp_2011$totcopay[temp_2011$numkidsincare0to4+temp_2011$numkidsincare5to12==0]<-0
+      temp$totcopay[temp$numkidsincare0to4+temp$numkidsincare5to12==0]<-0
       
-      temp_2011$totcopay[is.na(temp_2011$FTcopay)]<-NA
+      temp$totcopay[is.na(temp$FTcopay)]<-NA
       # Note: code produces NAs for a good reason, because family is ineligible for CCDF
       # Copay is NOT zero for ineligible, but there are people who pay 0 copay
       
       # Adjust overage depending on whether states allow to charge it
-      temp_2011$childcare.overage[temp_2011$OverageOption=="No"]<-0
+      temp$childcare.overage[temp$OverageOption=="No"]<-0
       
-      temp$childcare.overage[temp$ruleYear==2010]<-temp_2011$childcare.overage
-      temp$totcopay[temp$ruleYear==2010]<-temp_2011$totcopay
+      temp$childcare.overage[temp$ruleYear==2024]<-temp$childcare.overage
+      temp$totcopay[temp$ruleYear==2024]<-temp$totcopay
       
-    }
-    
-    
-    # APPLY 2011 RULES
-    if(2011 %in% unique(temp$ruleYear)){
-      
-      temp_2011<-temp[temp$ruleYear==2011,]
-      
-      # Adjust for the income disregard
-      temp_2011$income<-temp_2011$income-12*temp_2011$IncomeDisregard
-      
-      temp_2011$FTcopay<-NA
-      
-      temp_2011$FTcopay[temp_2011$income>=0 & temp_2011$income<=temp_2011$Bin1Max]<-temp_2011$CopayBin1[temp_2011$income>=0 & temp_2011$income<=temp_2011$Bin1Max]
-      temp_2011$FTcopay[temp_2011$income>temp_2011$Bin1Max & temp_2011$income<=temp_2011$Bin2Max]<-temp_2011$CopayBin2[temp_2011$income>temp_2011$Bin1Max & temp_2011$income<=temp_2011$Bin2Max]
-      temp_2011$FTcopay[temp_2011$income>temp_2011$Bin2Max & temp_2011$income<=temp_2011$Bin4Max]<-temp_2011$CopayBin2[temp_2011$income>temp_2011$Bin2Max & temp_2011$income<=temp_2011$Bin4Max]+0.5*(temp_2011$income[temp_2011$income>temp_2011$Bin2Max & temp_2011$income<=temp_2011$Bin4Max]-temp_2011$Bin2Max[temp_2011$income>temp_2011$Bin2Max & temp_2011$income<=temp_2011$Bin4Max])/12 # Apply sliding fee scale formula
-      
-      
-      # Apply asset test
-      subset<-temp_2011$totalassets > temp_2011$AssetTest
-      temp_2011$totcopay[subset]<-NA_real_
-      
-      #----------------------------------
-      # Step 2: Calculate total copays
-      #----------------------------------
-      
-      # Calculate total copay (12 months needed)
-      temp_2011$totcopay<-temp_2011$FTcopay*12
-      
-      # Set copay to zero if no children
-      temp_2011$totcopay[temp_2011$numkidsincare0to4+temp_2011$numkidsincare5to12==0]<-0
-      
-      temp_2011$totcopay[is.na(temp_2011$FTcopay)]<-NA
-      # Note: code produces NAs for a good reason, because family is ineligible for CCDF
-      # Copay is NOT zero for ineligible, but there are people who pay 0 copay
-      
-      # Adjust overage depending on whether states allow to charge it
-      temp_2011$childcare.overage[temp_2011$OverageOption=="No"]<-0
-      
-      temp$childcare.overage[temp$ruleYear==2011]<-temp_2011$childcare.overage
-      temp$totcopay[temp$ruleYear==2011]<-temp_2011$totcopay
-      
-    }
-    
-    #######################################
-    # APPLY 2012 RULES
-    if(2012 %in% unique(temp$ruleYear)){
-      
-      temp_2012<-temp[temp$ruleYear==2012,]
-      
-      # Adjust for the income disregard
-      temp_2012$income<-temp_2012$income-12*temp_2012$IncomeDisregard
-      
-      temp_2012$FTcopay<-NA
-      
-      temp_2012$FTcopay[temp_2012$income>=0 & temp_2012$income<=temp_2012$Bin1Max]<-temp_2012$CopayBin1[temp_2012$income>=0 & temp_2012$income<=temp_2012$Bin1Max]
-      temp_2012$FTcopay[temp_2012$income>temp_2012$Bin1Max & temp_2012$income<=temp_2012$Bin2Max]<-temp_2012$CopayBin2[temp_2012$income>temp_2012$Bin1Max & temp_2012$income<=temp_2012$Bin2Max]
-      temp_2012$FTcopay[temp_2012$income>temp_2012$Bin2Max & temp_2012$income<=temp_2012$Bin4Max]<-temp_2012$CopayBin2[temp_2012$income>temp_2012$Bin2Max & temp_2012$income<=temp_2012$Bin4Max]+0.5*(temp_2012$income[temp_2012$income>temp_2012$Bin2Max & temp_2012$income<=temp_2012$Bin4Max]-temp_2012$Bin2Max[temp_2012$income>temp_2012$Bin2Max & temp_2012$income<=temp_2012$Bin4Max])/12 # Apply sliding fee scale formula
-      
-      
-      # Apply asset test
-      subset<-temp_2012$totalassets > temp_2012$AssetTest
-      temp_2012$totcopay[subset]<-NA_real_
-      
-      #----------------------------------
-      # Step 2: Calculate total copays
-      #----------------------------------
-      
-      # Calculate total copay (12 months needed)
-      temp_2012$totcopay<-temp_2012$FTcopay*12
-      
-      # Set copay to zero if no children
-      temp_2012$totcopay[temp_2012$numkidsincare0to4+temp_2012$numkidsincare5to12==0]<-0
-      
-      temp_2012$totcopay[is.na(temp_2012$FTcopay)]<-NA
-      # Note: code produces NAs for a good reason, because family is ineligible for CCDF
-      # Copay is NOT zero for ineligible, but there are people who pay 0 copay
-      
-      # Adjust overage depending on whether states allow to charge it
-      temp_2012$childcare.overage[temp_2012$OverageOption=="No"]<-0
-      
-      temp$childcare.overage[temp$ruleYear==2012]<-temp_2012$childcare.overage
-      temp$totcopay[temp$ruleYear==2012]<-temp_2012$totcopay
-      
-    }
-    
-    #######################################
-    # APPLY 2013 RULES
-    if(2013 %in% unique(temp$ruleYear)){
-      
-      temp_2013<-temp[temp$ruleYear==2013,]
-      
-      # Adjust for the income disregard
-      temp_2013$income<-temp_2013$income-12*temp_2013$IncomeDisregard
-      
-      temp_2013$FTcopay<-NA
-      
-      temp_2013$FTcopay[temp_2013$income>=0 & temp_2013$income<=temp_2013$Bin1Max]<-temp_2013$CopayBin1[temp_2013$income>=0 & temp_2013$income<=temp_2013$Bin1Max]
-      temp_2013$FTcopay[temp_2013$income>temp_2013$Bin1Max & temp_2013$income<=temp_2013$Bin2Max]<-temp_2013$CopayBin2[temp_2013$income>temp_2013$Bin1Max & temp_2013$income<=temp_2013$Bin2Max]
-      temp_2013$FTcopay[temp_2013$income>temp_2013$Bin2Max & temp_2013$income<=temp_2013$Bin4Max]<-temp_2013$CopayBin2[temp_2013$income>temp_2013$Bin2Max & temp_2013$income<=temp_2013$Bin4Max]+0.5*(temp_2013$income[temp_2013$income>temp_2013$Bin2Max & temp_2013$income<=temp_2013$Bin4Max]-temp_2013$Bin2Max[temp_2013$income>temp_2013$Bin2Max & temp_2013$income<=temp_2013$Bin4Max])/12 # Apply sliding fee scale formula
-      
-      # Apply asset test
-      subset<-temp_2013$totalassets > temp_2013$AssetTest
-      temp_2013$totcopay[subset]<-NA_real_
-      
-      #----------------------------------
-      # Step 2: Calculate total copays
-      #----------------------------------
-      
-      # Calculate total copay (12 months needed)
-      temp_2013$totcopay<-temp_2013$FTcopay*12
-      
-      # Set copay to zero if no children
-      temp_2013$totcopay[temp_2013$numkidsincare0to4+temp_2013$numkidsincare5to12==0]<-0
-      
-      temp_2013$totcopay[is.na(temp_2013$FTcopay)]<-NA
-      # Note: code produces NAs for a good reason, because family is ineligible for CCDF
-      # Copay is NOT zero for ineligible, but there are people who pay 0 copay
-      
-      # Adjust overage depending on whether states allow to charge it
-      temp_2013$childcare.overage[temp_2013$OverageOption=="No"]<-0
-      
-      temp$childcare.overage[temp$ruleYear==2013]<-temp_2013$childcare.overage
-      temp$totcopay[temp$ruleYear==2013]<-temp_2013$totcopay
-      
-    }
-    
-    #######################################
-    # APPLY 2014 RULES
-    if(2014 %in% unique(temp$ruleYear)){
-      
-      temp_2014<-temp[temp$ruleYear==2014,]
-      
-      # Adjust for the income disregard
-      temp_2014$income<-temp_2014$income-12*temp_2014$IncomeDisregard
-      
-      temp_2014$FTcopay<-NA
-      
-      temp_2014$FTcopay[temp_2014$income>=0 & temp_2014$income<=temp_2014$Bin1Max]<-temp_2014$CopayBin1[temp_2014$income>=0 & temp_2014$income<=temp_2014$Bin1Max]
-      temp_2014$FTcopay[temp_2014$income>temp_2014$Bin1Max & temp_2014$income<=temp_2014$Bin2Max]<-temp_2014$CopayBin2[temp_2014$income>temp_2014$Bin1Max & temp_2014$income<=temp_2014$Bin2Max]
-      temp_2014$FTcopay[temp_2014$income>temp_2014$Bin2Max & temp_2014$income<=temp_2014$Bin4Max]<-temp_2014$CopayBin2[temp_2014$income>temp_2014$Bin2Max & temp_2014$income<=temp_2014$Bin4Max]+0.5*(temp_2014$income[temp_2014$income>temp_2014$Bin2Max & temp_2014$income<=temp_2014$Bin4Max]-temp_2014$Bin2Max[temp_2014$income>temp_2014$Bin2Max & temp_2014$income<=temp_2014$Bin4Max])/12 # Apply sliding fee scale formula
-      
-      
-      # Apply asset test
-      subset<-temp_2014$totalassets > temp_2014$AssetTest
-      temp_2014$totcopay[subset]<-NA_real_
-      
-      #----------------------------------
-      # Step 2: Calculate total copays
-      #----------------------------------
-      
-      # Calculate total copay (12 months needed)
-      temp_2014$totcopay<-temp_2014$FTcopay*12
-      
-      # Set copay to zero if no children
-      temp_2014$totcopay[temp_2014$numkidsincare0to4+temp_2014$numkidsincare5to12==0]<-0
-      
-      temp_2014$totcopay[is.na(temp_2014$FTcopay)]<-NA
-      # Note: code produces NAs for a good reason, because family is ineligible for CCDF
-      # Copay is NOT zero for ineligible, but there are people who pay 0 copay
-      
-      # Adjust overage depending on whether states allow to charge it
-      temp_2014$childcare.overage[temp_2014$OverageOption=="No"]<-0
-      
-      temp$childcare.overage[temp$ruleYear==2014]<-temp_2014$childcare.overage
-      temp$totcopay[temp$ruleYear==2014]<-temp_2014$totcopay
-      
-    }
-    
-    #######################################
-    # APPLY 2015 RULES
-    if(2015 %in% unique(temp$ruleYear)){
-      
-      temp_2015<-temp[temp$ruleYear==2015,]
-      
-      # Adjust for the income disregard
-      temp_2015$income<-temp_2015$income-12*temp_2015$IncomeDisregard
-      
-      temp_2015$FTcopay<-NA
-      
-      temp_2015$FTcopay[temp_2015$income>=0 & temp_2015$income<=temp_2015$Bin1Max]<-temp_2015$CopayBin1[temp_2015$income>=0 & temp_2015$income<=temp_2015$Bin1Max]
-      temp_2015$FTcopay[temp_2015$income>temp_2015$Bin1Max & temp_2015$income<=temp_2015$Bin2Max]<-temp_2015$CopayBin2[temp_2015$income>temp_2015$Bin1Max & temp_2015$income<=temp_2015$Bin2Max]
-      temp_2015$FTcopay[temp_2015$income>temp_2015$Bin2Max & temp_2015$income<=temp_2015$Bin4Max]<-temp_2015$CopayBin2[temp_2015$income>temp_2015$Bin2Max & temp_2015$income<=temp_2015$Bin4Max]+0.5*(temp_2015$income[temp_2015$income>temp_2015$Bin2Max & temp_2015$income<=temp_2015$Bin4Max]-temp_2015$Bin2Max[temp_2015$income>temp_2015$Bin2Max & temp_2015$income<=temp_2015$Bin4Max])/12 # Apply sliding fee scale formula
-      
-      # Apply asset test
-      subset<-temp_2015$totalassets > temp_2015$AssetTest
-      temp_2015$totcopay[subset]<-NA_real_
-      
-      #----------------------------------
-      # Step 2: Calculate total copays
-      #----------------------------------
-      
-      # Calculate total copay (12 months needed)
-      temp_2015$totcopay<-temp_2015$FTcopay*12
-      
-      # Set copay to zero if no children
-      temp_2015$totcopay[temp_2015$numkidsincare0to4+temp_2015$numkidsincare5to12==0]<-0
-      
-      temp_2015$totcopay[is.na(temp_2015$FTcopay)]<-NA
-      # Note: code produces NAs for a good reason, because family is ineligible for CCDF
-      # Copay is NOT zero for ineligible, but there are people who pay 0 copay
-      
-      # Adjust overage depending on whether states allow to charge it
-      temp_2015$childcare.overage[temp_2015$OverageOption=="No"]<-0
-      
-      temp$childcare.overage[temp$ruleYear==2015]<-temp_2015$childcare.overage
-      temp$totcopay[temp$ruleYear==2015]<-temp_2015$totcopay
-      
-    }
-    
-    #######################################
-    # APPLY 2016 RULES
-    if(2016 %in% unique(temp$ruleYear)){
-      
-      temp_2016<-temp[temp$ruleYear==2016,]
-      
-      # Adjust for the income disregard
-      temp_2016$income<-temp_2016$income-12*temp_2016$IncomeDisregard
-      
-      temp_2016$FTcopay<-NA
-      
-      temp_2016$FTcopay[temp_2016$income>=0 & temp_2016$income<=temp_2016$Bin1Max]<-temp_2016$CopayBin1[temp_2016$income>=0 & temp_2016$income<=temp_2016$Bin1Max]
-      temp_2016$FTcopay[temp_2016$income>temp_2016$Bin1Max & temp_2016$income<=temp_2016$Bin2Max]<-temp_2016$CopayBin2[temp_2016$income>temp_2016$Bin1Max & temp_2016$income<=temp_2016$Bin2Max]
-      temp_2016$FTcopay[temp_2016$income>temp_2016$Bin2Max & temp_2016$income<=temp_2016$Bin4Max]<-temp_2016$CopayBin2[temp_2016$income>temp_2016$Bin2Max & temp_2016$income<=temp_2016$Bin4Max]+0.5*(temp_2016$income[temp_2016$income>temp_2016$Bin2Max & temp_2016$income<=temp_2016$Bin4Max]-temp_2016$Bin2Max[temp_2016$income>temp_2016$Bin2Max & temp_2016$income<=temp_2016$Bin4Max])/12 # Apply sliding fee scale formula
-      
-      
-      # Apply asset test
-      subset<-temp_2016$totalassets > temp_2016$AssetTest
-      temp_2016$totcopay[subset]<-NA_real_
-      
-      #----------------------------------
-      # Step 2: Calculate total copays
-      #----------------------------------
-      
-      # Calculate total copay (12 months needed)
-      temp_2016$totcopay<-temp_2016$FTcopay*12
-      
-      # Set copay to zero if no children
-      temp_2016$totcopay[temp_2016$numkidsincare0to4+temp_2016$numkidsincare5to12==0]<-0
-      
-      temp_2016$totcopay[is.na(temp_2016$FTcopay)]<-NA
-      # Note: code produces NAs for a good reason, because family is ineligible for CCDF
-      # Copay is NOT zero for ineligible, but there are people who pay 0 copay
-      
-      # Adjust overage depending on whether states allow to charge it
-      temp_2016$childcare.overage[temp_2016$OverageOption=="No"]<-0
-      
-      temp$childcare.overage[temp$ruleYear==2016]<-temp_2016$childcare.overage
-      temp$totcopay[temp$ruleYear==2016]<-temp_2016$totcopay
-      
-    }
-    
-    #######################################
-    # APPLY 2017 RULES
-    if(2017 %in% unique(temp$ruleYear)){
-      
-      temp_2017<-temp[temp$ruleYear==2017,]
-      
-      # Adjust for the income disregard
-      temp_2017$income<-temp_2017$income-12*temp_2017$IncomeDisregard
-      
-      temp_2017$FTcopay<-NA
-      
-      temp_2017$FTcopay[temp_2017$income>=0 & temp_2017$income<=temp_2017$Bin1Max]<-temp_2017$CopayBin1[temp_2017$income>=0 & temp_2017$income<=temp_2017$Bin1Max]
-      temp_2017$FTcopay[temp_2017$income>temp_2017$Bin1Max & temp_2017$income<=temp_2017$Bin2Max]<-temp_2017$CopayBin2[temp_2017$income>temp_2017$Bin1Max & temp_2017$income<=temp_2017$Bin2Max]
-      temp_2017$FTcopay[temp_2017$income>temp_2017$Bin2Max & temp_2017$income<=temp_2017$Bin4Max]<-temp_2017$CopayBin2[temp_2017$income>temp_2017$Bin2Max & temp_2017$income<=temp_2017$Bin4Max]+0.5*(temp_2017$income[temp_2017$income>temp_2017$Bin2Max & temp_2017$income<=temp_2017$Bin4Max]-temp_2017$Bin2Max[temp_2017$income>temp_2017$Bin2Max & temp_2017$income<=temp_2017$Bin4Max])/12 # Apply sliding fee scale formula
-      
-      
-      # Apply asset test
-      subset<-temp_2017$totalassets > temp_2017$AssetTest
-      temp_2017$totcopay[subset]<-NA_real_
-      
-      #----------------------------------
-      # Step 2: Calculate total copays
-      #----------------------------------
-      
-      # Calculate total copay (12 months needed)
-      temp_2017$totcopay<-temp_2017$FTcopay*12
-      
-      # Set copay to zero if no children
-      temp_2017$totcopay[temp_2017$numkidsincare0to4+temp_2017$numkidsincare5to12==0]<-0
-      
-      temp_2017$totcopay[is.na(temp_2017$FTcopay)]<-NA
-      # Note: code produces NAs for a good reason, because family is ineligible for CCDF
-      # Copay is NOT zero for ineligible, but there are people who pay 0 copay
-      
-      # Adjust overage depending on whether states allow to charge it
-      temp_2017$childcare.overage[temp_2017$OverageOption=="No"]<-0
-      
-      temp$childcare.overage[temp$ruleYear==2017]<-temp_2017$childcare.overage
-      temp$totcopay[temp$ruleYear==2017]<-temp_2017$totcopay
-      
-    }
-    
-    #######################################
-    # APPLY 2018 RULES
-    if(2018 %in% unique(temp$ruleYear)){
-      
-      temp_2018<-temp[temp$ruleYear==2018,]
-      
-      # Adjust for the income disregard
-      temp_2018$income<-temp_2018$income-12*temp_2018$IncomeDisregard
-      
-      temp_2018$FTcopay<-NA
-      
-      temp_2018$FTcopay[temp_2018$income>=0 & temp_2018$income<=temp_2018$Bin1Max]<-temp_2018$CopayBin1[temp_2018$income>=0 & temp_2018$income<=temp_2018$Bin1Max]
-      temp_2018$FTcopay[temp_2018$income>temp_2018$Bin1Max & temp_2018$income<=temp_2018$Bin2Max]<-temp_2018$CopayBin2[temp_2018$income>temp_2018$Bin1Max & temp_2018$income<=temp_2018$Bin2Max]
-      temp_2018$FTcopay[temp_2018$income>temp_2018$Bin2Max & temp_2018$income<=temp_2018$Bin4Max]<-temp_2018$CopayBin2[temp_2018$income>temp_2018$Bin2Max & temp_2018$income<=temp_2018$Bin4Max]+0.5*(temp_2018$income[temp_2018$income>temp_2018$Bin2Max & temp_2018$income<=temp_2018$Bin4Max]-temp_2018$Bin2Max[temp_2018$income>temp_2018$Bin2Max & temp_2018$income<=temp_2018$Bin4Max])/12 # Apply sliding fee scale formula
-      
-      
-      # Apply asset test
-      subset<-temp_2018$totalassets > temp_2018$AssetTest
-      temp_2018$totcopay[subset]<-NA_real_
-      
-      #----------------------------------
-      # Step 2: Calculate total copays
-      #----------------------------------
-      
-      # Calculate total copay (12 months needed)
-      temp_2018$totcopay<-temp_2018$FTcopay*12
-      
-      # Set copay to zero if no children
-      temp_2018$totcopay[temp_2018$numkidsincare0to4+temp_2018$numkidsincare5to12==0]<-0
-      
-      temp_2018$totcopay[is.na(temp_2018$FTcopay)]<-NA
-      # Note: code produces NAs for a good reason, because family is ineligible for CCDF
-      # Copay is NOT zero for ineligible, but there are people who pay 0 copay
-      
-      # Adjust overage depending on whether states allow to charge it
-      temp_2018$childcare.overage[temp_2018$OverageOption=="No"]<-0
-      
-      temp$childcare.overage[temp$ruleYear==2018]<-temp_2018$childcare.overage
-      temp$totcopay[temp$ruleYear==2018]<-temp_2018$totcopay
-      
-    }
-    
-    #######################################
-    # APPLY 2019 RULES
-    if(2019 %in% unique(temp$ruleYear)){
-      
-      temp_2019<-temp[temp$ruleYear==2019,]
-      
-      # Adjust for the income disregard
-      temp_2019$income<-temp_2019$income-12*temp_2019$IncomeDisregard
-      
-      temp_2019$FTcopay<-NA
-      
-      temp_2019$FTcopay[temp_2019$income>=0 & temp_2019$income<=temp_2019$Bin1Max]<-temp_2019$CopayBin1[temp_2019$income>=0 & temp_2019$income<=temp_2019$Bin1Max]
-      temp_2019$FTcopay[temp_2019$income>temp_2019$Bin1Max & temp_2019$income<=temp_2019$Bin2Max]<-temp_2019$CopayBin2[temp_2019$income>temp_2019$Bin1Max & temp_2019$income<=temp_2019$Bin2Max]
-      temp_2019$FTcopay[temp_2019$income>temp_2019$Bin2Max & temp_2019$income<=temp_2019$Bin4Max]<-temp_2019$CopayBin2[temp_2019$income>temp_2019$Bin2Max & temp_2019$income<=temp_2019$Bin4Max]+0.5*(temp_2019$income[temp_2019$income>temp_2019$Bin2Max & temp_2019$income<=temp_2019$Bin4Max]-temp_2019$Bin2Max[temp_2019$income>temp_2019$Bin2Max & temp_2019$income<=temp_2019$Bin4Max])/12 # Apply sliding fee scale formula
-      
-      # Apply asset test
-      subset<-temp_2019$totalassets > temp_2019$AssetTest
-      temp_2019$totcopay[subset]<-NA_real_
-      
-      #----------------------------------
-      # Step 2: Calculate total copays
-      #----------------------------------
-      
-      # Calculate total copay (12 months needed)
-      temp_2019$totcopay<-temp_2019$FTcopay*12
-      
-      # Set copay to zero if no children
-      temp_2019$totcopay[temp_2019$numkidsincare0to4+temp_2019$numkidsincare5to12==0]<-0
-      
-      temp_2019$totcopay[is.na(temp_2019$FTcopay)]<-NA
-      # Note: code produces NAs for a good reason, because family is ineligible for CCDF
-      # Copay is NOT zero for ineligible, but there are people who pay 0 copay
-      
-      # Adjust overage depending on whether states allow to charge it
-      temp_2019$childcare.overage[temp_2019$OverageOption=="No"]<-0
-      
-      temp$childcare.overage[temp$ruleYear==2019]<-temp_2019$childcare.overage
-      temp$totcopay[temp$ruleYear==2019]<-temp_2019$totcopay
-      
-    }
-    
-    #######################################
-    # APPLY 2020 RULES
-    if(2020 %in% unique(temp$ruleYear)){
-      
-      temp_2020<-temp[temp$ruleYear==2020,]
-      
-      # Adjust for the income disregard
-      temp_2020$income<-temp_2020$income-12*temp_2020$IncomeDisregard
-      
-      temp_2020$FTcopay<-NA
-      
-      temp_2020$FTcopay[temp_2020$income>=0 & temp_2020$income<=temp_2020$Bin1Max]<-temp_2020$CopayBin1[temp_2020$income>=0 & temp_2020$income<=temp_2020$Bin1Max]
-      temp_2020$FTcopay[temp_2020$income>temp_2020$Bin1Max & temp_2020$income<=temp_2020$Bin2Max]<-temp_2020$CopayBin2[temp_2020$income>temp_2020$Bin1Max & temp_2020$income<=temp_2020$Bin2Max]
-      temp_2020$FTcopay[temp_2020$income>temp_2020$Bin2Max & temp_2020$income<=temp_2020$Bin4Max]<-temp_2020$CopayBin2[temp_2020$income>temp_2020$Bin2Max & temp_2020$income<=temp_2020$Bin4Max]+0.5*(temp_2020$income[temp_2020$income>temp_2020$Bin2Max & temp_2020$income<=temp_2020$Bin4Max]-temp_2020$Bin2Max[temp_2020$income>temp_2020$Bin2Max & temp_2020$income<=temp_2020$Bin4Max])/12 # Apply sliding fee scale formula
-      
-      
-      # Apply asset test
-      subset<-temp_2020$totalassets > temp_2020$AssetTest
-      temp_2020$totcopay[subset]<-NA_real_
-      
-      #----------------------------------
-      # Step 2: Calculate total copays
-      #----------------------------------
-      
-      # Calculate total copay (12 months needed)
-      temp_2020$totcopay<-temp_2020$FTcopay*12
-      
-      # Set copay to zero if no children
-      temp_2020$totcopay[temp_2020$numkidsincare0to4+temp_2020$numkidsincare5to12==0]<-0
-      
-      temp_2020$totcopay[is.na(temp_2020$FTcopay)]<-NA
-      # Note: code produces NAs for a good reason, because family is ineligible for CCDF
-      # Copay is NOT zero for ineligible, but there are people who pay 0 copay
-      
-      # Adjust overage depending on whether states allow to charge it
-      temp_2020$childcare.overage[temp_2020$OverageOption=="No"]<-0
-      
-      temp$childcare.overage[temp$ruleYear==2020]<-temp_2020$childcare.overage
-      temp$totcopay[temp$ruleYear==2020]<-temp_2020$totcopay
-      
-    }
-    
-    #######################################
-    # APPLY 2021 RULES
-    if(2021 %in% unique(temp$ruleYear)){
-      
-      temp_2021<-temp[temp$ruleYear==2021,]
-      
-      # Adjust for the income disregard
-      #temp_2021$income<-temp_2021$income-12*temp_2021$IncomeDisregard
-      
-      temp_2021$FTcopay<-NA
-      
-      temp_2021$CopayBin1 <- 15
-      temp_2021$CopayBin2 <- 65
-      temp_2021$CopayBin3 <- 90
-      temp_2021$CopayBin4 <- 115
-      temp_2021$CopayBin5 <- 215
-      
-      temp_2021$FTcopay[temp_2021$income>=0 & temp_2021$income<=temp_2021$Bin1Max]<-temp_2021$CopayBin1[temp_2021$income>=0 & temp_2021$income<=temp_2021$Bin1Max]
-      temp_2021$FTcopay[temp_2021$income>temp_2021$Bin1Max & temp_2021$income<=temp_2021$Bin2Max]<-temp_2021$CopayBin2[temp_2021$income>temp_2021$Bin1Max & temp_2021$income<=temp_2021$Bin2Max]
-      temp_2021$FTcopay[temp_2021$income>temp_2021$Bin2Max & temp_2021$income<=temp_2021$Bin3Max]<-temp_2021$CopayBin3[temp_2021$income>temp_2021$Bin2Max & temp_2021$income<=temp_2021$Bin3Max]
-      temp_2021$FTcopay[temp_2021$income>temp_2021$Bin3Max & temp_2021$income<=temp_2021$Bin4Max]<-temp_2021$CopayBin4[temp_2021$income>temp_2021$Bin3Max & temp_2021$income<=temp_2021$Bin4Max]
-      temp_2021$FTcopay[temp_2021$income>temp_2021$Bin4Max & temp_2021$income<=temp_2021$Bin5Max]<-temp_2021$CopayBin5[temp_2021$income>temp_2021$Bin4Max & temp_2021$income<=temp_2021$Bin5Max]
-      
-      temp_2021$FTcopay<-as.numeric(temp_2021$FTcopay)
-      
-      # Apply asset test
-      subset<-temp_2021$totalassets > temp_2021$AssetTest
-      temp_2021$totcopay[subset]<-NA_real_
-      
-      #----------------------------------
-      # Step 2: Calculate total copays
-      #----------------------------------
-      
-      # Calculate total copay (12 months needed)
-      temp_2021$totcopay<-temp_2021$FTcopay*12
-      
-      # Set copay to zero if no children
-      temp_2021$totcopay[temp_2021$numkidsincare0to4+temp_2021$numkidsincare5to12==0]<-0
-      
-      temp_2021$totcopay[is.na(temp_2021$FTcopay)]<-NA
-      # Note: code produces NAs for a good reason, because family is ineligible for CCDF
-      # Copay is NOT zero for ineligible, but there are people who pay 0 copay
-      
-      # Adjust overage depending on whether states allow to charge it
-      temp_2021$childcare.overage[temp_2021$OverageOption=="No"]<-0
-      
-      temp$childcare.overage[temp$ruleYear==2021]<-temp_2021$childcare.overage
-      temp$totcopay[temp$ruleYear==2021]<-temp_2021$totcopay
-      
-    }
-    
-    #######################################
-    # APPLY 2022 RULES
-    if(2022 %in% unique(temp$ruleYear)){
-      
-      temp_2022<-temp[temp$ruleYear==2022,]
-      
-      # Adjust for the income disregard
-      temp_2022$income<-temp_2022$income-12*temp_2022$IncomeDisregard
-      
-      temp_2022$FTcopay<-NA
-      
-      temp_2022$FTcopay[temp_2022$income>=0 & temp_2022$income<=temp_2022$Bin1Max]<-temp_2022$CopayBin1[temp_2022$income>=0 & temp_2022$income<=temp_2022$Bin1Max]
-      temp_2022$FTcopay[temp_2022$income>temp_2022$Bin1Max & temp_2022$income<=temp_2022$Bin2Max]<-temp_2022$CopayBin2[temp_2022$income>temp_2022$Bin1Max & temp_2022$income<=temp_2022$Bin2Max]
-      temp_2022$FTcopay[temp_2022$income>temp_2022$Bin2Max & temp_2022$income<=temp_2022$Bin3Max]<-temp_2022$CopayBin3[temp_2022$income>temp_2022$Bin2Max & temp_2022$income<=temp_2022$Bin3Max]
-      temp_2022$FTcopay[temp_2022$income>temp_2022$Bin3Max & temp_2022$income<=temp_2022$Bin4Max]<-temp_2022$CopayBin4[temp_2022$income>temp_2022$Bin3Max & temp_2022$income<=temp_2022$Bin4Max]
-      temp_2022$FTcopay[temp_2022$income>temp_2022$Bin4Max & temp_2022$income<=temp_2022$Bin5Max]<-temp_2022$CopayBin5[temp_2022$income>temp_2022$Bin4Max & temp_2022$income<=temp_2022$Bin5Max]
-      
-      temp_2022$FTcopay<-as.numeric(temp_2022$FTcopay)
-      
-      # Apply asset test
-      subset<-temp_2022$totalassets > temp_2022$AssetTest
-      temp_2022$totcopay[subset]<-NA_real_
-      
-      #----------------------------------
-      # Step 2: Calculate total copays
-      #----------------------------------
-      
-      # Calculate total copay (12 months needed)
-      temp_2022$totcopay<-temp_2022$FTcopay*12
-      
-      # Set copay to zero if no children
-      temp_2022$totcopay[temp_2022$numkidsincare0to4+temp_2022$numkidsincare5to12==0]<-0
-      
-      temp_2022$totcopay[is.na(temp_2022$FTcopay)]<-NA
-      # Note: code produces NAs for a good reason, because family is ineligible for CCDF
-      # Copay is NOT zero for ineligible, but there are people who pay 0 copay
-      
-      # Adjust overage depending on whether states allow to charge it
-      temp_2022$childcare.overage[temp_2022$OverageOption=="No"]<-0
-      
-      temp$childcare.overage[temp$ruleYear==2022]<-temp_2022$childcare.overage
-      temp$totcopay[temp$ruleYear==2022]<-temp_2022$totcopay
-      
-    }
-    
-    
-    
-    if(2023 %in% unique(temp$ruleYear)){
-      
-      
-      temp_2023<-temp[temp$ruleYear==2023,]
-      
-      # Adjust for the income disregard
-      temp_2023$income<-temp_2023$income-12*temp_2023$IncomeDisregard
-      
-      temp_2023$FTcopay<-NA
-      
-      temp_2023$FTcopay[temp_2023$income>=0 & temp_2023$income<=temp_2023$Bin1Max]<-temp_2023$CopayBin1[temp_2023$income>=0 & temp_2023$income<=temp_2023$Bin1Max]
-      temp_2023$FTcopay[temp_2023$income>temp_2023$Bin1Max & temp_2023$income<=temp_2023$Bin2Max]<-temp_2023$CopayBin2[temp_2023$income>temp_2023$Bin1Max & temp_2023$income<=temp_2023$Bin2Max]
-      temp_2023$FTcopay[temp_2023$income>temp_2023$Bin2Max & temp_2023$income<=temp_2023$Bin3Max]<-temp_2023$CopayBin3[temp_2023$income>temp_2023$Bin2Max & temp_2023$income<=temp_2023$Bin3Max]
-      temp_2023$FTcopay[temp_2023$income>temp_2023$Bin3Max & temp_2023$income<=temp_2023$Bin4Max]<-temp_2023$CopayBin4[temp_2023$income>temp_2023$Bin3Max & temp_2023$income<=temp_2023$Bin4Max]
-      temp_2023$FTcopay[temp_2023$income>temp_2023$Bin4Max & temp_2023$income<=temp_2023$Bin5Max]<-temp_2023$CopayBin5[temp_2023$income>temp_2023$Bin4Max & temp_2023$income<=temp_2023$Bin5Max]
-      
-      temp_2023$FTcopay<-as.numeric(temp_2023$FTcopay)
-      
-      # Apply asset test
-      subset<-temp_2023$totalassets > temp_2023$AssetTest
-      temp_2023$totcopay[subset]<-NA_real_
-      
-      #----------------------------------
-      # Step 2: Calculate total copays
-      #----------------------------------
-      
-      # Calculate total copay (12 months needed)
-      temp_2023$totcopay<-temp_2023$FTcopay*12
-      
-      # Set copay to zero if no children
-      temp_2023$totcopay[temp_2023$numkidsincare0to4+temp_2023$numkidsincare5to12==0]<-0
-      
-      temp_2023$totcopay[is.na(temp_2023$FTcopay)]<-NA
-      # Note: code produces NAs for a good reason, because family is ineligible for CCDF
-      # Copay is NOT zero for ineligible, but there are people who pay 0 copay
-      
-      # Adjust overage depending on whether states allow to charge it
-      temp_2023$childcare.overage[temp_2023$OverageOption=="No"]<-0
-      
-      temp$childcare.overage[temp$ruleYear==2023]<-temp_2023$childcare.overage
-      temp$totcopay[temp$ruleYear==2023]<-temp_2023$totcopay
-      
-      
-    }
-    
-    if(2024 %in% unique(temp$ruleYear)){
-      
-      temp_2024<-temp[temp$ruleYear==2024,]
-      
-      # Adjust for the income disregard
-      temp_2024$income<-temp_2024$income-12*temp_2024$IncomeDisregard
-      
-      temp_2024$FTcopay<-NA
-      
-      temp_2024$FTcopay[temp_2024$income>=0 & temp_2024$income<=temp_2024$Bin1Max]<-temp_2024$CopayBin1[temp_2024$income>=0 & temp_2024$income<=temp_2024$Bin1Max]
-      temp_2024$FTcopay[temp_2024$income>temp_2024$Bin1Max & temp_2024$income<=temp_2024$Bin2Max]<-temp_2024$CopayBin2[temp_2024$income>temp_2024$Bin1Max & temp_2024$income<=temp_2024$Bin2Max]
-      temp_2024$FTcopay[temp_2024$income>temp_2024$Bin2Max & temp_2024$income<=temp_2024$Bin3Max]<-temp_2024$CopayBin3[temp_2024$income>temp_2024$Bin2Max & temp_2024$income<=temp_2024$Bin3Max]
-      temp_2024$FTcopay[temp_2024$income>temp_2024$Bin3Max & temp_2024$income<=temp_2024$Bin4Max]<-temp_2024$CopayBin4[temp_2024$income>temp_2024$Bin3Max & temp_2024$income<=temp_2024$Bin4Max]
-      temp_2024$FTcopay[temp_2024$income>temp_2024$Bin4Max & temp_2024$income<=temp_2024$Bin5Max]<-temp_2024$CopayBin5[temp_2024$income>temp_2024$Bin4Max & temp_2024$income<=temp_2024$Bin5Max]
-      
-      temp_2024$FTcopay<-as.numeric(temp_2024$FTcopay)
-      
-      # Apply asset test
-      subset<-temp_2024$totalassets > temp_2024$AssetTest
-      temp_2024$totcopay[subset]<-NA_real_
-      
-      #----------------------------------
-      # Step 2: Calculate total copays
-      #----------------------------------
-      
-      # Calculate total copay (12 months needed)
-      temp_2024$totcopay<-temp_2024$FTcopay*12
-      
-      # Set copay to zero if no children
-      temp_2024$totcopay[temp_2024$numkidsincare0to4+temp_2024$numkidsincare5to12==0]<-0
-      
-      temp_2024$totcopay[is.na(temp_2024$FTcopay)]<-NA
-      # Note: code produces NAs for a good reason, because family is ineligible for CCDF
-      # Copay is NOT zero for ineligible, but there are people who pay 0 copay
-      
-      # Adjust overage depending on whether states allow to charge it
-      temp_2024$childcare.overage[temp_2024$OverageOption=="No"]<-0
-      
-      temp$childcare.overage[temp$ruleYear==2024]<-temp_2024$childcare.overage
-      temp$totcopay[temp$ruleYear==2024]<-temp_2024$totcopay
-      
-    }
+  
     # Merge back
     data$childcare.overage[data$stateFIPS==53]<-temp$childcare.overage
     data$totcopay[data$stateFIPS==53]<-temp$totcopay
@@ -12591,6 +11991,8 @@ function.CCDFcopay<-function(data
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
+      ####There isnt 2024 for in the dataset so if 2024 is entered into the tools it will populate with 2023 data 
+      temp$ruleYear[temp$ruleYear==2024]<-2023
       temp<-left_join(temp, ccdfData_WA, by=c("stateFIPS", "AKorHI", "ruleYear", "famsize"))
       
       #######################################
@@ -13195,49 +12597,56 @@ function.CCDFcopay<-function(data
         
       }
       
+      
+      ####There isnt 2024 for in the dataset so if 2024 is entered into the tools it will populate with 2023 data 
+      test<<-temp
+      temp<-test
       if(2024 %in% unique(temp$ruleYear)){
+       
         
-        temp_2024<-temp[temp$ruleYear==2024,]
+        temp_2023<-temp[temp$ruleYear==2023,]
         
         # Adjust for the income disregard
-        temp_2024$income<-temp_2024$income-12*temp_2024$IncomeDisregard
+        temp_2023$income<-temp_2023$income-12*temp_2023$IncomeDisregard
         
-        temp_2024$FTcopay<-NA
+        temp_2023$FTcopay<-NA
         
-        temp_2024$FTcopay[temp_2024$income>=0 & temp_2024$income<=temp_2024$Bin1Max]<-temp_2024$CopayBin1[temp_2024$income>=0 & temp_2024$income<=temp_2024$Bin1Max]
-        temp_2024$FTcopay[temp_2024$income>temp_2024$Bin1Max & temp_2024$income<=temp_2024$Bin2Max]<-temp_2024$CopayBin2[temp_2024$income>temp_2024$Bin1Max & temp_2024$income<=temp_2024$Bin2Max]
-        temp_2024$FTcopay[temp_2024$income>temp_2024$Bin2Max & temp_2024$income<=temp_2024$Bin3Max]<-temp_2024$CopayBin3[temp_2024$income>temp_2024$Bin2Max & temp_2024$income<=temp_2024$Bin3Max]
-        temp_2024$FTcopay[temp_2024$income>temp_2024$Bin3Max & temp_2024$income<=temp_2024$Bin4Max]<-temp_2024$CopayBin4[temp_2024$income>temp_2024$Bin3Max & temp_2024$income<=temp_2024$Bin4Max]
-        temp_2024$FTcopay[temp_2024$income>temp_2024$Bin4Max & temp_2024$income<=temp_2024$Bin5Max]<-temp_2024$CopayBin5[temp_2024$income>temp_2024$Bin4Max & temp_2024$income<=temp_2024$Bin5Max]
+        temp_2023$FTcopay[temp_2023$income>=0 & temp_2023$income<=temp_2023$Bin1Max]<-temp_2023$CopayBin1[temp_2023$income>=0 & temp_2023$income<=temp_2023$Bin1Max]
+        temp_2023$FTcopay[temp_2023$income>temp_2023$Bin1Max & temp_2023$income<=temp_2023$Bin2Max]<-temp_2023$CopayBin2[temp_2023$income>temp_2023$Bin1Max & temp_2023$income<=temp_2023$Bin2Max]
+        temp_2023$FTcopay[temp_2023$income>temp_2023$Bin2Max & temp_2023$income<=temp_2023$Bin3Max]<-temp_2023$CopayBin3[temp_2023$income>temp_2023$Bin2Max & temp_2023$income<=temp_2023$Bin3Max]
+        temp_2023$FTcopay[temp_2023$income>temp_2023$Bin3Max & temp_2023$income<=temp_2023$Bin4Max]<-temp_2023$CopayBin4[temp_2023$income>temp_2023$Bin3Max & temp_2023$income<=temp_2023$Bin4Max]
+        temp_2023$FTcopay[temp_2023$income>temp_2023$Bin4Max & temp_2023$income<=temp_2023$Bin5Max]<-temp_2023$CopayBin5[temp_2023$income>temp_2023$Bin4Max & temp_2023$income<=temp_2023$Bin5Max]
         
-        temp_2024$FTcopay<-as.numeric(temp_2024$FTcopay)
+        temp_2023$FTcopay<-as.numeric(temp_2023$FTcopay)
         
         # Apply asset test
-        subset<-temp_2024$totalassets > temp_2024$AssetTest
-        temp_2024$totcopay[subset]<-NA_real_
+        subset<-temp_2023$totalassets > temp_2023$AssetTest
+        temp_2023$totcopay[subset]<-NA_real_
         
         #----------------------------------
         # Step 2: Calculate total copays
         #----------------------------------
         
         # Calculate total copay (12 months needed)
-        temp_2024$totcopay<-temp_2024$FTcopay*12
+        temp_2023$totcopay<-temp_2023$FTcopay*12
         
         # Set copay to zero if no children
-        temp_2024$totcopay[temp_2024$numkidsincare0to4+temp_2024$numkidsincare5to12==0]<-0
+        temp_2023$totcopay[temp_2023$numkidsincare0to4+temp_2023$numkidsincare5to12==0]<-0
         
-        temp_2024$totcopay[is.na(temp_2024$FTcopay)]<-NA
+        temp_2023$totcopay[is.na(temp_2023$FTcopay)]<-NA
         # Note: code produces NAs for a good reason, because family is ineligible for CCDF
         # Copay is NOT zero for ineligible, but there are people who pay 0 copay
         
         # Adjust overage depending on whether states allow to charge it
-        temp_2024$childcare.overage[temp_2024$OverageOption=="No"]<-0
+        temp_2023$childcare.overage[temp_2023$OverageOption=="No"]<-0
         
-        temp$childcare.overage[temp$ruleYear==2024]<-temp_2024$childcare.overage
-        temp$totcopay[temp$ruleYear==2024]<-temp_2024$totcopay
+        temp$childcare.overage[temp$ruleYear==2023]<-temp_2023$childcare.overage
+        temp$totcopay[temp$ruleYear==2023]<-temp_2023$totcopay
+        
         
       }
-      # Merge back
+      
+     
       data$childcare.overage[data$stateFIPS==53]<-temp$childcare.overage
       data$totcopay[data$stateFIPS==53]<-temp$totcopay
       data$InitialEligibility[data$stateFIPS==53]<-temp$InitialEligibility.y
