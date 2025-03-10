@@ -978,8 +978,8 @@ function.FRSPBenefit<-function(data
 
   data$income.countable = data$income + data$income.gift + data$value.tanf + data$value.ssi + data$value.ssdi + data$income.child_support
   
-  # Step I: Calculate Adjusted Income
-  data$adjustedincome<-rowMaxs(cbind(data$income.countable - data$numkids*data$DependentDeduction,0))
+  # Step I: Calculate Adjusted Income. No dependent deduction for FRSP in DC.
+  data$adjustedincome<-rowMaxs(cbind(data$income.countable,0))
   
   # Step II: Determine Total Tenant Payment
   data$ttp<-shareOfRent*data$adjustedincome
