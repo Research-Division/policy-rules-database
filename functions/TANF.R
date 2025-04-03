@@ -779,8 +779,7 @@ function.tanfBenefit<-function(data){
   
   state_code=9
   if(state_code %in% unique(data$stateFIPS)){# make sure that state is in the list
-    test<<-data
-    data<-test
+    
     # filter by state code
     temp<-data[data$stateFIPS==9,]
     
@@ -791,6 +790,7 @@ function.tanfBenefit<-function(data){
     householdids <- unique(temp$householdid)
     
     # Step I: Calculate net income (only used for applicants) (we have this calculated, but don't actually check for it since we assume that we are dealing with only recipients)
+    temp$EarnedIncomeDisregard <- temp$EarnedIncomeDisregard / 12 
     temp$net.income<-rowMaxs(cbind((temp$income/12) - temp$EarnedIncomeDisregard,0)) # earned income deduction
     
     # value.ssdi is used for unearned income 
@@ -803,10 +803,10 @@ function.tanfBenefit<-function(data){
     ##adjust TANF value based on CT rules 
     
     #income above 100% but below 171% of FPL are only eligible for 6 months so values are cut in half
-    temp$tanfValue[temp$income > temp$EarnedIncomeDisregard*12 & temp$income <= 1.7*temp$EarnedIncomeDisregard*12] <- temp$tanfValue/2
+    temp$tanfValue[temp$income > temp$EarnedIncomeDisregard*12 & temp$income <= 1.7*temp$EarnedIncomeDisregard*12] <- temp$tanfValue[temp$income > temp$EarnedIncomeDisregard*12 & temp$income <= 1.7*temp$EarnedIncomeDisregard*12]/2
     
     #income greater than or equal to 171% of FPL but less than 230% of FPL get a 20% reduction of the 6 month benefit 
-    temp$tanfValue[temp$income > temp$EarnedIncomeDisregard*1.70*12 & temp$income <= 2.3*temp$EarnedIncomeDisregard*12] <- (temp$tanfValue/2)*.8
+    temp$tanfValue[temp$income > temp$EarnedIncomeDisregard*1.70*12 & temp$income <= 2.3*temp$EarnedIncomeDisregard*12] <- (temp$tanfValue[temp$income > temp$EarnedIncomeDisregard*1.70*12 & temp$income <= 2.3*temp$EarnedIncomeDisregard*12]/2)*.8
     
   
     # Apply gross income test (if applicable)
@@ -928,6 +928,7 @@ function.tanfBenefit<-function(data){
     temp<-data %>% 
       filter(stateFIPS==state_code) 
     
+    
     # create list for unique household ids 
     
     householdids <- unique(temp$householdid)
@@ -942,7 +943,7 @@ function.tanfBenefit<-function(data){
       
       # subtract $90 for work related expense
       mutate(net.income = rowMaxs(cbind((income/12)-90,0))) #%>%
-    
+   
     # Currently we do not subtract up to $200 for child care, or the first $50 of child support received to determine the net income. Nor do we account for the fact that
     # Non-parent caretakers can elect to be payee for related children in their care. The income of these caretakers does not count but income of the children may count.
     
@@ -952,7 +953,6 @@ function.tanfBenefit<-function(data){
       group_by(householdid) %>%
       mutate(min_Year=min(Year)) %>% 
       mutate(net.income=ifelse(Year==(min_Year), net.income - 30 - 0.25*EarnedIncomeDisregard*(net.income - 30), net.income))
-    
     
     
     # We add ssdi as unearned income to be added to earned income, for the gross income test
@@ -1027,8 +1027,7 @@ function.tanfBenefit<-function(data){
  
     # filter based on the state code & join the data w/ the tanf information 
     temp<-data[data$stateFIPS==11,]
-    test_data<<-temp
-    temp<-test_data
+   
     temp<-left_join(temp, tanfData, by=c("stateFIPS", "famsize"))
     
     householdids <- unique(temp$householdid)
@@ -1056,13 +1055,13 @@ function.tanfBenefit<-function(data){
     subset<-temp$totalassets<temp$AssetTest
     
     #Asset Test for families with elderly / disabled members
-    #create indicators for elderly / disabled
-    temp$disabled_count<-rowSums(cbind(data$disability1, data$disability2, data$disability3, data$disability4, data$disability5, data$disability6, data$disability7, data$disability8, data$disability9, data$disability10, data$disability11, data$disability12)==1, na.rm=TRUE)
-    temp$elderly_count<-rowSums(cbind(data$agePerson1, data$agePerson2, data$agePerson3, data$agePerson4, data$agePerson5, data$agePerson6, data$agePerson7, data$agePerson8, data$agePerson9, data$agePerson10, data$agePerson11, data$agePerson12)>60, na.rm=TRUE)
-
-    temp$AssetTest[temp$elderly_count>=1 | temp$disabled_count>=1]<-4500
-
-    subset[temp$elderly_count>=1 | temp$disabled_count>=1]<-temp$totalassets[temp$elderly_count>=1 | temp$disabled_count>=1]<temp$AssetTest[temp$elderly_count>=1 | temp$disabled_count>=1]
+    # #create indicators for elderly / disabled
+    # temp$disabled_count<-rowSums(cbind(data$disability1, data$disability2, data$disability3, data$disability4, data$disability5, data$disability6, data$disability7, data$disability8, data$disability9, data$disability10, data$disability11, data$disability12)==1, na.rm=TRUE)
+    # temp$elderly_count<-rowSums(cbind(data$agePerson1, data$agePerson2, data$agePerson3, data$agePerson4, data$agePerson5, data$agePerson6, data$agePerson7, data$agePerson8, data$agePerson9, data$agePerson10, data$agePerson11, data$agePerson12)>60, na.rm=TRUE)
+    # 
+    # temp$AssetTest[temp$elderly_count>=1 | temp$disabled_count>=1]<-4500
+    # 
+    # subset[temp$elderly_count>=1 | temp$disabled_count>=1]<-temp$totalassets[temp$elderly_count>=1 | temp$disabled_count>=1]<temp$AssetTest[temp$elderly_count>=1 | temp$disabled_count>=1]
 
     temp$tanfValue[subset]<-rowMaxs(cbind(12*temp$Maxbenefit[subset] - temp$net.income[subset],0))
     
@@ -1809,6 +1808,7 @@ function.tanfBenefit<-function(data){
     
     temp$income=temp$income+temp$income.gift # add gift income
     
+   
     
     # Step I: Calculate net income
     # $90 work expense standard, $50 for child support exclusion (only if child support is included as unearned income), and $175 per child (2 yrs or older) in care 
@@ -2736,13 +2736,13 @@ function.tanfBenefit<-function(data){
   if(state_code %in% unique(data$stateFIPS)){ # make sure that state is in the list
     temp<-data %>% 
       filter(stateFIPS==state_code) 
-    
+   
     # create household id list for cross section data
     householdids <- unique(temp$householdid)
     
     # join w/ tanf Data 
     temp <- temp %>% 
-      left_join(tanfData, by=c("stateFIPS", "famsize")) %>% 
+      left_join(tanfData, by=c("stateFIPS", "famsize","AKorHI","ownorrent","stateName")) %>% 
       
       # Step I: Calculate net income - Subtract 50% of total gross earned income, and compare to Payment Standard; do this for both ongoing eligibility & determing benefit amount
       mutate(income=income+income.gift) %>% 
@@ -2773,6 +2773,8 @@ function.tanfBenefit<-function(data){
     
     
     temp$tanfValue <- temp$tanfValue*12
+    
+    
     
     # TIME SERIES - Nebraska has a 60 month lifetime limit 
     
@@ -2806,6 +2808,8 @@ function.tanfBenefit<-function(data){
   }
   # Nevada----
   
+
+  
   state_code=32
   if(state_code %in% unique(data$stateFIPS)){ 
     
@@ -2813,12 +2817,21 @@ function.tanfBenefit<-function(data){
     temp<-data %>% 
       filter(stateFIPS==state_code)
     
+
+    
     # create unique household id list for cross section data 
     householdids <- unique(temp$householdid)
     
+    
+    temp$ownorrent<-as.character(temp$ownorrent)
+   
+    
     # join w/ tanf Data 
     temp <- temp %>% 
-      left_join(tanfData, by=c("stateFIPS", "famsize"))
+      left_join(tanfData, by=c("stateFIPS", "famsize","AKorHI","stateName","ownorrent"))
+    
+    
+   
     
     # Step I: Calculate net income
     
@@ -3732,10 +3745,10 @@ function.tanfBenefit<-function(data){
     temp <- temp %>% 
       left_join(tanfData, by=c("stateFIPS", "famsize"))%>%  # join data w/ tanf Data%>% 
       
-      # Step I: Calculate net income -     $170 + 50% of remaining income
+      # Step I: Calculate net income -     $300 + 50% of remaining income
       # NOTE: there is a reduced amount for SON & tanf benefit for those who receive subsidizd housing. We do not currently include this 
       mutate(income=income+income.gift) %>% 
-      mutate(net.income=income/12-(170))%>% 
+      mutate(net.income=income/12-(300))%>% 
       mutate(net.income = rowMaxs(cbind(net.income - EarnedIncomeDisregard*net.income,0))) %>% 
       mutate(net.income = net.income + (value.ssdi/12)) %>%
       # Step II: Calculate value of the benefit
@@ -4196,24 +4209,34 @@ function.tanfBenefit<-function(data){
   
   # Vermont----
   
+
   state_code=50
   if(state_code %in% unique(data$stateFIPS)){ 
+    
+ 
+    
+    
     temp<-data %>% 
       filter(stateFIPS==state_code) 
     
+    
+    
+    
     householdids <- unique(temp$householdid) # create  household id list for cross section data
     
+   
+    
     temp <- temp %>% 
-      left_join(tanfData, by=c("stateFIPS", "famsize")) %>% # join data w/ tanf Data%>% 
+      left_join(tanfData, by=c("stateFIPS", "famsize","stateName","ownorrent","AKorHI")) %>% # join data w/ tanf Data%>% 
       
       # Step I: Calculate net income - If the person has a "subsidized" job, only disregard $90. 
-      # If it is an "unsubsidized" job, deduct $250 plus 25% of the remaining income. Compare this to the StandardofNeed. 
+      # If it is an "unsubsidized" job, deduct $350 plus 25% of the remaining income. Compare this to the StandardofNeed. 
       # If it passes, multiple by 0.496 and compare to MaxBenefit. If passed, the amount is the difference between the calculated amount and MaxBenefit
       
       # we just assume the person has an unsubsidized job 
       
       mutate(income=income+income.gift) %>% 
-      mutate(net.income=(income/12)-250) %>% 
+      mutate(net.income=(income/12)-350) %>% 
       mutate(net.income=net.income*(1-EarnedIncomeDisregard)) %>% 
       mutate(net.income = net.income + (value.ssdi/12)) %>%
       
@@ -4278,6 +4301,9 @@ function.tanfBenefit<-function(data){
   
   
   # Virginia----
+  
+
+  
   
   state_code=51
   if(state_code %in% unique(data$stateFIPS)){ # make sure that state is in the list
@@ -7497,6 +7523,8 @@ function.tanfBenefit<-function(data){
     temp<-data %>% 
       filter(stateFIPS==state_code)
     
+    
+    
     # create unique household id list for cross section data 
     householdids <- unique(temp$householdid)
     
@@ -8481,7 +8509,7 @@ function.tanfBenefit<-function(data){
   }
   
   
-  # Soth Carolina----
+  # South Carolina----
   
   state_code=45
   if(state_code %in% unique(data$stateFIPS)){ # filter by state code 
@@ -8886,6 +8914,8 @@ function.tanfBenefit<-function(data){
       filter(stateFIPS==state_code) 
     
     householdids <- unique(temp$householdid) # create  household id list for cross section data
+    
+    
     
     temp <- temp %>% 
       left_join(tanfData, by=c("stateFIPS", "famsize")) %>% # join data w/ tanf Data%>% 

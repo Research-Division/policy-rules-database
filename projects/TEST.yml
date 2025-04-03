@@ -5,18 +5,18 @@
 
 # Specify rule year(s) also for inflation/deflation purposes
 
-ruleYear: [2024]
+ruleYear: [2025]
 
 # Specify year of the data 
 
-Year: [2024]
+Year: [2025]
 
 
 # Age of each member of the household
 
 agePerson1: [25]
 
-agePerson2: [NA]
+agePerson2: [5]
 
 agePerson3: [NA]
 
@@ -105,7 +105,7 @@ ssdiPIA6: [0]
 
 # Geographical location in the `Fulton County, GA' format (put 'all' of you want to add each county in the US)
 
-locations: ['Arkansas County, AR']
+locations: ['Carson City, NV']
 
 
 # Income vector from income_start to income_end with income_increase_by intervals
@@ -172,7 +172,7 @@ budget.ALICE: survivalforcliff
 
 # Transfer programs switches
 
-APPLY_CHILDCARE: false
+APPLY_CHILDCARE: true
 
 APPLY_HEADSTART: false
 
@@ -182,7 +182,7 @@ APPLY_PREK: false
 
 APPLY_LIHEAP: false
 
-APPLY_HEALTHCARE: false
+APPLY_HEALTHCARE: true
 
 APPLY_MEDICAID_ADULT: false
 
@@ -196,7 +196,7 @@ APPLY_RAP: false
 
 APPLY_FRSP: false
 
-APPLY_SNAP: true
+APPLY_SNAP: false
 
 APPLY_SLP: false
 
@@ -212,7 +212,7 @@ APPLY_CDCTC: false
 
 APPLY_FATES: false
 
-APPLY_TANF: false
+APPLY_TANF: true
 
 APPLY_SSI: false
 
