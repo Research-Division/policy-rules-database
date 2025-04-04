@@ -2088,12 +2088,12 @@ if(APPLY_CTC==FALSE){
 }else if(APPLY_CTC==TRUE){
 
   # State CTC
-  # data$value.ctc.state<-function.statectc(data
-  #                                         , incomevar = "income_tm12"
-  #                                         , stateincometaxvar = "tax.income.state_tm12"
-  #                                         , federalctcvar = "value.ctc.fed")
+  data$value.ctc.state<-function.statectc(data
+                                          , incomevar = "income_tm12"
+                                          , stateincometaxvar = "tax.income.state_tm12"
+                                          , federalctcvar = "value.ctc.fed")
   
-  data$value.ctc.state<-0
+  #data$value.ctc.state<-0
   data$value.ctc.state[is.na(data$value.ctc.state)]<-0
 
 }

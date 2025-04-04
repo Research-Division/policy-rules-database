@@ -4261,42 +4261,196 @@ function.statectc<-function(data
              ,"stateincometax" = stateincometaxvar
              ,"federalctc" = federalctcvar)
 
-    data_main<-left_join(data, statectcData, by=c("stateFIPS", "FilingStatus"))
+   # data_main<-left_join(data, statectcData, by=c("stateFIPS", "FilingStatus"))
 
-    # Initialize
-    data_main$numeligiblekids<-0
-    data_main$value.statectc<-0
-
-    # Work on the subset of states that have CTC
-    states_with_ctc<-unique(statectcData$stateFIPS)
-    data<-data_main[data_main$stateFIPS %in% states_with_ctc,]
-
-    # Calculate number of eligible dependents
-    data$numeligiblekids<-rowSums(cbind(data$agePerson1, data$agePerson2, data$agePerson3, data$agePerson4, data$agePerson5, data$agePerson6, data$agePerson7, data$agePerson8, data$agePerson9, data$agePerson10, data$agePerson11, data$agePerson12)<=data$AgeofDependentMax & cbind(data$agePerson1, data$agePerson2, data$agePerson3, data$agePerson4, data$agePerson5, data$agePerson6, data$agePerson7, data$agePerson8, data$agePerson9, data$agePerson10, data$agePerson11, data$agePerson12)>=data$AgeofDependentMin, na.rm=TRUE)
-
-    subset1<- data$income.base<=data$IncomeBin1Max
-    data$value.statectc[subset1]<-rowMaxs(cbind(data$ValueBin1[subset1], data$federalctc[subset1]*data$PercentOfFederalBin1[subset1]))
-
-    subset2<- data$income.base>data$IncomeBin1Max & data$income.base<=data$IncomeBin2Max
-    data$value.statectc[subset2]<-rowMaxs(cbind(data$ValueBin2[subset2], data$federalctc[subset2]*data$PercentOfFederalBin2[subset2]))
-
-    subset3<- data$income.base>data$IncomeBin2Max & data$income.base<=data$IncomeBin3Max
-    data$value.statectc[subset3]<-rowMaxs(cbind(data$ValueBin3[subset3], data$federalctc[subset3]*data$PercentOfFederalBin3[subset3]))
-
-
-    # Adjust for refundability
-    subset<-data$Refundable=="No"
-    data$value.statectc[subset]<-rowMins(cbind(data$value.statectc[subset],data$stateincometax[subset]))
-
-    # Adjust for number of children to claim
-    data$value.statectc<-data$value.statectc*data$numeligiblekids
-
-    data$value.statectc<-round(data$value.statectc,0)
-
-    # Plug states with CTC back
-    data_main[data_main$stateFIPS %in% states_with_ctc,]<-data
-
-    return(data_main$value.statectc)
+    # # Initialize
+    # data_main$numeligiblekids<-0
+    # data_main$value.statectc<-0
+    # 
+    # # Work on the subset of states that have CTC
+    # states_with_ctc<-unique(statectcData$stateFIPS)
+    # data<-data_main[data_main$stateFIPS %in% states_with_ctc,]
+    # 
+    # # Calculate number of eligible dependents
+    # data$numeligiblekids<-rowSums(cbind(data$agePerson1, data$agePerson2, data$agePerson3, data$agePerson4, data$agePerson5, data$agePerson6, data$agePerson7, data$agePerson8, data$agePerson9, data$agePerson10, data$agePerson11, data$agePerson12)<=data$AgeofDependentMax & cbind(data$agePerson1, data$agePerson2, data$agePerson3, data$agePerson4, data$agePerson5, data$agePerson6, data$agePerson7, data$agePerson8, data$agePerson9, data$agePerson10, data$agePerson11, data$agePerson12)>=data$AgeofDependentMin, na.rm=TRUE)
+    # 
+    # subset1<- data$income.base<=data$IncomeBin1Max
+    # data$value.statectc[subset1]<-rowMaxs(cbind(data$ValueBin1[subset1], data$federalctc[subset1]*data$PercentOfFederalBin1[subset1]))
+    # 
+    # subset2<- data$income.base>data$IncomeBin1Max & data$income.base<=data$IncomeBin2Max
+    # data$value.statectc[subset2]<-rowMaxs(cbind(data$ValueBin2[subset2], data$federalctc[subset2]*data$PercentOfFederalBin2[subset2]))
+    # 
+    # subset3<- data$income.base>data$IncomeBin2Max & data$income.base<=data$IncomeBin3Max
+    # data$value.statectc[subset3]<-rowMaxs(cbind(data$ValueBin3[subset3], data$federalctc[subset3]*data$PercentOfFederalBin3[subset3]))
+    # 
+    # 
+    # # Adjust for refundability
+    # subset<-data$Refundable=="No"
+    # data$value.statectc[subset]<-rowMins(cbind(data$value.statectc[subset],data$stateincometax[subset]))
+    # 
+    # # Adjust for number of children to claim
+    # data$value.statectc<-data$value.statectc*data$numeligiblekids
+    # 
+    # data$value.statectc<-round(data$value.statectc,0)
+    # 
+    # # Plug states with CTC back
+    # data_main[data_main$stateFIPS %in% states_with_ctc,]<-data
+    # 
+    # return(data_main$value.statectc)
+    
+    # =======================
+    # Setup Age Eligibility Rules
+    # =======================
+    
+    age_matrix <- data %>% select(starts_with("agePerson")) %>% as.matrix()
+    
+    state_rules <- statectcData %>%
+      select(stateName, stateFIPS, FilingStatus, AgeofDependentMin, AgeofDependentMax, MaxDependent) %>%
+      distinct()
+    
+    data <- left_join(data, state_rules, by = c("stateFIPS", "FilingStatus"))
+    
+    data$numeligiblekids <- rowSums(
+      (age_matrix >= data$AgeofDependentMin) & (age_matrix <= data$AgeofDependentMax),
+      na.rm = TRUE
+    )
+    
+    data$numeligiblekids <- ifelse(
+      !is.na(data$MaxDependent),
+      pmin(data$numeligiblekids, data$MaxDependent),
+      data$numeligiblekids
+    )
+    
+    data <- data %>% select(-AgeofDependentMin, -AgeofDependentMax, -MaxDependent)
+    
+    # ===============================
+    # Apply Standard Rules (Non-Colorado, incl. Minnesota)
+    # ===============================
+    
+    standard_mask <- data$stateFIPS != 8
+    data_standard <- data[standard_mask, ]
+    
+    data_mn <- data_standard %>% filter(stateFIPS == 27)
+    data_nonmn <- data_standard %>% filter(stateFIPS != 27)
+    
+    data_nonmn <- left_join(
+      data_nonmn,
+      statectcData %>% filter(is.na(MNEligibleKids)),
+      by = c("stateFIPS", "FilingStatus")
+    )
+    
+    data_mn <- left_join(
+      data_mn,
+      statectcData %>% filter(stateFIPS == 27),
+      by = c("stateFIPS", "FilingStatus", "numeligiblekids" = "MNEligibleKids")
+    )
+    
+    data_standard <- bind_rows(data_nonmn, data_mn)
+    
+    # ===============================
+    # Compute Credit for Standard States
+    # ===============================
+    
+    if (nrow(data_standard) > 0) {
+      income_bins <- data_standard[, grep("^IncomeBin\\d+Max$", names(data_standard)), drop = FALSE]
+      value_bins <- data_standard[, grep("^ValueBin\\d+$", names(data_standard)), drop = FALSE]
+      
+      value_bins[is.na(value_bins)] <- 0
+      
+      valid_bins <- data_standard$income.base <= income_bins
+      assigned_bins <- max.col(valid_bins, ties.method = "first")
+      
+      cat("\n===== DEBUG: Maryland Rows Before Assignment =====\n")
+      print(data_standard[data_standard$stateFIPS == 24, c("income.base", "numeligiblekids", "stateincometax")])
+      print(assigned_bins[data_standard$stateFIPS == 24])
+      
+      data_standard$value.statectc <- value_bins[cbind(seq_len(nrow(data_standard)), assigned_bins)] * data_standard$numeligiblekids
+      data_standard$value.statectc[is.na(data_standard$value.statectc)] <- 0
+      
+      cat("\n===== DEBUG: Maryland Rows After Assignment =====\n")
+      print(data_standard[data_standard$stateFIPS == 24, c("income.base", "value.statectc")])
+      
+      phaseout_mask <- !is.na(data_standard$PhaseoutRatePer1000) & 
+        (data_standard$income.base > data_standard$IncomeBin1Max)
+      
+      if (any(phaseout_mask)) {
+        excess_income <- data_standard$income.base[phaseout_mask] - data_standard$IncomeBin1Max[phaseout_mask]
+        base_credit <- data_standard$ValueBin1[phaseout_mask] * data_standard$numeligiblekids[phaseout_mask]
+        phaseout_amount <- (excess_income / 1000) * 
+          data_standard$PhaseoutRatePer1000[phaseout_mask] * base_credit
+        data_standard$value.statectc[phaseout_mask] <- pmax(base_credit - phaseout_amount, 0)
+      }
+      
+      non_refundable <- data_standard$Refundable == "No"  & !is.na(data_standard$Refundable)
+      data_standard$value.statectc[non_refundable] <- pmin(
+        data_standard$value.statectc[non_refundable],
+        data_standard$stateincometax[non_refundable]
+      )
+    }
+    
+    # ===============================
+    # Percent of Federal CTC States: OK and NY
+    # ===============================
+    
+    data <- bind_rows(data_standard, data[!standard_mask, ])
+    
+    ok_mask <- data$stateFIPS == 40 & data$income.base <= data$IncomeBin1Max
+    if (any(ok_mask, na.rm = TRUE)) {
+      data$value.statectc[ok_mask] <- data$federalctc[ok_mask] * data$PercentOfFederalBin1[ok_mask]
+    }
+    
+    ny_mask <- data$stateFIPS == 36 & data$income.base <= data$IncomeBin1Max
+    if (any(ny_mask, na.rm = TRUE)) {
+      flat <- data$ValueBin1[ny_mask]
+      percent <- data$federalctc[ny_mask] * data$PercentOfFederalBin1[ny_mask]
+      data$value.statectc[ny_mask] <- pmax(flat, percent)
+    }
+    
+    non_refundable_2 <- data$Refundable == "No"  & !is.na(data$Refundable) & (ok_mask | ny_mask)
+    data$value.statectc[non_refundable_2] <- pmin(
+      data$value.statectc[non_refundable_2],
+      data$stateincometax[non_refundable_2]
+    )
+    
+    # ===============================
+    # Colorado Special Rules
+    # ===============================
+    
+    data_colorado <- data %>% filter(stateFIPS == 8)
+    
+    if (nrow(data_colorado) > 0) {
+      kid_matrix <- age_matrix[data$stateFIPS == 8, , drop = FALSE]
+      num_kids_0_5 <- rowSums((kid_matrix >= 0 & kid_matrix <= 5), na.rm = TRUE)
+      num_kids_6_16 <- rowSums((kid_matrix >= 6 & kid_matrix <= 16), na.rm = TRUE)
+      
+      income_bins <- data_colorado[, grep("^IncomeBin\\d+Max$", names(data_colorado)), drop = FALSE]
+      value_bins_0_5 <- data_colorado[, grep("^ValueBin\\d+_0_5$", names(data_colorado)), drop = FALSE]
+      value_bins_6_16 <- data_colorado[, grep("^ValueBin\\d+_6_16$", names(data_colorado)), drop = FALSE]
+      
+      value_bins_0_5[is.na(value_bins_0_5)] <- 0
+      value_bins_6_16[is.na(value_bins_6_16)] <- 0
+      
+      valid_bins <- data_colorado$income.base <= income_bins
+      assigned_bins <- max.col(valid_bins, ties.method = "first")
+      
+      val_0_5 <- value_bins_0_5[cbind(seq_len(nrow(data_colorado)), assigned_bins)]
+      val_6_16 <- value_bins_6_16[cbind(seq_len(nrow(data_colorado)), assigned_bins)]
+      
+      total_credit <- val_0_5 * num_kids_0_5 + val_6_16 * num_kids_6_16
+      data$value.statectc[data$stateFIPS == 8] <- total_credit
+      
+      non_refundable <- data_colorado$Refundable == "No" & !is.na(data_colorado$Refundable)
+      data$value.statectc[data$stateFIPS == 8][non_refundable] <- pmin(
+        total_credit[non_refundable],
+        data_colorado$stateincometax[non_refundable]
+      )
+    }
+    
+    # ===============================
+    # Return Final Credit Values
+    # ===============================
+    
+    return(data$value.statectc)
   }
 
 
