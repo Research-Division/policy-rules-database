@@ -16,9 +16,9 @@ Year: [2024]
 
 agePerson1: [25]
 
-agePerson2: [NA]
+agePerson2: [3]
 
-agePerson3: [NA]
+agePerson3: [3]
 
 agePerson4: [NA]
 
@@ -105,7 +105,7 @@ ssdiPIA6: [0]
 
 # Geographical location in the `Fulton County, GA' format (put 'all' of you want to add each county in the US)
 
-locations: ['Arkansas County, AR']
+locations: ['District of Columbia']
 
 
 # Income vector from income_start to income_end with income_increase_by intervals
@@ -138,7 +138,7 @@ ownorrent: ['rent']
 
 # Assets  
 
-assets.cash: [2750]
+assets.cash: [0]
 
 assets.car1: [0]
   
@@ -172,7 +172,7 @@ budget.ALICE: survivalforcliff
 
 # Transfer programs switches
 
-APPLY_CHILDCARE: false
+APPLY_CHILDCARE: true
 
 APPLY_HEADSTART: false
 
@@ -204,9 +204,9 @@ APPLY_WIC: false
 
 APPLY_EITC: false
 
-APPLY_TAXES: false
+APPLY_TAXES: true
 
-APPLY_CTC: false
+APPLY_CTC: true
 
 APPLY_CDCTC: false
 

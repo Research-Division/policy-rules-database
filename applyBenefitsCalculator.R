@@ -122,6 +122,6 @@ data2<-data %>%
          , AfterTaxIncome, NetResources)
 
 
-write.csv(data2, file = paste0(current_directory,"/output/results_",PROJECT, ".csv"), row.names = FALSE)
+# write.csv(data2, file = paste0(current_directory,"/output/results_",PROJECT, ".csv"), row.names = FALSE)
 
 
