@@ -121,7 +121,7 @@ data2<-data %>%
          , value.eitc, value.ctc, value.cdctc, value.ssdi, value.ssi, value.tanf
          , AfterTaxIncome, NetResources, tax.income.fed, tax.income.state) %>%
   
-  relocate(value.ctc.state, value.ctc.fed, tax.income.state, tax.income.fed)
+  relocate(value.ctc.state, value.ctc.fed, value.eitc.state, value.eitc.fed, tax.income.state, tax.income.fed)
 
 
 # write.csv(data2, file = paste0(current_directory,"/output/results_",PROJECT, ".csv"), row.names = FALSE)

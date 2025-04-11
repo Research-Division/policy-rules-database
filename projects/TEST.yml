@@ -16,9 +16,9 @@ Year: [2025]
 
 agePerson1: [25]
 
-agePerson2: [3]
+agePerson2: [5]
 
-agePerson3: [3,NA]
+agePerson3: [5,NA]
 
 agePerson4: [NA]
 
@@ -105,7 +105,7 @@ ssdiPIA6: [0]
 
 # Geographical location in the `Fulton County, GA' format (put 'all' of you want to add each county in the US)
 
-locations: ['all']
+locations: ['Clay County, IL']
 
 
 # Income vector from income_start to income_end with income_increase_by intervals
@@ -202,7 +202,7 @@ APPLY_SLP: false
 
 APPLY_WIC: false
 
-APPLY_EITC: false
+APPLY_EITC: true
 
 APPLY_TAXES: true
 

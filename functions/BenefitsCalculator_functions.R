@@ -2088,37 +2088,16 @@ if(APPLY_CTC==FALSE){
 }else if(APPLY_CTC==TRUE){
 
   # State CTC
-  
-  statectc_debug <- function.statectc(
-    data,
-    incomevar = "income_tm12",
-    stateincometaxvar = "tax.income.state_tm12",
-    federalctcvar = "value.ctc.fed"
-  )
-  
-  # Add debug print BEFORE assigning it
-  cat("\n===== DEBUG: Returned vector from function.statectc() (DC only) =====\n")
-  print(head(statectc_debug[data$stateFIPS == 11]))
-  
-  # Now assign to data
-  data$value.ctc.state <- statectc_debug
-  # data$value.ctc.state<-function.statectc(data
-  #                                         , incomevar = "income_tm12"
-  #                                         , stateincometaxvar = "tax.income.state_tm12"
-  #                                         , federalctcvar = "value.ctc.fed")
-  
-  #data$value.ctc.state<-0
-  #data$value.ctc.state[is.na(data$value.ctc.state)]<-0
+
+   data$value.ctc.state<-function.statectc(data
+                                           , incomevar = "income_tm12"
+                                           , stateincometaxvar = "tax.income.state_tm12"
+                                           , federalctcvar = "value.ctc.fed"
+                                           , stateeitcvar = "value.eitc.state")
+
+  data$value.ctc.state[is.na(data$value.ctc.state)]<-0
 
 }
-
-cat("\n===== DEBUG: POST-function.statectc() - DC Subset Check =====\n")
-print(
-  data %>%
-    filter(stateFIPS == 11) %>%
-    select(income_tm12, value.ctc.fed, value.ctc.state) %>%
-    head(10)
-)
 
 # State CDCTC
 if(APPLY_CDCTC==FALSE){
@@ -2154,7 +2133,7 @@ data$value.eitc.fed[data$eitc_takeup==0]<-0
 data$value.eitc.state[data$eitc_takeup==0]<-0
 
 data$value.ctc.fed[data$ctc_takeup==0]<-0
-#data$value.ctc.state[data$ctc_takeup==0]<-0
+data$value.ctc.state[data$ctc_takeup==0]<-0
 
 data$value.cdctc.fed[data$cdctc_takeup==0]<-0
 data$value.cdctc.state[data$cdctc_takeup==0]<-0
