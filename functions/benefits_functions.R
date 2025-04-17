@@ -3051,292 +3051,166 @@ function.fedeitcIncomeLimits<-function(data
 
 # State Earned Income Tax Credit (EITC) ----
 
-function.stateeitc<-function(data
-                               , incomevar
-                               , investmentincomevar
-                               , federaleitcvar
-                               , stateincometaxvar
-                               , ageofRespondentvar
-                               , ageofSpousevar
-                               , ageofYoungestChildvar){
-
-    data<-data %>%
-      rename("income.base" = incomevar
-             ,"investmentincome" = investmentincomevar
-             ,"federaleitc" = federaleitcvar
-             ,"stateincometax" = stateincometaxvar
-             ,"agePerson1" = ageofRespondentvar
-             ,"agePerson2" = ageofSpousevar
-             ,"ageChild1" = ageofYoungestChildvar)
-
-    # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-    years<-unique(data$ruleYear) # years in data set
-    yearsinexpdata<- unique(stateeitcData$ruleYear) # rule years in benefit data
-    yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-    yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-    # Create data for the future
-    maxyearofdata<-max(stateeitcData$ruleYear) # collect latest year of benefit data
-    futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-    if(length(futureYrs)>0){
-      # Create data frame with future years
-      expand<-expand.grid(stateFIPS=unique(stateeitcData$stateFIPS), numkids=unique(stateeitcData$numkids), Year=futureYrs)
-      # Collect latest benefit data there is and merge w/data frame
-      expand2<-stateeitcData[stateeitcData$ruleYear==maxyearofdata, ]
-      expand<-expand%>%left_join(expand2, by=c("stateFIPS", "numkids"))%>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-    }
-    # Create data for past and gap years (missing data) - not the future
-    nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-    if(length(nonFutureYrs)>0){
-      #Create data frame with past years and year for which we are missing benefit data
-      expandPastMiss<-expand.grid(stateFIPS=unique(stateeitcData$stateFIPS), numkids=unique(stateeitcData$numkids), Year=nonFutureYrs)
-      # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-      expandPastMiss2<-left_join(expandPastMiss, stateeitcData, by=c("stateFIPS", "numkids"))
-      expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-      expandPastMiss2<-expandPastMiss2%>%
-        group_by(Year)%>%
-        mutate(minyeardiff = min(yeardiff))
-      expandPastMiss2<-expandPastMiss2 %>%
-        filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-    }  # Attach copied future, historical, and missing benefit data
-    if(length(futureYrs)>0) {stateeitcData<-stateeitcData %>% rbind(expand)}
-    if(length(nonFutureYrs)>0) {stateeitcData<-stateeitcData %>% rbind(expandPastMiss2)}
-
-    # Step I: merge parameters by filing status and number of children
-   # data_main<-left_join(data, stateeitcData[,colnames(stateeitcData)!="ruleYear"], by=c("stateFIPS", "numkids"))
-    data_main<-left_join(data, stateeitcData, by=c("stateFIPS", "numkids", "ruleYear"))
-
-    # Create two variables: AGI and earned income (later that will go to the InitialTransformations)
-    data_main$income.base.AGI<-data_main$income.base
-    data_main$income.base.earned<-data_main$income.base
-
-    # Compute value of the credit following the steps from Calculations
-    data_main$value.stateeitc<-0
-
-    # Work on the subset of states that have CTC
-    states_with_eitc<-unique(stateeitcData$stateFIPS)
-    data<-data_main[data_main$stateFIPS %in% states_with_eitc,]
-
-    # Compute value of the credit following the steps from Calculations
-    data$value.stateeitc<-data$PercentOfFederal*data$federaleitc
-
-    # Adjust for refundability
-    subset<-which(data$Refundable=="No")
-    data$value.stateeitc[subset]<-rowMins(cbind(data$value.stateeitc[subset], data$stateincometax[subset]),na.rm=TRUE)
-
-    # State-specific rules
-
-    #-------------------------------------
-    #1. California (stateFIPS==6)
-    #-------------------------------------
-    if(6 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-    temp<-data[data$stateFIPS==6,]
-
-    temp$value.stateeitc<-0
-    temp$value.stateeitc<-temp$PercentOfFederal*temp$federaleitc
-
-    # Adjust for refundability
-    subset<-which(temp$Refundable=="No")
-    temp$value.stateeitc[subset]<-rowMins(cbind(temp$value.stateeitc[subset],temp$stateincometax[subset]))
-
-    #Invoke CA Income eligibility
-    subset<-which(temp$income.base.earned>30000)
-    temp$value.stateeitc[subset]<-0
-
-    # Replace back
-    data$value.stateeitc[data$stateFIPS==6]<-temp$value.stateeitc
-    }
-
-    #-------------------------------------
-    #2. District of Columbia (stateFIPS==11)
-    #-------------------------------------
-    if(11 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-      temp<-data[data$stateFIPS==11 & data$numkids==0,] # special program for people without depndents
-
-      if(length(temp$stateFIPS)!=0){
-      temp$value.stateeitc.additional<-0
-
-      # Step 1: calculate EITC base value (based on earned income)
-      temp$value.eitc.base<-rowMins(cbind(0.0765*temp$income.base.earned,538))
-
-      # Step 2: Calculate total EITC (with phase-out)
-      temp$income.countable<-rowMaxs(cbind(temp$income.base.earned,temp$income.base)) #max b/w earnings and gross income
-
-      subset<-which(temp$income.countable<19489)
-      temp$value.stateeitc.additional[subset]<-temp$value.eitc.base[subset]
-
-      subset<-which(temp$income.countable>=19489)
-      temp$value.stateeitc.additional[subset]<-rowMaxs(cbind(0,temp$value.eitc.base[subset]-0.0848*(temp$income.countable[subset]-19489)))
-
-      # Make sure that age requirements for Federal EITC are met
-      subset1<-which(temp$numkids==0 & (temp$FilingStatus==1 | temp$FilingStatus==3) & (temp$agePerson1<19 | temp$agePerson1>999))
-      temp$value.stateeitc.additional[subset1]<-0
-
-      subset2<-which(temp$numkids==0 & (temp$FilingStatus==2) & ((temp$agePerson1<19 & temp$agePerson2<19) | (temp$agePerson1>999 & temp$agePerson2>999)))
-      temp$value.stateeitc.additional[subset2]<-0
-
-      # Check if family satisfies investment income requirements
-      subset3<-which(temp$investmentincome<3650)
-      temp$value.stateeitc.additional[subset3]<-0
-
-      # Add this special EITC to the DC state EITC
-      temp$value.stateeitc<-temp$value.stateeitc+temp$value.stateeitc.additional
-
-      # Replace back
-      data$value.stateeitc[data$stateFIPS==11 & data$numkids==0]<-temp$value.stateeitc
-      }
-    }
-
-    #-------------------------------------
-    #2. Ohio (stateFIPS==39)
-    #-------------------------------------
-    if(39 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-    temp<-data[data$stateFIPS==39,]
-
-    temp$value.stateeitc<-0
-    temp$value.stateeitc<-temp$PercentOfFederal*temp$federaleitc
-
-    # Adjust for refundability
-    subset<-which(temp$Refundable=="No")
-    temp$value.stateeitc[subset]<-rowMins(cbind(temp$value.stateeitc[subset],temp$stateincometax[subset]))
-
-    #OH has different rules for refundability
-    subset<-which(temp$income.base>20000)
-    temp$value.stateeitc[subset]<-rowMins(cbind(temp$value.stateeitc[subset],0.5*temp$stateincometax[subset]))
-
-    # Replace back
-    data$value.stateeitc[data$stateFIPS==39]<-temp$value.stateeitc
-    }
-
-    #-------------------------------------
-    #3. Oregon (stateFIPS==41)
-    #-------------------------------------
-    if(41 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-    temp<-data[data$stateFIPS==41,]
-
-    # Families with children under the age of 3 have different percent of federal
-    subset<-which(temp$ageChild1<3)
-    temp$PercentOfFederal[subset]<-0.12
-
-    # Calculate tax credit amount in a standard way
-    temp$value.stateeitc<-0
-    temp$value.stateeitc<-temp$PercentOfFederal*temp$federaleitc
-
-    # Adjust for refundability
-    subset<-which(temp$Refundable=="No")
-    temp$value.stateeitc[subset]<-rowMins(cbind(temp$value.stateeitc[subset],temp$stateincometax[subset]))
-
-    # Replace back
-    data$value.stateeitc[data$stateFIPS==41]<-temp$value.stateeitc
-    }
-
-
-    #-------------------------------------
-    #4. Maryland (stateFIPS==24)
-    #-------------------------------------
-    if(24 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-      temp<-data[data$stateFIPS==24,]
-
-      # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-      years<-unique(data$ruleYear) # years in data set
-      yearsinexpdata<- unique(fedeitcData$ruleYear) # rule years in benefit data
-      yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-      yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-      # Create data for the future
-      maxyearofdata<-max(fedeitcData$ruleYear) # collect latest year of benefit data
-      futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-      if(length(futureYrs)>0){
-        # Create data frame with future years
-        expand<-expand.grid(FilingStatus=unique(fedeitcData$FilingStatus), numkids=unique(fedeitcData$numkids), Year=futureYrs)
-        # Collect latest benefit data there is and merge w/data frame
-        expand2<-fedeitcData[fedeitcData$ruleYear==maxyearofdata, ]
-        expand<-expand%>%left_join(expand2, by=c("FilingStatus", "numkids"))%>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-      }
-      # Create data for past and gap years (missing data) - not the future
-      nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-      if(length(nonFutureYrs)>0){
-        #Create data frame with past years and year for which we are missing benefit data
-        expandPastMiss<-expand.grid(FilingStatus=unique(fedeitcData$FilingStatus), numkids=unique(fedeitcData$numkids), Year=nonFutureYrs)
-        # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-        expandPastMiss2<-left_join(expandPastMiss, fedeitcData, by=c("FilingStatus", "numkids"))
-        expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-        expandPastMiss2<-expandPastMiss2%>%
-          group_by(Year)%>%
-          mutate(minyeardiff = min(yeardiff))
-        expandPastMiss2<-expandPastMiss2 %>%
-          filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-      }  # Attach copied future, historical, and missing benefit data
-      if(length(futureYrs)>0) {fedeitcData<-fedeitcData %>% rbind(expand)}
-      if(length(nonFutureYrs)>0) {fedeitcData<-fedeitcData %>% rbind(expandPastMiss2)}
-
-      # Step 1: Need to recalulate federal EITC, because Maryland has minimum age requirement disregard
-      # Recalculate Federal tax credit
-      temp<-left_join(temp, fedeitcData, by=c("FilingStatus", "numkids", "ruleYear"))
-
-      # Compute value of the based on Earned Income
-      temp$federaleitc.rep<-0
-
-      subset1<-which(temp$income.base.earned<temp$IncomeBin1Max)
-      temp$federaleitc.rep[subset1]<-0
-
-      subset2<-which(temp$income.base.earned>=temp$IncomeBin1Max & temp$income.base.earned<temp$IncomeBin2Max)
-      temp$federaleitc.rep[subset2]<-0+(temp$income.base.earned[subset2]-temp$IncomeBin1Max[subset2])*temp$PhaseInRate[subset2]
-
-      subset3<-which(temp$income.base.earned>=temp$IncomeBin2Max & temp$income.base.earned<temp$IncomeBin3Max)
-      temp$federaleitc.rep[subset3]<-temp$MaxCredit[subset3]
-
-      subset4<-which(temp$income.base.earned>=temp$IncomeBin3Max & temp$income.base.earned<temp$IncomeBin4Max)
-      temp$federaleitc.rep[subset4]<-temp$MaxCredit[subset4]-(temp$income.base.earned[subset4]-temp$IncomeBin3Max[subset4])*temp$PhaseOutRate[subset4]
-
-      subset5<-which(temp$income.base.earned>=temp$IncomeBin4Max)
-      temp$federaleitc.rep[subset5]<-0
-
-
-      # Recalculate EITC based on AGI if required
-      subset4a<-which(temp$income.base.AGI!=temp$income.base.earned & temp$income.base.AGI>=temp$IncomeBin3Max & temp$income.base.AGI<temp$IncomeBin4Max)
-      temp$federaleitc.rep[subset4a]<-temp$MaxCredit[subset4a]-(temp$income.base.AGI[subset4a]-temp$IncomeBin3Max[subset4a])*temp$PhaseOutRate[subset4a]
-
-      subset5a<-which(temp$income.base.AGI!=temp$income.base.earned & temp$income.base.AGI>=temp$IncomeBin4Max)
-      temp$federaleitc.rep[subset5a]<-0
-
-
-      # Invoke investment income test
-      temp$federaleitc.rep[temp$investmentincome>temp$InvestmentIncomeEligibility]<-0
-
-
-      temp$federaleitc<-temp$federaleitc.rep # Taking into account "Potential" Federal EITC for those who do not qualify due to age requirements
-
-      # Apply refundable credit at 28% of federal EITC
-      temp$value.stateeitc.refundable<-0
-      temp$value.stateeitc.refundable<-0.28*temp$federaleitc
-
-      # Apply nonrefundable credit at 50% of federal EITC
-      temp$value.stateeitc.nonrefundable<-rowMins(cbind(0.5*temp$federaleitc,rowMaxs(cbind(temp$stateincometax-temp$value.stateeitc.refundable,0))))
-
-      # Total value of credit
-      temp$value.stateeitc<-temp$value.stateeitc.refundable+temp$value.stateeitc.nonrefundable
-
-      # Get rid of all other variables before merging back
-      #temp<-temp[,colnames(temp) %in% colnames(data)]
-
-      # Replace back
-      data$value.stateeitc[data$stateFIPS==24]<-temp$value.stateeitc
-
-    }
-
-    # Apply special rule for those who do not claim a child (except Maryland)
-    subset1<-which(data$numkids==0 & (data$FilingStatus==1 | data$FilingStatus==3) & data$agePerson1<25 & data$stateFIPS != 24)
-    data$value.stateeitc[subset1]<-0
-
-    subset2<-which(data$numkids==0 & (data$FilingStatus==2) & (data$agePerson1<25 & data$agePerson2<25) & data$stateFIPS != 24)
-    data$value.stateeitc[subset2]<-0
-
-
-    data$value.stateeitc<-round(data$value.stateeitc,0)
-
-    data_main[data_main$stateFIPS %in% states_with_eitc,]<-data
-
-    return(data_main$value.stateeitc)
+function.stateeitc <- function(data, incomevar,
+                               federaleitcvar,
+                               stateincometaxvar) {
+  
+  # Keep original data untouched so we can return everything
+  # data will be subset by ruleYear further down the function
+  
+  full_data <- data
+  
+  # Preserve order of the full_data which is important for locations = 'all'
+  full_data$row_id_for_return <- seq_len(nrow(full_data)) # 
+  
+  # Initialize empty column to hold final state CTC value
+  full_data$value.stateeitc <- NA_real_
+  
+  # Override ruleYear for both data and full_data so they match during assignment
+  if ("ruleYear" %in% colnames(data)) {
+    data$ruleYear[data$ruleYear > 2024] <- 2024
+    full_data$ruleYear[full_data$ruleYear > 2024] <- 2024
   }
+  
+  # ================================
+  # Beginning of rule year separations
+  # ================================
+  
+  if (2024 %in% unique(data$ruleYear)) {
+    
+    data <- data[data$ruleYear == 2024, ]
+    data$row_id_for_return <- seq_len(nrow(data))
+  
+  # Rename variables for internal use
+  data <- data %>%
+    rename(
+      "income.base" = incomevar,
+      "federaleitc" = federaleitcvar,
+      "stateincometax" = stateincometaxvar 
+    )
+  
+  # Attach benefit rule parameters
+  data <- left_join(data, stateeitcData, by = c("stateFIPS", "numkids"))
+  
+  # Default: percent of federal times federal EITC
+  data$value.stateeitc <- data$PercentOfFederal * data$federaleitc
+  
+  # ====== SPECIAL STATE RULES ======
+  
+  # Delaware: choose refundable 4.5% if it wipes out liability; otherwise lesser of 20% or tax owed
+  if (10 %in% unique(data$stateFIPS)) {
+    temp <- data[data$stateFIPS == 10, ]
+    
+    eitc_4_5 <- temp$PercentOfFederal_DE_refundable * temp$federaleitc
+    eitc_20 <- temp$PercentOfFederal * temp$federaleitc
+    
+    # Apply rule:
+    # If 4.5% >= tax liability, use 4.5% (refundable)
+    # Else, use min(20% EITC, tax liability)
+    temp$value.stateeitc <- ifelse(
+      eitc_4_5 >= temp$stateincometax,
+      eitc_4_5,
+      pmin(eitc_20, temp$stateincometax, na.rm = TRUE)
+    )
+    
+    data$value.stateeitc[data$stateFIPS == 10] <- temp$value.stateeitc
+  }
+  
+  
+  # Oregon: boost to 12% of federal EITC if any child is under age 3
+  if (41 %in% unique(data$stateFIPS)) {
+    temp <- data[data$stateFIPS == 41, ]
+    
+    # Identify columns related to children's ages
+    age_cols <- grep("^agePerson", colnames(temp), value = TRUE)
+    
+    # Check rowwise if any agePerson is under 3
+    has_under3 <- apply(temp[, age_cols], 1, function(row) any(row < 3, na.rm = TRUE))
+    
+    # Override PercentOfFederal if eligible
+    temp$PercentOfFederal[has_under3] <- temp$PercentOfFederal_OR_under3[has_under3]
+    
+    # Recalculate value
+    temp$value.stateeitc <- temp$PercentOfFederal * temp$federaleitc
+    
+    data$value.stateeitc[data$stateFIPS == 41] <- temp$value.stateeitc
+  }
+  
+  
+  
+  # Washington: flat dollar amount (already stored in ValueBin1)
+  if (53 %in% unique(data$stateFIPS)) {
+    data$value.stateeitc[data$stateFIPS == 53] <- data$ValueBin1[data$stateFIPS == 53]
+  }
+  
+  # ====== California======================
+  if (6 %in% unique(data$stateFIPS)) {
+    temp <- data[data$stateFIPS == 6, ]
+    
+    # Find all income and value bin columns
+    income_bin_cols <- grep("^IncomeBin\\d+Max$", names(temp), value = TRUE)
+    value_bin_cols <- gsub("IncomeBin(\\d+)Max", "ValueBin\\1", income_bin_cols)
+    
+    if (length(income_bin_cols) > 0) {
+      # Turn into matrices
+      income_thresholds <- temp[, income_bin_cols]
+      values_matrix <- temp[, value_bin_cols]
+      
+      # Repeat income.base across columns for comparison
+      income_base_matrix <- matrix(rep(temp$income.base, length(income_bin_cols)),
+                                   ncol = length(income_bin_cols))
+      
+      # Logical matrix: income.base <= each IncomeBinXMax
+      meets_threshold <- income_base_matrix <= data.matrix(income_thresholds)
+      
+      # Find first column (bin) where condition is TRUE
+      first_bin <- apply(meets_threshold, 1, function(row) match(TRUE, row))
+      
+      # Extract ValueBinX based on first_bin index
+      temp$value.stateeitc <- mapply(function(row_idx, bin_idx) {
+        if (!is.na(bin_idx)) values_matrix[row_idx, bin_idx] else 0
+      }, row_idx = seq_len(nrow(temp)), bin_idx = first_bin)
+    } else {
+      temp$value.stateeitc <- 0  # Fallback if bin columns not found
+    }
+    
+    # Replace into full data
+    data$value.stateeitc[data$stateFIPS == 6] <- temp$value.stateeitc
+  }
+  
+  # ====== Minnesota =========================
+  if (27 %in% unique(data$stateFIPS)) {
+    temp <- data[data$stateFIPS == 27, ]
+    
+    # Minnesota: 4% of first $9,220 of earned income
+    temp$value.stateeitc <- pmin(temp$income.base, 9220) * temp$PercentOfFederal
+    
+    data$value.stateeitc[data$stateFIPS == 27] <- temp$value.stateeitc
+  }
+  
+  data$value.stateeitc <- as.numeric(data$value.stateeitc)
+  
+  # Final refundability enforcement for all states (except those handled in special rules)
+  nonrefundable <- data$Refundable == "No" & !(data$stateFIPS %in% c(10))  # exclude DE which handles refundability itself
+  data$value.stateeitc[which(nonrefundable)] <- pmin(
+    data$value.stateeitc[which(nonrefundable)],
+    data$stateincometax[which(nonrefundable)],
+    na.rm = TRUE
+  )
+  
+  }
+  
+  # ===============================
+  # Return Final Credit Values
+  # ===============================
+  
+  # Assign calculated values to correct rows using row_id_for_return
+  full_data$value.stateeitc[data$row_id_for_return] <- data$value.stateeitc
+  
+  # Restore original order before returning
+  full_data <- full_data %>% arrange(row_id_for_return)
+  return(round(full_data$value.stateeitc, 0))
+}
 
 
 # Federal Child Tax Credit (CTC) ----

@@ -2071,12 +2071,9 @@ if(APPLY_EITC==FALSE){
 # State EITC
 data$value.eitc.state<-function.stateeitc(data
                                           , incomevar = "income_tm12"
-                                          , investmentincomevar ="income.investment"
                                           , federaleitcvar = "value.eitc.fed"
-                                          , stateincometaxvar = "tax.income.state_tm12"
-                                          , ageofRespondentvar = "agePerson1"
-                                          , ageofSpousevar = "agePerson2"
-                                          , ageofYoungestChildvar = "ageofYoungestChild")
+                                          , stateincometaxvar = "tax.income.state_tm12")
+
 data$value.eitc.state[is.na(data$value.eitc.state)]<-0
 
 }

@@ -105,7 +105,7 @@ ssdiPIA6: [0]
 
 # Geographical location in the `Fulton County, GA' format (put 'all' of you want to add each county in the US)
 
-locations: ['Clay County, IL']
+locations: ['all']
 
 
 # Income vector from income_start to income_end with income_increase_by intervals
