@@ -16,9 +16,9 @@ Year: [2025]
 
 agePerson1: [25]
 
-agePerson2: [5]
+agePerson2: [2]
 
-agePerson3: [5,NA]
+agePerson3: [2,NA]
 
 agePerson4: [NA]
 
@@ -208,7 +208,7 @@ APPLY_TAXES: true
 
 APPLY_CTC: true
 
-APPLY_CDCTC: false
+APPLY_CDCTC: true
 
 APPLY_FATES: false
 
