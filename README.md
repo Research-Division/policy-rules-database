@@ -14,10 +14,7 @@ The terms of the PRD use are defined by the GNU General Public License v3.0. If 
 
 ## Citing the Policy Rules Database
 
-The Policy Rules Database (PRD) was originally developed by Elias Ilin and Ellyn Terry at the Federal Reserve Bank of Atlanta. The proper citation for the PRD is as follows:
-
-'The Policy Rules Database.' Federal Reserve Bank of Atlanta.
-Available at www.frbatlanta.org/economic-mobility-and-resilience/advancing-careers-forlow-income-families/policy-rules-database.aspx. 
+The Policy Rules Database (PRD) was originally developed by Elias Ilin and Ellyn Terry at the Federal Reserve Bank of Atlanta. The proper citation for the PRD can be found by clicking "Cite this repository" on the Github PRD repo page.
 
 ## How to Use This Repository?
 
