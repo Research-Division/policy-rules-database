@@ -119,9 +119,11 @@ data2<-data %>%
          , value.CCDF, value.HeadStart, value.PreK
          , value.cdctc.fed, value.cdctc.state, value.ctc.fed, value.ctc.state, value.eitc.fed, value.eitc.state
          , value.eitc, value.ctc, value.cdctc, value.ssdi, value.ssi, value.tanf
-         , AfterTaxIncome, NetResources)
+         , AfterTaxIncome, NetResources, tax.income.fed, tax.income.state) %>%
+  
+  relocate(value.ctc.state, value.ctc.fed, value.eitc.state, value.eitc.fed, tax.income.state, tax.income.fed)
 
 
-write.csv(data2, file = paste0(current_directory,"/output/results_",PROJECT, ".csv"), row.names = FALSE)
+# write.csv(data2, file = paste0(current_directory,"/output/results_",PROJECT, ".csv"), row.names = FALSE)
 
 

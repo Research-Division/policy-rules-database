@@ -2071,12 +2071,9 @@ if(APPLY_EITC==FALSE){
 # State EITC
 data$value.eitc.state<-function.stateeitc(data
                                           , incomevar = "income_tm12"
-                                          , investmentincomevar ="income.investment"
                                           , federaleitcvar = "value.eitc.fed"
-                                          , stateincometaxvar = "tax.income.state_tm12"
-                                          , ageofRespondentvar = "agePerson1"
-                                          , ageofSpousevar = "agePerson2"
-                                          , ageofYoungestChildvar = "ageofYoungestChild")
+                                          , stateincometaxvar = "tax.income.state_tm12")
+
 data$value.eitc.state[is.na(data$value.eitc.state)]<-0
 
 }
@@ -2088,12 +2085,13 @@ if(APPLY_CTC==FALSE){
 }else if(APPLY_CTC==TRUE){
 
   # State CTC
-  # data$value.ctc.state<-function.statectc(data
-  #                                         , incomevar = "income_tm12"
-  #                                         , stateincometaxvar = "tax.income.state_tm12"
-  #                                         , federalctcvar = "value.ctc.fed")
-  
-  data$value.ctc.state<-0
+
+   data$value.ctc.state<-function.statectc(data
+                                           , incomevar = "income_tm12"
+                                           , stateincometaxvar = "tax.income.state_tm12"
+                                           , federalctcvar = "value.ctc.fed"
+                                           , stateeitcvar = "value.eitc.state")
+
   data$value.ctc.state[is.na(data$value.ctc.state)]<-0
 
 }
