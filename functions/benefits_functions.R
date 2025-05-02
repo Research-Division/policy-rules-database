@@ -4825,7 +4825,7 @@ function.statectc <- function(data,
   
   # Restore original order before returning
   full_data <- full_data %>% arrange(row_id_for_return)
-  return(full_data$value.statectc)
+  return(round(full_data$value.statectc,0))
   
 }
 
