@@ -781,6 +781,7 @@ function.tanfBenefit<-function(data){
   if(state_code %in% unique(data$stateFIPS)){# make sure that state is in the list
     
     # filter by state code
+
     temp<-data[data$stateFIPS==9,]
     
     # join w/ tanfdata
@@ -790,7 +791,7 @@ function.tanfBenefit<-function(data){
     householdids <- unique(temp$householdid)
     
     # Step I: Calculate net income (only used for applicants) (we have this calculated, but don't actually check for it since we assume that we are dealing with only recipients)
-    temp$EarnedIncomeDisregard <- temp$EarnedIncomeDisregard / 12 
+    temp$EarnedIncomeDisregard <- temp$EarnedIncomeDisregard 
     temp$net.income<-rowMaxs(cbind((temp$income/12) - temp$EarnedIncomeDisregard,0)) # earned income deduction
     
     # value.ssdi is used for unearned income 
