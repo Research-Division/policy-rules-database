@@ -53,6 +53,10 @@ function.tanfBenefit<-function(data){
     filter(RuleYearDiff == min(RuleYearDiff))%>% #keep the most recent data 
     select(-c(RuleYearDiff))
   tanfData<-tanfData
+  
+  if(min(data$ruleYear)<2025){
+    data$value.tanf <- NA
+  }
 
   if(min(data$ruleYear)==2025){
     
@@ -3106,6 +3110,9 @@ function.tanfBenefit<-function(data){
   if(state_code %in% unique(data$stateFIPS)){ # filter by state code 
     temp<-data %>% 
       filter(stateFIPS==state_code)
+    
+    test.tanf<<-temp
+    temp<-test.tanf
     
     # create househeold id list for cross section data 
     householdids <- unique(temp$householdid)
