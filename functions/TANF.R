@@ -45,18 +45,22 @@ function.tanfBenefit<-function(data){
   data$tanfValue<-0
   data$value.tanf <-0 
   
-  #Match the entered ruleYear to ruleYear in the TANF data. If there isnt a match then match to the closest ruleYear
-  tanfData<<-tanfData%>%
-    group_by(stateName)%>%
-    filter(RuleYear<=unique(data$ruleYear))%>% #drop any data from the TANF df that after the entered rule year
-    mutate(RuleYearDiff = unique(data$ruleYear)-RuleYear)%>% #calculate the diff between the rule years in the TANF df and the entered rule year
-    filter(RuleYearDiff == min(RuleYearDiff))%>% #keep the most recent data 
-    select(-c(RuleYearDiff))
-  tanfData<-tanfData
+  # #Match the entered ruleYear to ruleYear in the TANF data. If there isnt a match then match to the closest ruleYear
+  # tanfData<<-tanfData%>%
+  #   group_by(stateName)%>%
+  #   filter(RuleYear<=unique(data$ruleYear))%>% #drop any data from the TANF df that after the entered rule year
+  #   mutate(RuleYearDiff = unique(data$ruleYear)-RuleYear)%>% #calculate the diff between the rule years in the TANF df and the entered rule year
+  #   filter(RuleYearDiff == min(RuleYearDiff))%>% #keep the most recent data 
+  #   select(-c(RuleYearDiff))
+  # tanfData<-tanfData
   
-  if(min(data$ruleYear)<2025){
-    data$value.tanf <- NA
-  }
+
+  #subset the data for years that we dont have rules for 
+  data_norules <- data[data$ruleYear<2025,]
+  
+  #create a subset of data that we have rules for 
+  data_rules_25 <- data[data$ruleYear==2025,]
+  data <- data_rules_25
 
   if(min(data$ruleYear)==2025){
     
@@ -4794,6 +4798,10 @@ function.tanfBenefit<-function(data){
   ### result ####
   }
 
+  #Join data back together 
+  data <- suppressMessages(full_join(data_norules,data))
+  
+  
   return(data$value.tanf) 
 }
 
