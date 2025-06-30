@@ -4997,11 +4997,15 @@ function.statecdctc<-function(data
   # Only assign this to states that use standard logic
   standard_rows <- which(!data_main$stateFIPS %in% c(11, 15, 23, 24, 25, 27, 35, 41, 42))  # all special cases
   
-  if (length(standard_rows) > 0) {
-    data_main$value.statecdctc[standard_rows] <- credit_matrix[
-      cbind(standard_rows, chosen_bin[standard_rows])
-    ]
-  }
+  # Construct a mask across full dataset for rows using standard logic *and* with valid chosen bins
+  valid_standard_rows <- !is.na(chosen_bin) &
+    chosen_bin <= ncol(credit_matrix) &
+    !data_main$stateFIPS %in% c(11, 15, 23, 24, 25, 27, 35, 41, 42)
+  
+  # Assign values to only valid rows
+  data_main$value.statecdctc[valid_standard_rows] <- credit_matrix[
+    cbind(which(valid_standard_rows), chosen_bin[valid_standard_rows])
+  ]
   
   # Set to zero if no eligible dependents under the maximum dependent age
   data_main$value.statecdctc[data_main$NumberOfEligibleDependents == 0] <- 0
