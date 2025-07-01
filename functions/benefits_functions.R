@@ -2136,37 +2136,6 @@ function.stateinctax<-function(data
            ,"fedincometax" = fedincometaxvar
            , "fedtaxcredits" = fedtaxcreditsvar)
 
-  # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-  years<-unique(data$ruleYear) # years in data set
-  yearsinexpdata<- unique(stateinctaxData$ruleYear) # rule years in benefit data
-  yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-  yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-  # Create data for the future
-  maxyearofdata<-max(stateinctaxData$ruleYear) # collect latest year of benefit data
-  futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-  if(length(futureYrs)>0){
-    # Create data frame with future years
-    expand<-expand.grid(stateName=unique(stateinctaxData$stateName), FilingStatus=unique(stateinctaxData$FilingStatus), Year=futureYrs)
-    # Collect latest benefit data there is and merge w/data frame
-    expand2<-stateinctaxData[stateinctaxData$ruleYear==maxyearofdata, ]
-    expand<-expand%>%left_join(expand2, by=c("stateName","FilingStatus")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-  }
-  # Create data for past and gap years (missing data) - not the future
-  nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-  if(length(nonFutureYrs)>0){
-    #Create data frame with past years and year for which we are missing benefit data
-    expandPastMiss<-expand.grid(stateName=unique(stateinctaxData$stateName), FilingStatus=unique(stateinctaxData$FilingStatus), Year=nonFutureYrs)
-    # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-    expandPastMiss2<-left_join(expandPastMiss, stateinctaxData, by=c("stateName", "FilingStatus"))
-    expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-    expandPastMiss2<-expandPastMiss2%>%
-      group_by(Year)%>%
-      filter(yeardiff<0)%>%
-      filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-  }  # Attach copied future, historical, and missing benefit data
-  if(length(futureYrs)>0) {stateinctaxData<-stateinctaxData %>% rbind(expand)}
-  if(length(nonFutureYrs)>0) {stateinctaxData<-stateinctaxData %>% rbind(expandPastMiss2)}
-
   data<-left_join(data, stateinctaxData, by=c("ruleYear", "stateFIPS", "stateName", "FilingStatus"))
 
   # 2025 ----
@@ -2523,21 +2492,6 @@ function.stateinctax<-function(data
     data$Standard[subset0] <- rowMaxs(cbind(data$Standard[subset0] - reductionAmount[subset0], 0),na.rm=TRUE)
   }
 
-  # ff)
-  if(2024 %in% unique(data$ruleYear) & "MT" %in% unique(data$stateAbbrev)){
-
-    # Standard deduction is a percentage of AGI with caps and minimums
-    percentofAGI <- data$MT_PercentofAGI*data$income.base
-
-    # Choose which Standard Deduction to use
-    data$Standard <- case_when(percentofAGI <= data$MT_StandardMinimum & data$stateAbbrev=="MT" ~ data$MT_StandardMinimum
-
-                               # Standard Deduction presented in the stateinctaxData is the maximum amount
-                               ,percentofAGI > data$Standard & data$stateAbbrev=="MT"~ data$Standard
-
-                               ,TRUE ~ data$Standard)
-  }
-
   # hh)
   if(2024 %in% unique(data$ruleYear) & "OH" %in% unique(data$stateAbbrev)){
 
@@ -2698,7 +2652,7 @@ function.stateinctax<-function(data
 
     # Add additional tax amounts together. The sum of Amounts 2 & 3 are capped. Amount 1 was capped above
     subset4 <- (subset1==TRUE | subset2==TRUE | subset3==TRUE) & data$ruleYear==2025
-    data$AdditionalTaxTotal[subset4] <- rowMaxs(cbind(data$AdditionalTaxAmt1 + rowMins(cbind(data$AdditionalTaxAmt2 + data$AdditionalTaxAmt3, data$CT_AddTaxMax2), na.rm = TRUE), 0), na.rm = TRUE)
+    data$AdditionalTaxTotal[subset4] <- rowMaxs(cbind(data$AdditionalTaxAmt1[subset4] + rowMins(cbind(data$AdditionalTaxAmt2[subset4] + data$AdditionalTaxAmt3[subset4], data$CT_AddTaxMax2[subset4]), na.rm = TRUE), 0), na.rm = TRUE)
 
   }
 

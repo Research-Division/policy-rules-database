@@ -5,11 +5,11 @@
 
 # Specify rule year(s) also for inflation/deflation purposes
 
-ruleYear: [2025]
+ruleYear: [2024]
 
 # Specify year of the data 
 
-Year: [2025]
+Year: [2024]
 
 
 # Age of each member of the household
