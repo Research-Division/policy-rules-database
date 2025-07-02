@@ -2206,7 +2206,7 @@ function.stateinctax<-function(data
 
     # ll) # Reduce amount of tax due by deducting bracket adjustment - essentially works as a tax credit so add to Personal Exemption which also works as a credit in AR
     subset1 <- (data$income.base >= data$AR_Threshold1) & (data$income.base < data$AR_Threshold2) & data$FilingStatus %in% c(1,3,4) & data$stateAbbrev=="AR"
-
+    subset1[is.na(subset1)] <- FALSE
     data$PersonalExemption[subset1] <- data$PersonalExemption[subset1] + data$AR_BracketAdjustment[subset1] - (data$income.base[subset1] - data$AR_Threshold1[subset1])*data$AR_Phaseout1[subset1]
 
   }
@@ -2419,7 +2419,7 @@ function.stateinctax<-function(data
 
     # oo) # Reduce amount of tax due by deducting bracket adjustment - essentially works as a tax credit so add to Personal Exemption which also works as a credit in AR
     subset1 <- (data$income.base >= data$AR_Threshold1) & (data$income.base < data$AR_Threshold2) & data$FilingStatus %in% c(1,3,4) & data$stateAbbrev=="AR"
-
+    subset1[is.na(subset1)] <- FALSE
     data$PersonalExemption[subset1] <- data$PersonalExemption[subset1] + data$AR_BracketAdjustment[subset1] - (data$income.base[subset1] - data$AR_Threshold1[subset1])*data$AR_Phaseout1[subset1]
 
   }
