@@ -5,12 +5,11 @@ function.CCDFcopay<-function(data
 ){
   #create CCDF value variable 
   data$value.CCDF<-0
-  #subset the data for years that we dont have rules for 
-  data_norules <- data[data$ruleYear<2025,]
-  
-  #create a subset of data that we have rules for 
-  data_rules_25 <- data[data$ruleYear==2025,]
-  data <- data_rules_25
+ 
+  #Populate data pre 2025 with NA since there are not rules for those years 
+  if(min(data$ruleYear)<2025){
+    data$value.CCDF <- NA
+  }
   
   if(min(data$ruleYear)==2025){
     
@@ -6189,11 +6188,7 @@ function.CCDFcopay<-function(data
   
   }  
 
-  
-  #Join data back together 
-  data <- suppressMessages(full_join(data_norules,data))
 
-  
   return(data$value.CCDF)
  
 } #end function.CCDF
