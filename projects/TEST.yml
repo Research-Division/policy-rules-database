@@ -18,7 +18,7 @@ agePerson1: [25]
 
 agePerson2: [2]
 
-agePerson3: [2,NA]
+agePerson3: [2]
 
 agePerson4: [NA]
 
@@ -184,31 +184,31 @@ APPLY_LIHEAP: false
 
 APPLY_HEALTHCARE: true
 
-APPLY_MEDICAID_ADULT: true
+APPLY_MEDICAID_ADULT: false
 
-APPLY_MEDICAID_CHILD: true
+APPLY_MEDICAID_CHILD: false
 
 APPLY_ACA: false
 
-APPLY_SECTION8: true
+APPLY_SECTION8: false
 
 APPLY_RAP: false
 
 APPLY_FRSP: false
 
-APPLY_SNAP: true
+APPLY_SNAP: false
 
 APPLY_SLP: false
 
-APPLY_WIC: true
+APPLY_WIC: false
 
-APPLY_EITC: true
+APPLY_EITC: false
 
-APPLY_TAXES: true
+APPLY_TAXES: false
 
-APPLY_CTC: true
+APPLY_CTC: false
 
-APPLY_CDCTC: true
+APPLY_CDCTC: false
 
 APPLY_FATES: false
 
