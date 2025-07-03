@@ -8,7 +8,7 @@ function.CCDFcopay<-function(data
  
   #Populate data pre 2025 with NA since there are not rules for those years 
   if(min(data$ruleYear)<2025){
-    data$value.CCDF <- NA
+    data$value.CCDF <- 0
   }
   
   if(min(data$ruleYear)==2025){

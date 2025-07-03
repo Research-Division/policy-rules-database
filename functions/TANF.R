@@ -47,7 +47,7 @@ function.tanfBenefit<-function(data){
   
   #Populate data pre 2025 with NA since there are not rules for those years 
   if(min(data$ruleYear)<2025){
-    data$value.tanf <- NA
+    data$value.tanf <- 0
   }
 
   if(min(data$ruleYear)==2025){
