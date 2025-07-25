@@ -2739,7 +2739,7 @@ function.tanfBenefit<-function(data){
     
     # join w/ tanf Data 
     temp <- temp %>% 
-      left_join(tanfData, by=c("stateFIPS", "famsize","AKorHI","ownorrent","stateName")) %>% 
+      left_join(tanfData, by=c("stateFIPS", "famsize")) %>% 
       
       # Step I: Calculate net income - Subtract 50% of total gross earned income, and compare to Payment Standard; do this for both ongoing eligibility & determing benefit amount
       mutate(income=income+income.gift) %>% 
@@ -2825,7 +2825,7 @@ function.tanfBenefit<-function(data){
     
     # join w/ tanf Data 
     temp <- temp %>% 
-      left_join(tanfData, by=c("stateFIPS", "famsize","AKorHI","stateName","ownorrent"))
+      left_join(tanfData, by=c("stateFIPS", "famsize"))
     
     
    
@@ -4227,7 +4227,7 @@ function.tanfBenefit<-function(data){
    
     
     temp <- temp %>% 
-      left_join(tanfData, by=c("stateFIPS", "famsize","stateName","ownorrent","AKorHI")) %>% # join data w/ tanf Data%>% 
+      left_join(tanfData, by=c("stateFIPS", "famsize")) %>% # join data w/ tanf Data%>% 
       
       # Step I: Calculate net income - If the person has a "subsidized" job, only disregard $90. 
       # If it is an "unsubsidized" job, deduct $350 plus 25% of the remaining income. Compare this to the StandardofNeed. 
