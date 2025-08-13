@@ -6165,6 +6165,7 @@ function.CCDFcopay<-function(data
     data$InitialEligibility[data$stateFIPS==55]<-temp$InitialEligibility.y
   }
   
+  # Final Calculation ----
   data$totcopay<-as.numeric(data$totcopay)
   
   data$childcare.overage <- 0
