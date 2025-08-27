@@ -681,9 +681,14 @@ function.snapBenefit<-function(data){
 
     # Determine if the family FAILS income test
     #Gross income eligibility for elderly and disable individuals is two times FPL
-    data$fail_grossIncomeTest[data$elderly_count == 0 & data$disabled_count == 0]<-data$income.gross[data$elderly_count == 0 & data$disabled_count == 0]>data$GrossIncomeEligibility[data$elderly_count == 0 & data$disabled_count == 0] & (data$not_categ_elig_tanf==TRUE & data$not_categ_elig_ssi==TRUE)
-    data$fail_grossIncomeTest[data$elderly_count != 0 | data$disabled_count != 0]<-data$income.gross[data$elderly_count != 0 | data$disabled_count != 0]>2*data$FPL[data$elderly_count != 0 | data$disabled_count != 0] & (data$not_categ_elig_tanf==TRUE & data$not_categ_elig_ssi==TRUE)
-
+    
+    data$fail_grossIncomeTest[data$elderly_count == 0 & data$disabled_count == 0]<-data$income.gross[data$elderly_count == 0 & data$disabled_count == 0]>data$GrossIncomeEligibility[data$elderly_count == 0 & data$disabled_count == 0] #& (data$not_categ_elig_tanf==TRUE & data$not_categ_elig_ssi==TRUE)
+    data$fail_grossIncomeTest[data$elderly_count != 0 | data$disabled_count != 0]<-data$income.gross[data$elderly_count != 0 | data$disabled_count != 0]>2*data$FPL[data$elderly_count != 0 | data$disabled_count != 0] #& (data$not_categ_elig_tanf==TRUE & data$not_categ_elig_ssi==TRUE)
+    
+    
+    data$fail_grossIncomeTest[data$elderly_count == 0 & data$disabled_count == 0 & (data$not_categ_elig_tanf==TRUE & data$not_categ_elig_ssi==TRUE)]<- FALSE
+    data$fail_grossIncomeTest[data$elderly_count != 0 & data$disabled_count != 0 & (data$not_categ_elig_tanf==TRUE & data$not_categ_elig_ssi==TRUE)]<- FALSE
+    
     #some states waive net income tests
     data$fail_netIncomeTest_nonelddis<-(data$disabled_count==0 & data$elderly_count==0) & data$netincome>data$NetIncomeEligibility_nonelddis
     data$fail_netIncomeTest_Elder_Dis<-(data$disabled_count>0 | data$elderly_count>0) & data$netincome>data$NetIncomeEligibility_Elder_Dis
