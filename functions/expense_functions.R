@@ -780,7 +780,7 @@ function.healthcareExp.ALICE<-function(data
                                        , famsizevar){
   # For PRD, famsize may change depending on medicaid status as mentioned above
   data<-data%>%
-    rename(famsizeToUse = famsizevar)
+    rename(famsizeToUse = any_of(famsizevar))
   
   # Add the most recent expenses to the current year if we do not have most up-to-date expenses
   years<-unique(data$Year) # years in data set
