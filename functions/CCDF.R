@@ -2037,8 +2037,7 @@ function.CCDFcopay<-function(data
   # No fee after certain number of children (under construction)
   if(22 %in% unique(data$stateFIPS)){ # make sure that state is in the list
     
-    test_data<<-data
-    data<-test_data
+    
     ccdfData_LA$stateFIPS <- 22
    
     
@@ -2640,8 +2639,7 @@ function.CCDFcopay<-function(data
   # MISSISSIPPI
   
   if(28 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-    test_data<<-data
-    data<-test_data
+   
     ccdfData_MS$stateFIPS <- 28
     
     temp<-data[data$stateFIPS==28,]
@@ -4437,7 +4435,7 @@ function.CCDFcopay<-function(data
     
     # Adjust for the income disregard
     temp$income<-temp$income-12*temp$IncomeDisregard
-    test<<-temp
+   
     temp$FTcopay<-NA
     
     temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1Max]<-temp$CopayBin1[temp$income>=0 & temp$income<=temp$Bin1Max]
@@ -5710,8 +5708,7 @@ function.CCDFcopay<-function(data
     #----------------------------------
     # Step 1: Assign copays
     #----------------------------------
-    test<<-temp
-    temp<-test
+    
     temp<-left_join(temp, ccdfData_VA, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize", "countyortownName"))
  
     # Adjust for the income disregard

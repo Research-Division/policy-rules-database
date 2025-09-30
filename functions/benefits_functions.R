@@ -577,7 +577,7 @@ function.ssiBenefit<-function(data){
 # Supplemental Nutrition Assistance Program (SNAP)----
 
 function.snapBenefit<-function(data){
-  test.snap <<- data # data <- test.snap
+  
   # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
   years<-unique(data$ruleYear) # years in data set
   yearsinexpdata<- unique(snapData$ruleYear) # rule years in benefit data

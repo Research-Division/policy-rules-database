@@ -3103,8 +3103,7 @@ function.tanfBenefit<-function(data){
     temp<-data %>% 
       filter(stateFIPS==state_code)
     
-    test.tanf<<-temp
-    temp<-test.tanf
+ 
     
     # create househeold id list for cross section data 
     householdids <- unique(temp$householdid)
