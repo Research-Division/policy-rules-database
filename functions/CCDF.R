@@ -2680,6 +2680,9 @@ function.CCDFcopay<-function(data
     #----------------------------------
     temp<-left_join(temp, ccdfData_MS, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize"))
     
+    # test<<-temp
+    # temp<-test
+    
     # Adjust for the income disregard
     temp$income<-temp$income-12*temp$IncomeDisregard
     
@@ -2762,6 +2765,10 @@ function.CCDFcopay<-function(data
     temp$FTcopay[temp$income>temp$Bin74Max & temp$income<=temp$Bin75Max]<-temp$CopayBin75[temp$income>temp$Bin74Max & temp$income<=temp$Bin75Max]
     temp$FTcopay[temp$income>temp$Bin75Max & temp$income<=temp$Bin76Max]<-temp$CopayBin76[temp$income>temp$Bin75Max & temp$income<=temp$Bin76Max]
     temp$FTcopay[temp$income>temp$Bin76Max & temp$income<=temp$Bin77Max]<-temp$CopayBin77[temp$income>temp$Bin76Max & temp$income<=temp$Bin77Max]
+    temp$FTcopay[temp$income>temp$Bin77Max & temp$income<=temp$Bin78Max]<-temp$CopayBin78[temp$income>temp$Bin77Max & temp$income<=temp$Bin78Max]
+    temp$FTcopay[temp$income>temp$Bin79Max & temp$income<=temp$Bin79Max]<-temp$CopayBin79[temp$income>temp$Bin78Max & temp$income<=temp$Bin78Max]
+    temp$FTcopay[temp$income>temp$Bin80Max & temp$income<=temp$Bin79Max]<-temp$CopayBin80[temp$income>temp$Bin79Max & temp$income<=temp$Bin79Max]
+    temp$FTcopay[temp$income>temp$Bin81Max & temp$income<=temp$Bin80Max]<-temp$CopayBin81[temp$income>temp$Bin80Max & temp$income<=temp$Bin80Max]
     
     # Apply asset test
     subset<-temp$totalassets > temp$AssetTest
