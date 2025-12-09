@@ -288,10 +288,11 @@ function.techExp.ALICE<-function(data){
       filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff))
   }  # Attach copied future, historical, and missing expense data
   exp.techData.ALICE$Year<-exp.techData.ALICE$yearofdata
+  exp.techData.ALICE$stateAbbrev<-exp.techData.ALICE$State_Abbr
   if(length(futureYrs)>0) { exp.techData.ALICE<-exp.techData.ALICE%>%rbind(expand) }
   if(length(nonFutureYrs)>0) { exp.techData.ALICE<-exp.techData.ALICE%>%rbind(expandPastMiss2) } 
   
-  data<-left_join(data, exp.techData.ALICE, by=c("numadults", "Year"))
+  data<-left_join(data, exp.techData.ALICE, by=c("numadults", "Year","stateAbbrev"))
  
   #formula for survival
   if(budget.ALICE=="survival"|budget.ALICE=="survivalforcliff"){
