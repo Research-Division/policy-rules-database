@@ -258,7 +258,6 @@ function.transpExp.ALICE<-function(data){
 
 function.techExp.ALICE<-function(data){
 
-  exp.techData.ALICE<-test2
   # Add the most recent expenses to the current year if we do not have most up-to-date expenses
   years<-unique(data$Year) # years in data set
   yearsinexpdata<- unique(exp.techData.ALICE$yearofdata) # years in exp data
@@ -289,11 +288,10 @@ function.techExp.ALICE<-function(data){
       filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff))
   }  # Attach copied future, historical, and missing expense data
   exp.techData.ALICE$Year<-exp.techData.ALICE$yearofdata
+  if(length(futureYrs)>0) { exp.techData.ALICE<-exp.techData.ALICE%>%rbind(expand) }
+  if(length(nonFutureYrs)>0) { exp.techData.ALICE<-exp.techData.ALICE%>%rbind(expandPastMiss2) } 
   
-  if(length(futureYrs)>0) { exp.techData.ALICE<-exp.techData.ALICE%>%rbind(expand,fill=T) }
-  if(length(nonFutureYrs)>0) { exp.techData.ALICE<-exp.techData.ALICE%>%rbind(expandPastMiss2,fill=T) } 
-  
-  data<-left_join(data, exp.techData.ALICE, by=c("numadults", "Year","stateAbbrev"))
+  data<-left_join(data, exp.techData.ALICE, by=c("numadults", "Year"))
  
   #formula for survival
   if(budget.ALICE=="survival"|budget.ALICE=="survivalforcliff"){
