@@ -5,20 +5,20 @@
 
 # Specify rule year(s) also for inflation/deflation purposes
 
-ruleYear: [2024]
+ruleYear: [2025]
 
 # Specify year of the data 
 
-Year: [2024]
+Year: [2025]
 
 
 # Age of each member of the household
 
 agePerson1: [25]
 
-agePerson2: [2]
+agePerson2: [1]
 
-agePerson3: [2]
+agePerson3: [NA]
 
 agePerson4: [NA]
 
@@ -176,7 +176,7 @@ APPLY_CHILDCARE: true
 
 APPLY_HEADSTART: false
 
-APPLY_CCDF: true
+APPLY_CCDF: false
 
 APPLY_PREK: false
 
@@ -196,7 +196,7 @@ APPLY_RAP: false
 
 APPLY_FRSP: false
 
-APPLY_SNAP: false
+APPLY_SNAP: true
 
 APPLY_SLP: false
 
@@ -212,7 +212,7 @@ APPLY_CDCTC: false
 
 APPLY_FATES: false
 
-APPLY_TANF: true
+APPLY_TANF: false
 
 APPLY_SSI: false
 
