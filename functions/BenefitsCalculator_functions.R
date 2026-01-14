@@ -1947,7 +1947,7 @@ BenefitsCalculator.TaxesandTaxCredits<-function(data, APPLY_EITC=FALSE, APPLY_CT
     data$tax.FICA<-0
     data$tax.federal_tm12<-0
     data$tax.income.state_tm12<-0
-    data$tax.income.local_tm12<-0
+    
   }else if(APPLY_TAXES==TRUE){
 
 # Current Year Taxes (for take-home pay) 
@@ -2021,11 +2021,11 @@ if(APPLY_CDCTC==FALSE){
 }
 
 data$value.taxcredits.fed<-data$value.eitc.fed+data$value.ctc.fed+data$value.cdctc.fed
-# State & Local Taxes and State Tax Credits ----
+# State Taxes and Tax Credits ----
 
 if(APPLY_TAXES==FALSE){
   data$tax.income.state<-0
-  data$tax.income.local<-0
+
  }else if(APPLY_TAXES==TRUE){
 
 # Current Year State Income Tax (for take-home pay)
@@ -2040,11 +2040,8 @@ data$tax.income.state<-function.stateinctax(data
    
 data$tax.income.state[is.na(data$tax.income.state)]<-0
 
-# Current Year- local
 
-data$tax.income.local<-function.localinctax(data
-                                            ,incomevar = "income")
-data$tax.income.local[is.na(data$tax.income.local)]<-0
+
 
 # Past Year
 
@@ -2056,9 +2053,7 @@ data$tax.income.state_tm12<-function.stateinctax(data
 data$tax.income.state_tm12[is.na(data$tax.income.state_tm12)]<-0
 
 
-data$tax.income.local_tm12<-function.localinctax(data
-                                            ,incomevar = "income_tm12")
-data$tax.income.local_tm12[is.na(data$tax.income.local)]<-0
+
 
 
 
@@ -2144,7 +2139,7 @@ return(data)
 function.createVars<-function(data){
 
 data<-data %>%
-    mutate( income.aftertax.noTC = income +income.gift+income.investment+income.child_support - tax.income.fed - tax.income.state -tax.income.local - tax.FICA
+    mutate( income.aftertax.noTC = income +income.gift+income.investment+income.child_support - tax.income.fed - tax.income.state  - tax.FICA
             # uses exp.healthcare.SS: healthcare expense based on costs of employer sponsored health insurance; plotted in expenses bar chart in CLIFF Dashboard and Planner
             ,SelfSufficiency = exp.childcare+exp.healthcare.SS+exp.food+exp.rentormortgage+exp.transportation+exp.misc+exp.utilities+exp.tech
 
@@ -2152,7 +2147,7 @@ data<-data %>%
               value.liheap+value.section8+value.snap+value.wic+value.schoolmeals+value.tanf+
               value.aca+value.medicaid+value.ssi+value.ssdi+
               value.cdctc.fed+value.cdctc.state+value.eitc.fed+value.eitc.state+value.ctc.fed+value.ctc.state+value.FATES
-            , total.taxes = tax.income.fed+tax.income.state+tax.income.local + tax.FICA
+            , total.taxes = tax.income.fed+tax.income.state+ tax.FICA
             # uses exp.healthcare: healthcare expense based on source of healthcare the person is on (Medicaid,ACA,etc.); used in NetResources
             ,total.expenses = exp.childcare+exp.healthcare+exp.food+exp.rentormortgage+
               exp.transportation+exp.misc+exp.utilities+exp.tech
@@ -2168,7 +2163,7 @@ data<-data %>%
             ,NetResources.FATES = income+income.gift+income.investment+income.child_support+value.employerhealthcare+total.transfers-total.taxes-total.expenses +value.FATES
 
             #,netexp.housing=netexp.rentormortgage+netexp.utilities
-            ,AfterTaxIncome=(income+income.gift+income.investment+income.child_support)-(tax.income.fed+tax.income.state+tax.income.local+tax.FICA)
+            ,AfterTaxIncome=(income+income.gift+income.investment+income.child_support)-(tax.income.fed+tax.income.state+tax.FICA)
 
             )
 
@@ -2185,14 +2180,14 @@ return(data)
 function.createVars.CLIFF<-function(data){
 
   data<-data %>%
-    mutate( income.aftertax.noTC = income+income.gift+income.investment+income.child_support - tax.income.fed - tax.income.state -tax.income.local - tax.FICA
+    mutate( income.aftertax.noTC = income+income.gift+income.investment+income.child_support - tax.income.fed - tax.income.state  - tax.FICA
 
             # Totals
             ,total.transfers = value.CCDF+value.HeadStart+value.earlyHeadStart+value.PreK+
               value.liheap+value.section8+value.tanf+value.snap+value.schoolmeals+value.wic+
               value.aca+value.medicaid+value.ssi+value.ssdi+
               value.cdctc.fed+value.cdctc.state+value.eitc.fed+value.eitc.state+value.ctc.fed+value.ctc.state
-            ,total.taxes = tax.income.fed+tax.income.state+tax.income.local+tax.FICA
+            ,total.taxes = tax.income.fed+tax.income.state+tax.FICA
             ,total.expenses = exp.childcare+exp.healthcare+exp.food+exp.rentormortgage+
               exp.transportation+exp.misc+exp.utilities+exp.tech
 
@@ -2207,7 +2202,7 @@ function.createVars.CLIFF<-function(data){
             ,NetResources = income+income.gift+income.investment+income.child_support+value.employerhealthcare+total.transfers-value.tuition.net-total.taxes-total.expenses-studentLoanRepayment-value.loans
 
             #,netexp.housing=netexp.rentormortgage+netexp.utilities
-            ,AfterTaxIncome=(income+income.gift+income.investment+income.child_support)-(tax.income.fed+tax.income.state+tax.income.local+tax.FICA)
+            ,AfterTaxIncome=(income+income.gift+income.investment+income.child_support)-(tax.income.fed+tax.income.state+tax.FICA)
 
     )
 
