@@ -2053,27 +2053,15 @@ calculate_taxableamtofSSDI<-function(value.ssdi
 
 function.fedinctax<-function(data
                                , incomevar){
+  
+  # Force future ruleYears to use 2025 rules
+  if ("ruleYear" %in% colnames(data)) {
+    data$ruleYear[data$ruleYear > 2025] <- 2025
+  }
 
     colnames(data)[colnames(data)==incomevar]<-"income.base"
 
     data$income.base<-data$income.base+data$income.investment # For now, tax investment income at a income tax rate
-
-    # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-    years<-unique(data$ruleYear) # years in data set
-    yearsinexpdata<- unique(fedinctaxData$ruleYear) # rule years in benefit data
-    yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-    yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-    # Create data for the future
-    maxyearofdata<-max(fedinctaxData$ruleYear) # collect latest year of benefit data
-    futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-    if(length(futureYrs)>0){
-      # Create data frame with future years
-      expand<-expand.grid(FilingStatus=unique(fedinctaxData$FilingStatus), Year=futureYrs)
-      # Collect latest benefit data there is and merge w/data frame
-      expand2<-fedinctaxData[fedinctaxData$ruleYear==maxyearofdata, ]
-      expand<-expand%>%left_join(expand2, by=c("FilingStatus")) %>% select(-c(ruleYear)) %>% rename(ruleYear=Year)
-    }# Attach copied future, historical, and missing benefit data
-    if(length(futureYrs)>0) {fedinctaxData<-fedinctaxData %>% rbind(expand)}
 
     data<-left_join(data, fedinctaxData, by=c("ruleYear", "FilingStatus"))
 
@@ -2137,6 +2125,11 @@ function.stateinctax<-function(data
                                , incomevar
                                , fedincometaxvar
                                , fedtaxcreditsvar){
+  
+  # Force future ruleYears to use 2025 rules
+  if ("ruleYear" %in% colnames(data)) {
+    data$ruleYear[data$ruleYear > 2025] <- 2025
+  }
 
   data<-data %>%
     rename(income.base = any_of(incomevar)
@@ -2796,8 +2789,13 @@ function.fedeitc<-function(data
                              , investmentincomevar
                              , ageofRespondentvar # Main respondent
                              , ageofSpousevar){   # Spouse (if exists)
+  
+  # Force future ruleYears to use 2025 rules
+  if ("ruleYear" %in% colnames(data)) {
+    data$ruleYear[data$ruleYear > 2025] <- 2025
+  }
 
-    # Rename variable to make it consistent with using dataset
+  # Rename variable to make it consistent with using dataset
     data<-data %>%
       rename(  income.base = any_of(incomevar),
                investmentincome = any_of(investmentincomevar)
@@ -2809,38 +2807,6 @@ function.fedeitc<-function(data
 
     data$income.base.AGI<-data$income.base
     data$income.base.earned<-data$income.base
-
-    # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-    years<-unique(data$ruleYear) # years in data set
-    yearsinexpdata<- unique(fedeitcData$ruleYear) # rule years in benefit data
-    yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-    yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-    # Create data for the future
-    maxyearofdata<-max(fedeitcData$ruleYear) # collect latest year of benefit data
-    futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-    if(length(futureYrs)>0){
-      # Create data frame with future years
-      expand<-expand.grid(FilingStatus=unique(fedeitcData$FilingStatus), numkids=unique(fedeitcData$numkids), Year=futureYrs)
-      # Collect latest benefit data there is and merge w/data frame
-      expand2<-fedeitcData[fedeitcData$ruleYear==maxyearofdata, ]
-      expand<-expand%>%left_join(expand2, by=c("FilingStatus", "numkids"))%>%drop_na() %>% select(-c(ruleYear)) %>% rename(ruleYear=Year)
-    }
-    # Create data for past and gap years (missing data) - not the future
-    nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-    if(length(nonFutureYrs)>0){
-      #Create data frame with past years and year for which we are missing benefit data
-      expandPastMiss<-expand.grid(FilingStatus=unique(fedeitcData$FilingStatus), numkids=unique(fedeitcData$numkids), Year=nonFutureYrs)
-      # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-      expandPastMiss2<-left_join(expandPastMiss, fedeitcData, by=c("FilingStatus", "numkids"))
-      expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-      expandPastMiss2<-expandPastMiss2%>%
-        group_by(Year)%>%
-        mutate(minyeardiff = min(yeardiff))
-      expandPastMiss2<-expandPastMiss2 %>%
-        filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename(ruleYear=Year)
-    }  # Attach copied future, historical, and missing benefit data
-    if(length(futureYrs)>0) {fedeitcData<-fedeitcData %>% rbind(expand)}
-    if(length(nonFutureYrs)>0) {fedeitcData<-fedeitcData %>% rbind(expandPastMiss2)}
 
     # Step I: merge parameters by filing status and number of children
     data<-left_join(data, fedeitcData, by=c("FilingStatus", "numkids", "ruleYear"))
@@ -4798,44 +4764,17 @@ function.fedcdctc<-function(data
                               , incomevar
                               , qualifyingexpensesvar
                               , totalfederaltaxvar){
+  
+  # Force future ruleYears to use 2025 rules
+  if ("ruleYear" %in% colnames(data)) {
+    data$ruleYear[data$ruleYear > 2025] <- 2025
+  }
 
     data<-data %>%
       rename(  income.base = any_of(incomevar)
               ,qualifyingExpenses = any_of(qualifyingexpensesvar)
               ,totalfederaltax = any_of(totalfederaltaxvar)
               )
-
-    # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-    years<-unique(data$ruleYear) # years in data set
-    yearsinexpdata<- unique(fedcdctcData$ruleYear) # rule years in benefit data
-    yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-    yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-    # Create data for the future
-    maxyearofdata<-max(fedcdctcData$ruleYear) # collect latest year of benefit data
-    futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-    if(length(futureYrs)>0){
-      # Create data frame with future years
-      expand<-expand.grid(NumberOfKidsUnder13=unique(fedcdctcData$NumberOfKidsUnder13), Year=futureYrs)
-      # Collect latest benefit data there is and merge w/data frame
-      expand2<-fedcdctcData[fedcdctcData$ruleYear==maxyearofdata, ]
-      expand<-expand%>%left_join(expand2, by=c("NumberOfKidsUnder13"))%>%drop_na() %>% select(-c(ruleYear)) %>% rename(ruleYear=Year)
-    }
-    # Create data for past and gap years (missing data) - not the future
-    nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-    if(length(nonFutureYrs)>0){
-      #Create data frame with past years and year for which we are missing benefit data
-      expandPastMiss<-expand.grid(stateFIPS=unique(fedcdctcData$stateFIPS), Year=nonFutureYrs)
-      # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-      expandPastMiss2<-left_join(expandPastMiss, fedcdctcData, by=c("NumberOfKidsUnder13"))
-      expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-      expandPastMiss2<-expandPastMiss2%>%
-        group_by(Year)%>%
-        mutate(minyeardiff = min(yeardiff))
-      expandPastMiss2<-expandPastMiss2 %>%
-        filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename(ruleYear=Year)
-    }  # Attach copied future, historical, and missing benefit data
-    if(length(futureYrs)>0) {fedcdctcData<-fedcdctcData %>% rbind(expand)}
-    if(length(nonFutureYrs)>0) {fedcdctcData<-fedcdctcData %>% rbind(expandPastMiss2)}
 
     # Calculate number of dependents under the age of 13
     data$NumberOfKidsUnder13<-rowSums(cbind(data$agePerson1, data$agePerson2, data$agePerson3, data$agePerson4, data$agePerson5, data$agePerson6, data$agePerson7, data$agePerson8, data$agePerson9, data$agePerson10, data$agePerson11, data$agePerson12)<=12 & cbind(data$agePerson1, data$agePerson2, data$agePerson3, data$agePerson4, data$agePerson5, data$agePerson6, data$agePerson7, data$agePerson8, data$agePerson9, data$agePerson10, data$agePerson11, data$agePerson12)>=0, na.rm=TRUE)
@@ -5332,25 +5271,13 @@ function.statecdctc<-function(data
 
 function.ficatax<-function(data
                                , employmentincomevar){
+  
+  # Force future ruleYears to use 2025 rules
+  if ("ruleYear" %in% colnames(data)) {
+    data$ruleYear[data$ruleYear > 2024] <- 2024
+  }
 
     colnames(data)[colnames(data)==employmentincomevar]<-"income.base"
-
-    # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-    years<-unique(data$ruleYear) # years in data set
-    yearsinexpdata<- unique(ficataxData$ruleYear) # rule years in benefit data
-    yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-    yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-    # Create data for the future
-    maxyearofdata<-max(ficataxData$ruleYear) # collect latest year of benefit data
-    futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-    if(length(futureYrs)>0){
-      # Create data frame with future years
-      expand<-expand.grid(FilingStatus=unique(ficataxData$FilingStatus), Year=futureYrs)
-      # Collect latest benefit data there is and merge w/data frame
-      expand2<-ficataxData[ficataxData$ruleYear==maxyearofdata, ]
-      expand<-expand%>%left_join(expand2, by=c("FilingStatus")) %>% select(-c(ruleYear)) %>% rename(ruleYear=Year)
-    }# Attach copied future, historical, and missing benefit data
-    if(length(futureYrs)>0) {ficataxData<-ficataxData %>% rbind(expand)}
 
     # We have historical rules
     data<-left_join(data, ficataxData, by=c("ruleYear","FilingStatus"))
