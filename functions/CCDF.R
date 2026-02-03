@@ -3,14 +3,14 @@
 function.CCDFcopay<-function(data
                              , contelig.ccdf = TRUE
 ){
-  #create CCDF value variable 
+  #create CCDF value variable
   data$value.CCDF<-0
- 
-  #Populate data pre 2025 with NA since there are not rules for those years 
+
+  #Populate data pre 2025 with NA since there are not rules for those years
   if(min(data$ruleYear)<2025){
     data$value.CCDF <- 0
   }
-  
+
 
   if(min(data$ruleYear)==2025){
 
@@ -1869,43 +1869,13 @@ function.CCDFcopay<-function(data
     temp<-data[data$stateFIPS==21,]
 
 
-    temp$numkidsInCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
+    temp$numkidsinCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
 
-    # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-    # years<-unique(data$ruleYear) # years in data set
-    # yearsinexpdata<- unique(ccdfData_KY$ruleYear) # rule years in benefit data
-    # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-    # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-    # # Create data for the future
-    # maxyearofdata<-max(ccdfData_KY$ruleYear) # collect latest year of benefit data
-    # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-    # if(length(futureYrs)>0){
-    #   # Create data frame with future years
-    #   expand<-expand.grid(stateFIPS=unique(ccdfData_KY$stateFIPS), AKorHI=unique(ccdfData_KY$AKorHI), famsize=unique(ccdfData_KY$famsize), numkidsInCare=unique(ccdfData_KY$numkidsInCare),Year=futureYrs)
-    #   # Collect latest benefit data there is and merge w/data frame
-    #   expand2<-ccdfData_KY[ccdfData_KY$ruleYear==maxyearofdata, ]
-    #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-    # }
-    # # Create data for past and gap years (missing data) - not the future
-    # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-    # if(length(nonFutureYrs)>0){
-    #   #Create data frame with past years and year for which we are missing benefit data
-    #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_KY$stateFIPS), AKorHI=unique(ccdfData_KY$AKorHI), famsize=unique(ccdfData_KY$famsize), numkidsInCare=unique(ccdfData_KY$numkidsInCare), Year=nonFutureYrs)
-    #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-    #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_KY, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare"))
-    #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-    #   expandPastMiss2<-expandPastMiss2%>%
-    #     group_by(Year)%>%
-    #     filter(yeardiff<0)%>%
-    #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-    # }  # Attach copied future, historical, and missing benefit data
-    # if(length(futureYrs)>0) {ccdfData_KY<-ccdfData_KY %>% rbind(expand)}
-    # if(length(nonFutureYrs)>0) {ccdfData_KY<-ccdfData_KY %>% rbind(expandPastMiss2)}
-    #
+
     #----------------------------------``
     # Step 1: Assign copays
     #----------------------------------
-    temp<-left_join(temp, ccdfData_KY, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize", "numkidsInCare"))
+    temp<-left_join(temp, ccdfData_KY, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize", "numkidsinCare"))
 
     # Adjust for the income disregard
     temp$income<-temp$income-12*temp$IncomeDisregard
@@ -2126,7 +2096,7 @@ function.CCDFcopay<-function(data
     temp$FTcopay[temp$income>temp$Bin4Max & temp$income<=temp$Bin5Max]<-temp$CopayBin5[temp$income>temp$Bin4Max & temp$income<=temp$Bin5Max]
     temp$FTcopay[temp$income>temp$Bin5Max & temp$income<=temp$Bin6Max]<-temp$CopayBin6[temp$income>temp$Bin5Max & temp$income<=temp$Bin6Max]
     temp$FTcopay[temp$income>temp$Bin6Max & temp$income<=temp$Bin7Max]<-temp$CopayBin7[temp$income>temp$Bin6Max & temp$income<=temp$Bin7Max]
-
+    temp$FTcopay[temp$income>temp$Bin7Max & temp$income<=temp$Bin8Max]<-temp$CopayBin8[temp$income>temp$Bin7Max & temp$income<=temp$Bin8Max]
 
 
     # Apply asset test
@@ -2585,37 +2555,6 @@ function.CCDFcopay<-function(data
 
     temp<-data[data$stateFIPS==28,]
 
-    # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-    # years<-unique(data$ruleYear) # years in data set
-    # yearsinexpdata<- unique(ccdfData_MS$ruleYear) # rule years in benefit data
-    # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-    # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-    # # Create data for the future
-    # maxyearofdata<-max(ccdfData_MS$ruleYear) # collect latest year of benefit data
-    # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-    # if(length(futureYrs)>0){
-    #   # Create data frame with future years
-    #   expand<-expand.grid(stateFIPS=unique(ccdfData_MS$stateFIPS), AKorHI=unique(ccdfData_MS$AKorHI), famsize=unique(ccdfData_MS$famsize), Year=futureYrs)
-    #   # Collect latest benefit data there is and merge w/data frame
-    #   expand2<-ccdfData_MS[ccdfData_MS$ruleYear==maxyearofdata, ]
-    #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-    # }
-    # # Create data for past and gap years (missing data) - not the future
-    # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-    # if(length(nonFutureYrs)>0){
-    #   #Create data frame with past years and year for which we are missing benefit data
-    #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_MS$stateFIPS), AKorHI=unique(ccdfData_MS$AKorHI), famsize=unique(ccdfData_MS$famsize), Year=nonFutureYrs)
-    #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-    #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_MS, by=c("stateFIPS", "AKorHI", "famsize"))
-    #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-    #   expandPastMiss2<-expandPastMiss2%>%
-    #     group_by(Year)%>%
-    #     filter(yeardiff<0)%>%
-    #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-    # }  # Attach copied future, historical, and missing benefit data
-    # if(length(futureYrs)>0) {ccdfData_MS<-ccdfData_MS %>% rbind(expand)}
-    # if(length(nonFutureYrs)>0) {ccdfData_MS<-ccdfData_MS %>% rbind(expandPastMiss2)}
-    #
     #----------------------------------
     # Step 1: Assign copays
     #----------------------------------
@@ -2739,7 +2678,8 @@ function.CCDFcopay<-function(data
 
 
   # Missouri-----
-
+  test<<-data
+  data <- test
   # Description:
   # Copay is a fixed dollar amount per child
   # Daily frequency
@@ -2747,37 +2687,7 @@ function.CCDFcopay<-function(data
 
     temp<-data[data$stateFIPS==29,]
 
-    # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-    # years<-unique(data$ruleYear) # years in data set
-    # yearsinexpdata<- unique(ccdfData_MO$ruleYear) # rule years in benefit data
-    # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-    # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-    # # Create data for the future
-    # maxyearofdata<-max(ccdfData_MO$ruleYear) # collect latest year of benefit data
-    # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-    # if(length(futureYrs)>0){
-    #   # Create data frame with future years
-    #   expand<-expand.grid(stateFIPS=unique(ccdfData_MO$stateFIPS), AKorHI=unique(ccdfData_MO$AKorHI), famsize=unique(ccdfData_MO$famsize), Year=futureYrs)
-    #   # Collect latest benefit data there is and merge w/data frame
-    #   expand2<-ccdfData_MO[ccdfData_MO$ruleYear==maxyearofdata, ]
-    #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-    # }
-    # # Create data for past and gap years (missing data) - not the future
-    # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-    # if(length(nonFutureYrs)>0){
-    #   #Create data frame with past years and year for which we are missing benefit data
-    #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_MO$stateFIPS), AKorHI=unique(ccdfData_MO$AKorHI), famsize=unique(ccdfData_MO$famsize), Year=nonFutureYrs)
-    #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-    #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_MO, by=c("stateFIPS", "AKorHI", "famsize"))
-    #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-    #   expandPastMiss2<-expandPastMiss2%>%
-    #     group_by(Year)%>%
-    #     filter(yeardiff<0)%>%
-    #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-    # }  # Attach copied future, historical, and missing benefit data
-    # if(length(futureYrs)>0) {ccdfData_MO<-ccdfData_MO %>% rbind(expand)}
-    # if(length(nonFutureYrs)>0) {ccdfData_MO<-ccdfData_MO %>% rbind(expandPastMiss2)}
-    #
+
     #----------------------------------
     # Step 1: Assign copays
     #----------------------------------
@@ -2798,8 +2708,6 @@ function.CCDFcopay<-function(data
     temp$FTcopay[temp$income>temp$Bin7Max & temp$income<=temp$Bin8Max]<-temp$CopayBin8_FT[temp$income>temp$Bin7Max & temp$income<=temp$Bin8Max]
     temp$FTcopay[temp$income>temp$Bin8Max & temp$income<=temp$Bin9Max]<-temp$CopayBin9_FT[temp$income>temp$Bin8Max & temp$income<=temp$Bin9Max]
     temp$FTcopay[temp$income>temp$Bin9Max & temp$income<=temp$Bin10Max]<-temp$CopayBin10_FT[temp$income>temp$Bin9Max & temp$income<=temp$Bin10Max]
-    temp$FTcopay[temp$income>temp$Bin10Max & temp$income<=temp$Bin11Max]<-temp$CopayBin11_FT[temp$income>temp$Bin10Max & temp$income<=temp$Bin11Max]
-
 
     # Apply asset test
     subset<-temp$totalassets > temp$AssetTest
@@ -5034,7 +4942,7 @@ function.CCDFcopay<-function(data
   # 2nd+ kids in care have reduced price
   if(48 %in% unique(data$stateFIPS)){
     temp<-data[data$stateFIPS==48,]
- 
+
     # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
     # years<-unique(data$ruleYear) # years in data set
     # yearsinexpdata<- unique(ccdfData_TX$ruleYear) # rule years in benefit data
@@ -6132,14 +6040,14 @@ function.CCDFcopay<-function(data
   }
 
   if(min(data$ruleYear)==2026){
-    
+
     ### 2026 Set-up =====
     data$income <- data$income+data$income.gift
-    
+
     data$totcopay<-NA
-    
+
     data$InitialEligibility<-NA
-    
+
     data$netexp.childcareperson1 <- data$netexp.childcare
     #count number of kids who still need childcare, after head start & preK taken into account
     # Calculate number of children in care (separately for age < 5 & age b/w 5 and 12)
@@ -6155,8 +6063,8 @@ function.CCDFcopay<-function(data
                                           ,data$netexp.childcareperson10 > 0 & data$agePerson10<=4
                                           ,data$netexp.childcareperson11 > 0 & data$agePerson11<=4
                                           ,data$netexp.childcareperson12 > 0 & data$agePerson12<=4),na.rm=TRUE)
-    
-    
+
+
     data$numkidsincare5to12<-rowSums(cbind(data$netexp.childcareperson1>0 & data$agePerson1>=5 & data$agePerson1<=12
                                            ,data$netexp.childcareperson2>0 & data$agePerson2>=5 & data$agePerson2<=12
                                            ,data$netexp.childcareperson3>0 & data$agePerson3>=5 & data$agePerson3<=12
@@ -6169,10 +6077,10 @@ function.CCDFcopay<-function(data
                                            ,data$netexp.childcareperson10>0 & data$agePerson10>=5 & data$agePerson10<=12
                                            ,data$netexp.childcareperson11>0 & data$agePerson11>=5 & data$agePerson11<=12
                                            ,data$netexp.childcareperson12>0 & data$agePerson12>=5 & data$agePerson12<=12),na.rm=TRUE)
-    
-    
+
+
     data<- data %>%
-      
+
       mutate(child1_0to4 = case_when(agePerson1>=0 & agePerson1<=4 ~1, TRUE ~ 0),
              child2_0to4 = case_when(agePerson2>=0 & agePerson2<=4 ~1, TRUE ~ 0),
              child3_0to4 = case_when(agePerson3>=0 & agePerson3<=4 ~1, TRUE ~ 0),
@@ -6197,28 +6105,28 @@ function.CCDFcopay<-function(data
              child10_5to12 = case_when(agePerson10>=5 & agePerson10<=12 ~1, TRUE ~ 0),
              child11_5to12 = case_when(agePerson11>=5 & agePerson11<=12 ~1, TRUE ~ 0),
              child12_5to12 = case_when(agePerson12>=5 & agePerson12<=12 ~1, TRUE ~ 0))
-    
+
     data<- data %>%   mutate(netexpchildcare0to4= netexp.childcareperson1*child1_0to4 + netexp.childcareperson2*child2_0to4 +netexp.childcareperson3*child3_0to4+netexp.childcareperson4*child4_0to4+ netexp.childcareperson5*child5_0to4 + netexp.childcareperson6*child6_0to4+ netexp.childcareperson7*child7_0to4+ netexp.childcareperson8*child8_0to4+ netexp.childcareperson9*child9_0to4+ netexp.childcareperson10*child10_0to4+ netexp.childcareperson11*child11_0to4+ netexp.childcareperson12*child12_0to4,
                              childcareexp0to4= childcare.exp.person1*child1_0to4 + childcare.exp.person2*child2_0to4 +childcare.exp.person3*child3_0to4+childcare.exp.person4*child4_0to4+ childcare.exp.person5*child5_0to4 + childcare.exp.person6*child6_0to4 + childcare.exp.person7*child7_0to4 + childcare.exp.person8*child8_0to4 + childcare.exp.person9*child9_0to4 + childcare.exp.person10*child10_0to4 + childcare.exp.person11*child11_0to4 + childcare.exp.person12*child12_0to4,
                              netexpchildcare5to12= netexp.childcareperson1*child1_5to12 + netexp.childcareperson2*child2_5to12 +netexp.childcareperson3*child3_5to12+netexp.childcareperson4*child4_5to12+ netexp.childcareperson5*child5_5to12 + netexp.childcareperson6*child6_5to12 + netexp.childcareperson7*child7_5to12 + netexp.childcareperson8*child8_5to12 + netexp.childcareperson9*child9_5to12 + netexp.childcareperson10*child10_5to12 + netexp.childcareperson11*child11_5to12 + netexp.childcareperson12*child12_5to12,
                              childcareexp5to12= childcare.exp.person1*child1_5to12 + childcare.exp.person2*child2_5to12 +childcare.exp.person3*child3_5to12+childcare.exp.person4*child4_5to12+ childcare.exp.person5*child5_5to12 + childcare.exp.person6*child6_5to12 + childcare.exp.person7*child7_5to12 + childcare.exp.person8*child8_5to12 + childcare.exp.person9*child9_5to12 + childcare.exp.person10*child10_5to12 + childcare.exp.person11*child11_5to12 + childcare.exp.person12*child12_5to12,
                              daysofcareneeded0to4 = netexpchildcare0to4/childcareexp0to4 * (parameters.defaults$numberofSummerChildcareDays[1]+parameters.defaults$numberofSchoolDays[1]),
                              daysofcareneeded5to12 = netexpchildcare5to12/childcareexp5to12 * (0.5*(parameters.defaults$numberofSummerChildcareDays[1]+parameters.defaults$numberofSchoolDays[1]))) #school age kids get pt care in summer & school year
-    
+
     data$daysofcareneeded0to4[is.na(data$daysofcareneeded0to4)]<-0
     data$daysofcareneeded5to12[is.na(data$daysofcareneeded5to12)]<-0
-    
-    
+
+
     # Alabama ----
-    
+
     # Description:
     # Copay is a dollar amount per child
     # Daily frequency
     if(1 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-      
+
       temp<-data[data$stateFIPS==1,]
       temp$numkidsInCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
-      
+
       # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
       # years<-unique(data$ruleYear) # years in data set
       # yearsinexpdata<- unique(ccdfData_AL$ruleYear) # rule years in benefit data
@@ -6249,21 +6157,21 @@ function.CCDFcopay<-function(data
       # }  # Attach copied future, historical, and missing benefit data
       # if(length(futureYrs)>0) {ccdfData_AL<-ccdfData_AL %>% rbind(expand)}
       # if(length(nonFutureYrs)>0) {ccdfData_AL<-ccdfData_AL %>% rbind(expandPastMiss2)}
-      
+
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
       temp<-left_join(temp, ccdfData_AL, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare", "ruleYear"))
-      
+
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
-      
+
       # Adjust for the income disregard
       #temp$income<-temp$income-12*temp$IncomeDisregard
-      
+
       temp$FTcopay<-NA
-      
+
       temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1Max]<-temp$CopayBin1[temp$income>=0 & temp$income<=temp$Bin1Max]
       temp$FTcopay[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]<-temp$CopayBin2[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]
       temp$FTcopay[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]<-temp$CopayBin3[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]
@@ -6276,45 +6184,45 @@ function.CCDFcopay<-function(data
       temp$FTcopay[temp$income>temp$Bin9Max & temp$income<=temp$Bin10Max]<-temp$CopayBin10[temp$income>temp$Bin9Max & temp$income<=temp$Bin10Max]
       temp$FTcopay[temp$income>temp$Bin10Max & temp$income<=temp$Bin11Max]<-temp$CopayBin11[temp$income>temp$Bin10Max & temp$income<=temp$Bin11Max]
       temp$FTcopay[temp$income>temp$Bin11Max & temp$income<=temp$Bin12Max]<-temp$CopayBin12[temp$income>temp$Bin11Max & temp$income<=temp$Bin12Max]
-      
+
       # Apply asset test
       subset<-temp$totalassets > temp$AssetTest
       temp$FTcopay[subset]<-NA_real_
-      
+
       #----------------------------------
       # Step 2: Calculate total copays
       #----------------------------------
-      
+
       # Initialize
       temp$totcopay<-NA
-      
+
       temp$totcopay<-temp$FTcopay*52
-      
+
       # Set copay to zero if no children
       temp$totcopay[temp$numkidsincare0to4+temp$numkidsincare5to12==0]<-0
-      
+
       temp$totcopay[is.na(temp$FTcopay)]<-NA
       # Note: code produces NAs for a good reason, because family is ineligible for CCDF
-      
+
       # Adjust overage depending on whether states allow to charge it
       temp$childcare.overage[temp$OverageOption=="No"]<-0
-      
+
       # Merge back
       data$childcare.overage[data$stateFIPS==1]<-temp$childcare.overage
       data$totcopay[data$stateFIPS==1]<-temp$totcopay
       data$InitialEligibility[data$stateFIPS==1]<-temp$InitialEligibility.y
     }
-    
-    
+
+
     # ALASKA ----
-    
-    
+
+
     if(2 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-      
+
       ccdfData_AK$stateFIPS <- 2
-      
+
       temp<-data[data$stateFIPS==2,]
-      
+
       # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
       # years<-unique(data$ruleYear) # years in data set
       # yearsinexpdata<- unique(ccdfData_AK$ruleYear) # rule years in benefit data
@@ -6345,17 +6253,17 @@ function.CCDFcopay<-function(data
       # }  # Attach copied future, historical, and missing benefit data
       # if(length(futureYrs)>0) {ccdfData_AK<-ccdfData_AK %>% rbind(expand)}
       # if(length(nonFutureYrs)>0) {ccdfData_AK<-ccdfData_AK %>% rbind(expandPastMiss2)}
-      
+
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
       temp<-left_join(temp, ccdfData_AK, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize"))
-      
+
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
-      
+
       temp$FTcopay<-NA
-      
+
       temp$FTcopay[which(temp$income>=0 & temp$income<=temp$Bin1Max)]<-temp$CopayBin1[which(temp$income>=0 & temp$income<=temp$Bin1Max)]
       temp$FTcopay[which(temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max)]<-temp$CopayBin2[which(temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max)]
       temp$FTcopay[which(temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max)]<-temp$CopayBin3[which(temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max)]
@@ -6441,48 +6349,48 @@ function.CCDFcopay<-function(data
       temp$FTcopay[which(temp$income>temp$Bin82Max & temp$income<=temp$Bin83Max)]<-temp$CopayBin83[which(temp$income>temp$Bin82Max & temp$income<=temp$Bin83Max)]
       temp$FTcopay[which(temp$income>temp$Bin83Max & temp$income<=temp$Bin84Max)]<-temp$CopayBin84[which(temp$income>temp$Bin83Max & temp$income<=temp$Bin84Max)]
       temp$FTcopay[which(temp$income>temp$Bin84Max & temp$income<=temp$Bin85Max)]<-temp$CopayBin85[which(temp$income>temp$Bin84Max & temp$income<=temp$Bin85Max)]
-      
+
       # Apply asset test
       subset<-temp$totalassets > temp$AssetTest
       temp$FTcopay[subset]<-NA_real_
-      
-      
+
+
       #----------------------------------
       # Step 2: Calculate total copays
       #----------------------------------
-      
+
       # Calculate total copay (12 months needed)
       temp$totcopay<-temp$FTcopay*12
-      
+
       # Set copay to zero if no children
       temp$totcopay[temp$numkidsincare0to4+temp$numkidsincare5to12==0]<-0
-      
+
       temp$totcopay[is.na(temp$FTcopay)]<-NA
       # Note: code produces NAs for a good reason, because family is ineligible for CCDF
       # Copay is NOT zero for ineligible, but there are people who pay 0 copay
-      
+
       # Adjust overage depending on whether states allow to charge it
       temp$childcare.overage[temp$OverageOption=="No"]<-0
-      
+
       # Merge back
       data$childcare.overage[data$stateFIPS==2]<-temp$childcare.overage
       data$totcopay[data$stateFIPS==2]<-temp$totcopay
       data$InitialEligibility[data$stateFIPS==2]<-temp$InitialEligibility.y
     }
-    
-    
-    
+
+
+
     # ARIZONA ----
-    
+
     # Description:
     # Copay is a fixed dollar amount per child
     # Daily frequency
     if(4 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-      
+
       ccdfData_AZ$stateFIPS <- 4
-      
+
       temp<-data[data$stateFIPS==4,]
-      
+
       # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
       # years<-unique(data$ruleYear) # years in data set
       # yearsinexpdata<- unique(ccdfData_AZ$ruleYear) # rule years in benefit data
@@ -6513,17 +6421,17 @@ function.CCDFcopay<-function(data
       # }  # Attach copied future, historical, and missing benefit data
       # if(length(futureYrs)>0) {ccdfData_AZ<-ccdfData_AZ %>% rbind(expand)}
       # if(length(nonFutureYrs)>0) {ccdfData_AZ<-ccdfData_AZ %>% rbind(expandPastMiss2)}
-      # 
+      #
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
       temp<-left_join(temp, ccdfData_AZ, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize"))
-      
+
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
-      
+
       temp$FTcopay<-NA
-      
+
       temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1Max]<-temp$CopayBin1[temp$income>=0 & temp$income<=temp$Bin1Max]
       temp$FTcopay[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]<-temp$CopayBin2[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]
       temp$FTcopay[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]<-temp$CopayBin3[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]
@@ -6531,48 +6439,48 @@ function.CCDFcopay<-function(data
       temp$FTcopay[temp$income>temp$Bin4Max & temp$income<=temp$Bin5Max]<-temp$CopayBin5[temp$income>temp$Bin4Max & temp$income<=temp$Bin5Max]
       temp$FTcopay[temp$income>temp$Bin5Max & temp$income<=temp$Bin6Max]<-temp$CopayBin6[temp$income>temp$Bin5Max & temp$income<=temp$Bin6Max]
       temp$FTcopay[temp$income>temp$Bin6Max & temp$income<=temp$Bin7Max]<-temp$CopayBin7[temp$income>temp$Bin6Max & temp$income<=temp$Bin7Max]
-      
+
       # Apply asset test
       subset<-temp$totalassets > temp$AssetTest
       temp$FTcopay[subset]<-NA_real_
-      
+
       #----------------------------------
       # Step 2: Calculate total copays
       #----------------------------------
-      
+
       # Initialize
-      
+
       temp$totcopay<-NA
-      
-      
+
+
       temp$totcopay<-temp$FTcopay*(temp$daysofcareneeded0to4+temp$daysofcareneeded5to12)
-      
+
       # Set copay to zero if no children
       temp$totcopay[temp$numkidsincare0to4+temp$numkidsincare5to12==0]<-0
-      
+
       temp$totcopay[is.na(temp$FTcopay)]<-NA
       # Note: code produces NAs for a good reason, because family is ineligible for CCDF
       # Copay is NOT zero for ineligible, but there are people who pay 0 copay
-      
+
       # Adjust overage depending on whether states allow to charge it
       temp$childcare.overage[temp$OverageOption=="No"]<-0
-      
+
       # Merge back
       data$childcare.overage[data$stateFIPS==4]<-temp$childcare.overage
       data$totcopay[data$stateFIPS==4]<-temp$totcopay
       data$InitialEligibility[data$stateFIPS==4]<-temp$InitialEligibility.y
     }
-    
-    
+
+
     # Arkansas ----
-    
+
     # Description:
     # Copay is a percentage of total income
     # Monthly frequency
     if(5 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-      
+
       temp<-data[data$stateFIPS==5,]
-      
+
       # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
       # years<-unique(data$ruleYear) # years in data set
       # yearsinexpdata<- unique(ccdfData_AR$ruleYear) # rule years in benefit data
@@ -6603,63 +6511,63 @@ function.CCDFcopay<-function(data
       # }  # Attach copied future, historical, and missing benefit data
       # if(length(futureYrs)>0) {ccdfData_AR<-ccdfData_AR %>% rbind(expand)}
       # if(length(nonFutureYrs)>0) {ccdfData_AR<-ccdfData_AR %>% rbind(expandPastMiss2)}
-      # 
+      #
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
       temp<-left_join(temp, ccdfData_AR, by=c("stateFIPS", "AKorHI", "famsize", "ruleYear"))
-      
+
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
-      
+
       temp$FTcopay<-NA
-      
+
       temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1Max]<-temp$CopayBin1[temp$income>=0 & temp$income<=temp$Bin1Max]
       temp$FTcopay[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]<-temp$CopayBin2[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]
       temp$FTcopay[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]<-temp$CopayBin3[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]
-      
+
       # Apply asset test
       subset<-temp$totalassets > temp$AssetTest
       temp$FTcopay[subset]<-NA_real_
-      
+
       #----------------------------------
       # Step 2: Calculate total copays
       #----------------------------------
-      
-      
+
+
       # Can't pay more than the total remaining expenses
       temp$totcopay<-rowMins(cbind(temp$income*temp$FTcopay,temp$netexp.childcare))
-      
+
       # Set copay to zero if no children
       temp$totcopay[temp$numkidsincare0to4+temp$numkidsincare5to12==0]<-0
-      
+
       temp$totcopay[is.na(temp$FTcopay)]<-NA
       # Note: code produces NAs for a good reason, because family is ineligible for CCDF
       # Copay is NOT zero for ineligible, but there are people who pay 0 copay
-      
+
       # Adjust overage depending on whether states allow to charge it
       temp$childcare.overage[temp$OverageOption=="No"]<-0
-      
+
       # Merge back
       data$childcare.overage[data$stateFIPS==5]<-temp$childcare.overage
       data$totcopay[data$stateFIPS==5]<-temp$totcopay
       data$InitialEligibility[data$stateFIPS==5]<-temp$InitialEligibility.y
     }
-    
-    
-    
+
+
+
     # CALIFORNIA ----
-    
+
     # Description:
     # Copay is a fixed amount per family
     # Monthly frequency
     #! need to add the full time versus part time rule (pt copay is half of ft copay)
     if(6 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-      
+
       ccdfData_CA$stateFIPS <- 6
-      
+
       temp<-data[data$stateFIPS==6,]
-      
+
       # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
       # years<-unique(data$ruleYear) # years in data set
       # yearsinexpdata<- unique(ccdfData_CA$ruleYear) # rule years in benefit data
@@ -6690,17 +6598,17 @@ function.CCDFcopay<-function(data
       # }  # Attach copied future, historical, and missing benefit data
       # if(length(futureYrs)>0) {ccdfData_CA<-ccdfData_CA %>% rbind(expand)}
       # if(length(nonFutureYrs)>0) {ccdfData_CA<-ccdfData_CA %>% rbind(expandPastMiss2)}
-      # 
+      #
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
       temp<-left_join(temp, ccdfData_CA, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize"))
-      
+
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
-      
+
       temp$FTcopay<-NA
-      
+
       temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1Max]<-temp$CopayBin1[temp$income>=0 & temp$income<=temp$Bin1Max]
       temp$FTcopay[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]<-temp$CopayBin2[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]
       temp$FTcopay[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]<-temp$CopayBin3[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]
@@ -6713,58 +6621,58 @@ function.CCDFcopay<-function(data
       temp$FTcopay[temp$income>temp$Bin8Max & temp$income<=temp$Bin9Max]<-temp$CopayBin9[temp$income>temp$Bin8Max & temp$income<=temp$Bin9Max]
       temp$FTcopay[temp$income>temp$Bin9Max & temp$income<=temp$Bin10Max]<-temp$CopayBin10[temp$income>temp$Bin9Max & temp$income<=temp$Bin10Max]
       temp$FTcopay[temp$income>temp$Bin10Max & temp$income<=temp$Bin11Max]<-temp$CopayBin11[temp$income>temp$Bin10Max & temp$income<=temp$Bin11Max]
-   
-      
+
+
       # Apply asset test
       subset<-temp$totalassets > temp$AssetTest
       temp$FTcopay[subset]<-NA_real_
-      
+
       #----------------------------------
       # Step 2: Calculate total copays
       #----------------------------------
-      
+
       #set copays to 0 if family has no kids that are not in head start
       temp$FTcopay[temp$numkidsincare0to4+temp$numkidsincare5to12==0]<-0
-      
-      
+
+
       #calculation # of months needed
       temp<- temp %>%
         mutate(monthsofcareneeded0to4=12*daysofcareneeded0to4/(parameters.defaults$numberofSummerChildcareDays[1]+parameters.defaults$numberofSchoolDays[1]),
                monthsofcareneeded5to12=12*daysofcareneeded5to12/ (0.5*(parameters.defaults$numberofSummerChildcareDays[1]+parameters.defaults$numberofSchoolDays[1])))#school age kids get pt care in summer
-      
+
       temp$monthsofcareneeded=rowMaxs(cbind(temp$monthsofcareneeded0to4,temp$monthsofcareneeded5to12))
-      
+
       # Calculate total copay (12 months needed)
       temp$FTcopay[!is.na(temp$FTcopay)]<-as.numeric(temp$FTcopay[!is.na(temp$FTcopay)])*temp$monthsofcareneeded[!is.na(temp$FTcopay)]
-      
-      
+
+
       #copay is per family so no need to calculate totalcopay
-      
+
       # Note: code produces NAs for a good reason, because family is ineligible for CCDF
       # Copay is NOT zero for ineligible, but there are people who pay 0 copay
-      
+
       # Make sure the variables names are the same
       temp$totcopay <- temp$FTcopay #totcopay is initilaized to NA in beginning
-      
+
       # Adjust overage depending on whether states allow to charge it
       temp$childcare.overage[temp$OverageOption=="No"]<-0
-      
+
       # Merge back
       data$childcare.overage[data$stateFIPS==6]<-temp$childcare.overage
       data$totcopay[data$stateFIPS==6]<-temp$totcopay
       data$InitialEligibility[data$stateFIPS==6]<-temp$InitialEligibility.y
     }
-    
+
     # Colorado ----
-    
+
     if(8 %in% unique(data$stateFIPS)){
-      
+
       ccdfData_CO$stateFIPS <- 8
-      
+
       temp <- data[data$stateFIPS==8,]
-      
+
       temp$numkidsInCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
-      
+
       # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
       # years<-unique(data$ruleYear) # years in data set
       # yearsinexpdata<- unique(ccdfData_CO$ruleYear) # rule years in benefit data
@@ -6795,71 +6703,71 @@ function.CCDFcopay<-function(data
       # }  # Attach copied future, historical, and missing benefit data
       # if(length(futureYrs)>0) {ccdfData_CO<-ccdfData_CO %>% rbind(expand)}
       # if(length(nonFutureYrs)>0) {ccdfData_CO<-ccdfData_CO %>% rbind(expandPastMiss2)}
-      # 
+      #
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
       temp<-left_join(temp, ccdfData_CO, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize", "countyortownName", "numkidsInCare"))
-      
+
       temp$income<-temp$income-12*temp$IncomeDisregard
-      
+
       temp$FTcopay<-NA
       temp$COPAY <- 0
       temp$x <- 0
-      
+
       temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1Max]<-temp$CopayBin1[temp$income>=0 & temp$income<=temp$Bin1Max]
       temp$FTcopay[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]<-temp$CopayBin2[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max] # Add $15 if user is over 100% FPL and have more than one kid in care
-      
+
       temp$COPAY[temp$income>=0 & temp$income<=temp$Bin1Max] <- temp$income[temp$income>=0 & temp$income<=temp$Bin1Max]*temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1Max]
       temp$COPAY[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max] <- temp$Bin1Max[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]*0.01 + temp$x[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]*temp$FTcopay[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]
-      
+
       temp$COPAY[temp$numkidsInCare > 1 & !is.na(temp$numkidsInCare) & temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max] <- temp$COPAY[temp$numkidsInCare > 1 & !is.na(temp$numkidsInCare) & temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max] + (temp$numkidsInCare[temp$numkidsInCare > 1 & !is.na(temp$numkidsInCare) & temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]*15)
-      
-      
-      
+
+
+
       temp$totcopay<-rowMins(cbind(temp$COPAY,temp$netexp.childcare))
-      
+
       # Apply asset test
       subset<-temp$totalassets > temp$AssetTest
       temp$FTcopay[subset]<-NA_real_
-      
+
       #----------------------------------
       # Step 2: Calculate total copays
       #----------------------------------
-      
+
       # Set copay to zero if no children
       temp$totcopay<-rowMins(cbind(temp$income*temp$FTcopay,temp$netexp.childcare))
-      
-      
+
+
       temp$totcopay[temp$numkidsincare0to4+temp$numkidsincare5to12==0]<-0
-      
+
       temp$totcopay[is.na(temp$FTcopay)]<-NA
       # Note: code produces NAs for a good reason, because family is ineligible for CCDF
       # Copay is NOT zero for ineligible, but there are people who pay 0 copay
-      
+
       # Adjust overage depending on whether states allow to charge it
       temp$childcare.overage[temp$OverageOption=="No"]<-0
-      
+
       # Merge back
       data$childcare.overage[data$stateFIPS==8]<-temp$childcare.overage
       data$totcopay[data$stateFIPS==8]<-temp$totcopay
       data$InitialEligibility[data$stateFIPS==8]<-temp$InitialEligibility.y
     }
-    
+
     # CONNECTICUT ----
-    
+
     # Description:
     # Copay is a percentage of total income
     # Weekly frequency
     # Discount for a second child (UNDER CONSTRUCTION)
     if(9 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-      
+
       ############ TEMP FIX FOR CT
-      
+
       ccdfData_CT$stateFIPS <- 9
-      
+
       temp<-data[data$stateFIPS==9,]
-      
+
       # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
       # years<-unique(data$ruleYear) # years in data set
       # yearsinexpdata<- unique(ccdfData_CT$ruleYear) # rule years in benefit data
@@ -6890,59 +6798,59 @@ function.CCDFcopay<-function(data
       # }  # Attach copied future, historical, and missing benefit data
       # if(length(futureYrs)>0) {ccdfData_CT<-ccdfData_CT %>% rbind(expand)}
       # if(length(nonFutureYrs)>0) {ccdfData_CT<-ccdfData_CT %>% rbind(expandPastMiss2)}
-      # 
+      #
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
       temp<-left_join(temp, ccdfData_CT, by=c("ruleYear",  "stateFIPS", "AKorHI", "famsize"))
-      
+
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
-      
+
       temp$FTcopay<-NA
-      
+
       temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1Max]<-temp$CopayBin1[temp$income>=0 & temp$income<=temp$Bin1Max]
       temp$FTcopay[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]<-temp$CopayBin2[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]
       temp$FTcopay[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]<-temp$CopayBin3[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]
       temp$FTcopay[temp$income>temp$Bin3Max & temp$income<=temp$Bin4Max]<-temp$CopayBin4[temp$income>temp$Bin3Max & temp$income<=temp$Bin4Max]
       temp$FTcopay[temp$income>temp$Bin4Max & temp$income<=temp$Bin5Max]<-temp$CopayBin5[temp$income>temp$Bin4Max & temp$income<=temp$Bin5Max]
-      
-      
+
+
       # Apply asset test
       subset<-temp$totalassets > temp$AssetTest
       temp$FTcopay[subset]<-NA_real_
-      
+
       #----------------------------------
       # Step 2: Calculate total copays
       #----------------------------------
-      
+
       # Can't pay more than the total remaining expenses
       temp$totcopay<-rowMins(cbind(temp$income*temp$FTcopay,temp$netexp.childcare))
-      
+
       # Set copay to zero if no children
       temp$totcopay[temp$numkidsincare0to4+temp$numkidsincare5to12==0]<-0
-      
+
       temp$totcopay[is.na(temp$FTcopay)]<-NA
       # Note: code produces NAs for a good reason, because family is ineligible for CCDF
       # Copay is NOT zero for ineligible, but there are people who pay 0 copay
-      
+
       # Adjust overage depending on whether states allow to charge it
       temp$childcare.overage[temp$OverageOption=="No"]<-0
-      
+
       # Merge back
       data$childcare.overage[data$stateFIPS==9]<-temp$childcare.overage
       data$totcopay[data$stateFIPS==9]<-temp$totcopay
       data$InitialEligibility[data$stateFIPS==9]<-temp$InitialEligibility.y
     }
-    
+
     # DELAWARE ----
-    
+
     if(10 %in% unique(data$stateFIPS)){
-      
+
       ################ TEMP TO FIX DE
-      
+
       temp <- data[data$stateFIPS==10,]
-      
+
       # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
       # years<-unique(data$ruleYear) # years in data set
       # yearsinexpdata<- unique(ccdfData_DE$ruleYear) # rule years in benefit data
@@ -6973,60 +6881,60 @@ function.CCDFcopay<-function(data
       # }  # Attach copied future, historical, and missing benefit data
       # if(length(futureYrs)>0) {ccdfData_DE<-ccdfData_DE %>% rbind(expand)}
       # if(length(nonFutureYrs)>0) {ccdfData_DE<-ccdfData_DE %>% rbind(expandPastMiss2)}
-      # 
+      #
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
       temp<-left_join(temp, ccdfData_DE, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize"))
-      
+
       temp$income<-temp$income-12*temp$IncomeDisregard
-      
+
       temp$FTcopay<-NA
-      
+
       temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1Max]<-temp$CopayBin1[temp$income>=0 & temp$income<=temp$Bin1Max]
       temp$FTcopay[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]<-temp$CopayBin2[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]
-      
-      
+
+
       temp$totcopay<-rowMins(cbind(temp$income*temp$FTcopay,temp$netexp.childcare))
-      
+
       # Apply asset test
       subset<-temp$totalassets > temp$AssetTest
       temp$FTcopay[subset]<-NA_real_
-      
+
       #----------------------------------
       # Step 2: Calculate total copays
       #----------------------------------
-      
+
       # Set copay to zero if no children
       temp$totcopay[temp$numkidsincare0to4+temp$numkidsincare5to12==0]<-0
-      
+
       temp$totcopay[is.na(temp$FTcopay)]<-NA
       # Note: code produces NAs for a good reason, because family is ineligible for CCDF
       # Copay is NOT zero for ineligible, but there are people who pay 0 copay
-      
+
       # Adjust overage depending on whether states allow to charge it
       temp$childcare.overage[temp$OverageOption=="No"]<-0
-      
+
       # Merge back
       data$childcare.overage[data$stateFIPS==10]<-temp$childcare.overage
       data$totcopay[data$stateFIPS==10]<-temp$totcopay
       data$InitialEligibility[data$stateFIPS==10]<-temp$InitialEligibility.y
     }
-    
-    
+
+
     # DISTRICT OF COLUMBIA ----
-    
+
     # Description:
     # Fixed copay per child
     # Daily frequency
     # 65% discount for the second child, no fee charged after second child (conditional logic implemented for this feature)
     if(11 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-      
+
       ccdfData_DC$OverageOption <- "No"
       ccdfData_DC$stateFIPS <- 11
-      
+
       temp<-data[data$stateFIPS==11,]
-      
+
       # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
       # years<-unique(data$ruleYear) # years in data set
       # yearsinexpdata<- unique(ccdfData_DC$ruleYear) # rule years in benefit data
@@ -7061,12 +6969,12 @@ function.CCDFcopay<-function(data
       # Step 1: Assign copays
       #----------------------------------
       temp<-left_join(temp, ccdfData_DC, by=c("stateFIPS", "AKorHI", "famsize", "ruleYear"))
-      
+
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
-      
+
       temp$FTcopay<-NA
-      
+
       temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1Max]<-temp$CopayBin1[temp$income>=0 & temp$income<=temp$Bin1Max]
       temp$FTcopay[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]<-temp$CopayBin2[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]
       temp$FTcopay[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]<-temp$CopayBin3[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]
@@ -7104,95 +7012,95 @@ function.CCDFcopay<-function(data
       temp$FTcopay[temp$income>temp$Bin34Max & temp$income<=temp$Bin35Max]<-temp$CopayBin35[temp$income>temp$Bin34Max & temp$income<=temp$Bin35Max]
       temp$FTcopay[temp$income>temp$Bin35Max & temp$income<=temp$Bin36Max]<-temp$CopayBin36[temp$income>temp$Bin35Max & temp$income<=temp$Bin36Max]
       temp$FTcopay[temp$income>temp$Bin36Max & temp$income<=temp$Bin37Max]<-temp$CopayBin37[temp$income>temp$Bin36Max & temp$income<=temp$Bin37Max]
-      
-      
+
+
       # If a family receives TANF, copays are waived
       temp$FTcopay[temp$value.tanf>0]<-0
-      
+
       # Apply asset test
       subset<-temp$totalassets > temp$AssetTest
       temp$FTcopay[subset]<-NA_real_
-      
+
       #----------------------------------
       # Step 2: Calculate total copays
       #----------------------------------
-      
+
       # Initialize
       temp$totcopay<-NA
-      
+
       # Determine how much care child need
       # age < 5 requires full-time school time care and full-time summer care
       # age 5 to 12 requires part-time school time care and full-time summer care
-      
+
       # Scenario 1: single child that need care
       subset1<-temp$numkidsincare0to4+temp$numkidsincare5to12<=1
       temp$totcopay[subset1]<-temp$FTcopay[subset1]*(temp$daysofcareneeded0to4[subset1]+temp$daysofcareneeded5to12[subset1])
-      
+
       # Apply 65% Discount for a second (youngest) child
-      
+
       # Both kids are young
       subset2<-temp$numkidsincare5to12==0 & temp$numkidsincare0to4>=2
       temp$totcopay[subset2]<-0.5*temp$FTcopay[subset2]*(temp$daysofcareneeded0to4[subset2])+0.35*0.5*temp$FTcopay[subset2]*(temp$daysofcareneeded0to4[subset2])
-      
+
       # One kid is older
       subset3<-temp$numkidsincare0to4==0 & temp$numkidsincare5to12>=2
       temp$totcopay[subset3]<-0.5*temp$FTcopay[subset3]*(temp$daysofcareneeded5to12[subset3])+0.35*0.5*temp$FTcopay[subset3]*(temp$daysofcareneeded5to12[subset3])
-      
+
       # All other situations
       subset4<-subset1==FALSE & subset2==FALSE & subset3==FALSE
       temp$totcopay[subset4]<-temp$FTcopay[subset4]*(temp$daysofcareneeded5to12[subset4]) + 0.35*temp$FTcopay[subset4]*(temp$daysofcareneeded0to4[subset4])
-      
+
       # Set copay to zero if no children
       temp$totcopay[temp$numkidsincare0to4+temp$numkidsincare5to12==0]<-0
-      
+
       temp$totcopay[is.na(temp$FTcopay)]<-NA
       # Note: code produces NAs for a good reason, because family is ineligible for CCDF
       # Copay is NOT zero for ineligible, but there are people who pay 0 copay
-      
+
       # Adjust overage depending on whether states allow to charge it
       temp$childcare.overage[temp$OverageOption=="No"]<-0
-      
+
       # Merge back
       data$childcare.overage[data$stateFIPS==11]<-temp$childcare.overage
       data$totcopay[data$stateFIPS==11]<-temp$totcopay
       data$InitialEligibility[data$stateFIPS==11]<-temp$InitialEligibility.y
     }
-    
-    
-    
+
+
+
     # FLORIDA ----
-    
+
     # ORIGINAL LEGISLATION: WHEN FAMILY IS INITIALLY APPLYING TO CCDF, IF CHILD IS 5 OR ABOVE, THEN THEY DON'T QUALIFY. ONCE ON IT, THEN THEY'RE ON CCDF TILL KID IS 13 OR INCOME EXCEEDS LIMIT
-    
+
     # NEW LEGISLATION:
-    
+
     # IF FAMILY IS ON TANF, THEN THEY QUALIFY AS LONG AS KID(S) IS BELOW 13
     # IF FAMILY QUALIFIES SO LONG AS THEY HAVE A CHILD UNDER 5, EVEN IF OTHER KIDS ARE 5 OR ABOVE
-    
-    
+
+
     # Description:
     # Variation at the county level
     # Fixed copay per child
     # Daily frequency
     # Discount for a second child
     if(12 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-      
+
       temp<-data[data$stateFIPS==12,]
       test <<- temp
       temp <- test
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
-     
+
       temp<-left_join(temp, ccdfData_FL, by=c("stateFIPS", "AKorHI",  "famsize", "ruleYear"))
-      
+
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
-      
-      
-      
+
+
+
       temp$FTcopay<-NA
-      
+
       temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1Max]<-temp$CopayBin1[temp$income>=0 & temp$income<=temp$Bin1Max]
       temp$FTcopay[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]<-temp$CopayBin2[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]
       temp$FTcopay[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]<-temp$CopayBin3[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]
@@ -7213,74 +7121,74 @@ function.CCDFcopay<-function(data
       temp$FTcopay[temp$income>temp$Bin17Max & temp$income<=temp$Bin18Max]<-temp$CopayBin18[temp$income>temp$Bin17Max & temp$income<=temp$Bin18Max]
       temp$FTcopay[temp$income>temp$Bin18Max & temp$income<=temp$Bin19Max]<-temp$CopayBin19[temp$income>temp$Bin18Max & temp$income<=temp$Bin19Max]
       temp$FTcopay[temp$income>temp$Bin19Max & temp$income<=temp$Bin20Max]<-temp$CopayBin20[temp$income>temp$Bin19Max & temp$income<=temp$Bin20Max]
-      
-      
-      # 
+
+
+      #
       # Apply asset test
       subset<-temp$totalassets > temp$AssetTest
       temp$FTcopay[subset]<-NA_real_
-      
+
       #----------------------------------
       # Step 2: Calculate total copays
       #----------------------------------
-      
+
       # Initialize
       temp$totcopay<-NA
-      
-      
+
+
       #temp$totcopay<-temp$FTcopay*(temp$daysofcareneeded0to4+temp$daysofcareneeded5to12)*temp$income
       temp$totcopay<-rowMins(cbind(temp$income*temp$FTcopay,temp$netexp.childcare))
       # Set copay to zero if no children
       temp$totcopay[temp$numkidsincare0to4+temp$numkidsincare5to12==0]<-0
-      
+
       # if(contelig.ccdf == FALSE){
-      
+
       #    temp$totcopay[temp$daysofcareneeded0to4 == 0 & temp$daysofcareneeded5to12 != 0 & temp$value.tanf == 0 & temp$Year == min(temp$Year)] <- temp$netexp.childcare[temp$daysofcareneeded0to4 == 0 & temp$daysofcareneeded5to12 != 0 & temp$value.tanf == 0 & temp$Year == min(temp$Year)]
-      
+
       #    if(temp$totcopay[temp$Year == min(temp$Year)] == temp$netexp.childcare[temp$Year == min(temp$Year)]){
       #      temp$totcopay <- temp$netexp.childcare
       #    }
       #  }
-      
+
       temp$totcopay[is.na(temp$FTcopay)]<-NA
       # Note: code produces NAs for a good reason, because family is ineligible for CCDF
       # Copay is NOT zero for ineligible, but there are people who pay 0 copay
-      
+
       # Adjust overage depending on whether states allow to charge it
       temp$childcare.overage[temp$OverageOption=="No"]<-0
-      
+
       #View(temp[,c("InitialEligibility.y","income","totcopay","countyortownName", "FTcopay", "daysofcareneeded0to4", "daysofcareneeded5to12", "netexp.childcare")])
-      
+
       # Merge back
       data$childcare.overage[data$stateFIPS==12]<-temp$childcare.overage
       data$totcopay[data$stateFIPS==12]<-temp$totcopay
       data$InitialEligibility[data$stateFIPS==12]<-temp$InitialEligibility.y
     }
-    
+
     #View(data[,c("InitialEligibility","income","totcopay","countyortownName", "daysofcareneeded0to4", "daysofcareneeded5to12", "netexp.childcare")])
-    
-    
+
+
     # GEORGIA ----
-    
+
     # Description:
     # Copay is a percentage of total net income
     # Weekly frequency
     # Discount for a second child (UNDER CONSTRUCTION)
     if(13 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-      
+
       #   ccdfData_GA$stateFIPS <- 13
       #  ccdfData_GA$IncomeDisregard <- 0
       #  ccdfData_GA$InitialEligibility <- c(19814, 25910, 32007, 38103, 44199, 50296, 56392, 62489, 68585, 74682, 80778, 86875)
       #  ccdfData_GA$ContinuousEligibility <- c(33683, 44047, 54411, 64775, 75139, 85503, 95867, 106231, 116595, 126959, 137323, 147687)
       #  ccdfData_GA$Bin4Max <- ccdfData_GA$ContinuousEligibility
-      
+
       # ER: code below does similar thing
       # if(min(data$ruleYear)==2021){
       # ccdfData_GA$ruleYear[ccdfData_GA$ruleYear == min(ccdfData_GA$ruleYear)] <- 2021
       # }
-      
+
       temp<-data[data$stateFIPS==13,]
-      # 
+      #
       # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
       # years<-unique(data$ruleYear) # years in data set
       # yearsinexpdata<- unique(ccdfData_GA$ruleYear) # rule years in benefit data
@@ -7311,102 +7219,72 @@ function.CCDFcopay<-function(data
       # }  # Attach copied future, historical, and missing benefit data
       # if(length(futureYrs)>0) {ccdfData_GA<-ccdfData_GA %>% rbind(expand)}
       # if(length(nonFutureYrs)>0) {ccdfData_GA<-ccdfData_GA %>% rbind(expandPastMiss2)}
-      # 
+      #
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
       temp<-left_join(temp, ccdfData_GA, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize"))
-      
+
       # Adjust for the income disregard
       #  temp$income<-temp$income-12*temp$IncomeDisregard
-      
+
       temp$FTcopay<-NA
-      
+
       temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1Max]<-temp$CopayBin1[temp$income>=0 & temp$income<=temp$Bin1Max]
       temp$FTcopay[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]<-temp$CopayBin2[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]
       temp$FTcopay[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]<-temp$CopayBin3[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]
       temp$FTcopay[temp$income>temp$Bin3Max & temp$income<=temp$Bin4Max]<-temp$CopayBin4[temp$income>temp$Bin3Max & temp$income<=temp$Bin4Max]
       temp$FTcopay[temp$income>temp$Bin4Max & temp$income<=temp$Bin5Max]<-temp$CopayBin5[temp$income>temp$Bin4Max & temp$income<=temp$Bin5Max]
-      
+
       # Can't pay more than the total remaining expenses
       temp$totcopay<-rowMins(cbind(temp$income*temp$FTcopay,temp$netexp.childcare))
-      
+
       # Apply asset test
       subset<-temp$totalassets > temp$AssetTest
       temp$FTcopay[subset]<-NA_real_
-      
+
       #----------------------------------
       # Step 2: Calculate total copays
       #----------------------------------
       # Set copay to zero if no children
       temp$totcopay[temp$numkidsincare0to4+temp$numkidsincare5to12==0]<-0
-      
+
       temp$totcopay[is.na(temp$FTcopay)]<-NA
       # Note: code produces NAs for a good reason, because family is ineligible for CCDF
       # Copay is NOT zero for ineligible, but there are people who pay 0 copay
-      
+
       # Adjust overage depending on whether states allow to charge it
       temp$childcare.overage[temp$OverageOption=="No"]<-0
-      
+
       # Merge back
       data$childcare.overage[data$stateFIPS==13]<-temp$childcare.overage
       data$totcopay[data$stateFIPS==13]<-temp$totcopay
       data$InitialEligibility[data$stateFIPS==13]<-temp$InitialEligibility.y
     }
-    
-    
+
+
     # HAWAII ----
-    
+
     # Description:
     # Copay is a percentage of the child care subsidy payment earned by family (UNDER CONSTRUCTION)
     # Monthly frequency
     # Per family
     if(15 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-      
+
       temp<-data[data$stateFIPS==15,]
-      
-      # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-      # years<-unique(data$ruleYear) # years in data set
-      # yearsinexpdata<- unique(ccdfData_HI$ruleYear) # rule years in benefit data
-      # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-      # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-      # # Create data for the future
-      # maxyearofdata<-max(ccdfData_HI$ruleYear) # collect latest year of benefit data
-      # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-      # if(length(futureYrs)>0){
-      #   # Create data frame with future years
-      #   expand<-expand.grid(stateFIPS=unique(ccdfData_HI$stateFIPS), AKorHI=unique(ccdfData_HI$AKorHI), famsize=unique(ccdfData_HI$famsize), Year=futureYrs)
-      #   # Collect latest benefit data there is and merge w/data frame
-      #   expand2<-ccdfData_HI[ccdfData_HI$ruleYear==maxyearofdata, ]
-      #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-      # }
-      # # Create data for past and gap years (missing data) - not the future
-      # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-      # if(length(nonFutureYrs)>0){
-      #   #Create data frame with past years and year for which we are missing benefit data
-      #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_HI$stateFIPS), AKorHI=unique(ccdfData_HI$AKorHI), famsize=unique(ccdfData_HI$famsize), Year=nonFutureYrs)
-      #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-      #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_HI, by=c("stateFIPS", "AKorHI", "famsize"))
-      #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-      #   expandPastMiss2<-expandPastMiss2%>%
-      #     group_by(Year)%>%
-      #     filter(yeardiff<0)%>%
-      #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-      # }  # Attach copied future, historical, and missing benefit data
-      # if(length(futureYrs)>0) {ccdfData_HI<-ccdfData_HI %>% rbind(expand)}
-      # if(length(nonFutureYrs)>0) {ccdfData_HI<-ccdfData_HI %>% rbind(expandPastMiss2)}
-      # 
+
+
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
       ccdfData_HI$AKorHI <- "HI"
       temp<-left_join(temp, ccdfData_HI, by=c("stateFIPS", "AKorHI", "famsize", "ruleYear"))
-      
+
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
-      
+
       temp$FTcopay<-NA
-      
+
       temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1Max]<-temp$CopayBin1[temp$income>=0 & temp$income<=temp$Bin1Max]
       temp$FTcopay[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]<-temp$CopayBin2[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]
       temp$FTcopay[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]<-temp$CopayBin3[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]
@@ -7417,56 +7295,56 @@ function.CCDFcopay<-function(data
       temp$FTcopay[temp$income>temp$Bin7Max & temp$income<=temp$Bin8Max]<-temp$CopayBin8[temp$income>temp$Bin7Max & temp$income<=temp$Bin8Max]
       temp$FTcopay[temp$income>temp$Bin8Max & temp$income<=temp$Bin9Max]<-temp$CopayBin9[temp$income>temp$Bin8Max & temp$income<=temp$Bin9Max]
       temp$FTcopay[temp$income>temp$Bin9Max & temp$income<=temp$Bin10Max]<-temp$CopayBin10[temp$income>temp$Bin9Max & temp$income<=temp$Bin10Max]
-      
-      
-      
+
+
+
       # Apply asset test
       subset<-temp$totalassets > temp$AssetTest
       temp$FTcopay[subset]<-NA_real_
-      
+
       #----------------------------------
       # Step 2: Calculate total copays
       #----------------------------------
-      
+
       # Can't pay more than the total remaining expenses
       temp$totcopay<-rowMins(cbind(temp$income*temp$FTcopay,temp$netexp.childcare))
       ## IMPORTANT: temp$income should be replaced with the child care subsidy earned by the family
-      
-      
+
+
       # Set copay to zero if no children
       temp$totcopay[temp$numkidsincare0to4+temp$numkidsincare5to12==0]<-0
-      
+
       temp$totcopay[is.na(temp$FTcopay)]<-NA
       # Note: code produces NAs for a good reason, because family is ineligible for CCDF
       # Copay is NOT zero for ineligible, but there are people who pay 0 copay
-      
+
       # Adjust overage depending on whether states allow to charge it
       temp$childcare.overage[temp$OverageOption=="No"]<-0
-      
+
       # Merge back
       data$childcare.overage[data$stateFIPS==15]<-temp$childcare.overage
       data$totcopay[data$stateFIPS==15]<-temp$totcopay
       data$InitialEligibility[data$stateFIPS==15]<-temp$InitialEligibility.y
     }
-    
-    
-    
+
+
+
     # IOWA ----
-    
+
     # Description:
     # Copay is a fixed dollar amount per child
     # Daily frequency
     if(19 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-      
+
       ccdfData_IA$stateFIPS <- 19
-      
-      
-      
+
+
+
       temp<-data[data$stateFIPS==19,]
-      
-      
+
+
       temp$numkidsInCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
-      
+
       # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
       # years<-unique(data$ruleYear) # years in data set
       # yearsinexpdata<- unique(ccdfData_IA$ruleYear) # rule years in benefit data
@@ -7497,17 +7375,17 @@ function.CCDFcopay<-function(data
       # }  # Attach copied future, historical, and missing benefit data
       # if(length(futureYrs)>0) {ccdfData_IA<-ccdfData_IA %>% rbind(expand)}
       # if(length(nonFutureYrs)>0) {ccdfData_IA<-ccdfData_IA %>% rbind(expandPastMiss2)}
-      # 
+      #
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
       temp<-left_join(temp, ccdfData_IA, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize", "numkidsInCare"))
-      
+
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
-      
+
       temp$FTcopay<-NA
-      
+
       temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1Max]<-temp$CopayBin1[temp$income>=0 & temp$income<=temp$Bin1Max]
       temp$FTcopay[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]<-temp$CopayBin2[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]
       temp$FTcopay[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]<-temp$CopayBin3[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]
@@ -7535,55 +7413,55 @@ function.CCDFcopay<-function(data
       temp$FTcopay[temp$income>temp$Bin24Max & temp$income<=temp$Bin25Max]<-temp$CopayBin25[temp$income>temp$Bin24Max & temp$income<=temp$Bin25Max]
       temp$FTcopay[temp$income>temp$Bin25Max & temp$income<=temp$Bin26Max]<-temp$CopayBin26[temp$income>temp$Bin25Max & temp$income<=temp$Bin26Max]
       temp$FTcopay[temp$income>temp$Bin26Max & temp$income<=temp$Bin27Max]<-temp$CopayBin27[temp$income>temp$Bin26Max & temp$income<=temp$Bin27Max]
-      
+
       #Copays for bins 28 - 31 are based off of percentage of childcare cost
       temp$FTcopay[temp$income>temp$Bin27Max & temp$income<=temp$Bin28Max]<-temp$CopayBin28[temp$income>temp$Bin27Max & temp$income<=temp$Bin28Max]*(temp$netexp.childcare[temp$income>temp$Bin27Max & temp$income<=temp$Bin28Max]/365)
       temp$FTcopay[temp$income>temp$Bin28Max & temp$income<=temp$Bin29Max]<-temp$CopayBin29[temp$income>temp$Bin28Max & temp$income<=temp$Bin29Max]*(temp$netexp.childcare[temp$income>temp$Bin28Max & temp$income<=temp$Bin29Max]/365)
       temp$FTcopay[temp$income>temp$Bin29Max & temp$income<=temp$Bin30Max]<-temp$CopayBin30[temp$income>temp$Bin29Max & temp$income<=temp$Bin30Max]*(temp$netexp.childcare[temp$income>temp$Bin29Max & temp$income<=temp$Bin30Max]/365)
       temp$FTcopay[temp$income>temp$Bin30Max & temp$income<=temp$Bin31Max]<-temp$CopayBin31[temp$income>temp$Bin30Max & temp$income<=temp$Bin31Max]*(temp$netexp.childcare[temp$income>temp$Bin30Max & temp$income<=temp$Bin31Max]/365)
-      
+
       # Apply asset test
       subset<-temp$totalassets > temp$AssetTest
       temp$FTcopay[subset]<-NA_real_
-      
+
       #----------------------------------
       # Step 2: Calculate total copays
       #----------------------------------
-      
+
       temp$totcopay<-NA
-      
+
       # Determine how much care child need
       # age < 5 requires full-time school time care and full-time summer care
       # age 5 to 12 requires part-time school time care and full-time summer care
-      
+
       temp$totcopay<-temp$FTcopay*(temp$daysofcareneeded0to4+temp$daysofcareneeded5to12)
-      
+
       # Set copay to zero if no children
       temp$totcopay[temp$numkidsincare0to4+temp$numkidsincare5to12==0]<-0
-      
+
       temp$totcopay[is.na(temp$FTcopay)]<-NA
       # Note: code produces NAs for a good reason, because family is ineligible for CCDF
       # Copay is NOT zero for ineligible, but there are people who pay 0 copay
-      
+
       # Adjust overage depending on whether states allow to charge it
       temp$childcare.overage[temp$OverageOption=="No"]<-0
-      
+
       # Merge back
       data$childcare.overage[data$stateFIPS==19]<-temp$childcare.overage
       data$totcopay[data$stateFIPS==19]<-temp$totcopay
       data$InitialEligibility[data$stateFIPS==19]<-temp$InitialEligibility.y
     }
-    
+
     # IDAHO ----
-    
+
     if(16 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-      
+
       ccdfData_ID$stateFIPS <- 16
-      
+
       temp<-data[data$stateFIPS==16,]
-      
+
       temp$numkidsInCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
-      # 
+      #
       # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
       # years<-unique(data$ruleYear) # years in data set
       # yearsinexpdata<- unique(ccdfData_ID$ruleYear) # rule years in benefit data
@@ -7614,64 +7492,64 @@ function.CCDFcopay<-function(data
       # }  # Attach copied future, historical, and missing benefit data
       # if(length(futureYrs)>0) {ccdfData_ID<-ccdfData_ID %>% rbind(expand)}
       # if(length(nonFutureYrs)>0) {ccdfData_ID<-ccdfData_ID %>% rbind(expandPastMiss2)}
-      # 
+      #
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
       temp<-left_join(temp, ccdfData_ID, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize", "numkidsInCare"))
-      
+
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
-      
+
       temp$FTcopay<-NA
-      
+
       temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1Max]<-temp$CopayBin1[temp$income>=0 & temp$income<=temp$Bin1Max]
       temp$FTcopay[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]<-temp$CopayBin2[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]
       temp$FTcopay[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]<-temp$CopayBin3[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]
       temp$FTcopay[temp$income>temp$Bin3Max & temp$income<=temp$Bin4Max]<-temp$CopayBin4[temp$income>temp$Bin3Max & temp$income<=temp$Bin4Max]
-      
-      
+
+
       # Apply asset test
       subset<-temp$totalassets > temp$AssetTest
       temp$FTcopay[subset]<-NA_real_
-      
+
       #----------------------------------
       # Step 2: Calculate total copays
       #----------------------------------
-      
+
       # Calculate total copay (12 months needed)
       temp$totcopay<-temp$FTcopay*12
-      
+
       # Set copay to zero if no children
       temp$totcopay[temp$numkidsincare0to4+temp$numkidsincare5to12==0]<-0
-      
+
       temp$totcopay[is.na(temp$FTcopay)]<-NA
       # Note: code produces NAs for a good reason, because family is ineligible for CCDF
       # Copay is NOT zero for ineligible, but there are people who pay 0 copay
-      
+
       # Adjust overage depending on whether states allow to charge it
       temp$childcare.overage[temp$OverageOption=="No"]<-0
-      
+
       # Merge back
       data$childcare.overage[data$stateFIPS==16]<-temp$childcare.overage
       data$totcopay[data$stateFIPS==16]<-temp$totcopay
       data$InitialEligibility[data$stateFIPS==16]<-temp$InitialEligibility.y
     }
-    
-    
+
+
     # ILLINOIS ----
-    
+
     # Description:
     # Copay is a fixed amount per family
     # Monthly frequency
     # Discount in case when all kids need part-time care
     if(17 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-      
+
       ccdfData_IL$stateFIPS <- 17
-      
-      
+
+
       temp<-data[data$stateFIPS==17,]
-      
+
       # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
       # years<-unique(data$ruleYear) # years in data set
       # yearsinexpdata<- unique(ccdfData_IL$ruleYear) # rule years in benefit data
@@ -7702,17 +7580,17 @@ function.CCDFcopay<-function(data
       # }  # Attach copied future, historical, and missing benefit data
       # if(length(futureYrs)>0) {ccdfData_IL<-ccdfData_IL %>% rbind(expand)}
       # if(length(nonFutureYrs)>0) {ccdfData_IL<-ccdfData_IL %>% rbind(expandPastMiss2)}
-      # 
+      #
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
       temp<-left_join(temp, ccdfData_IL, by=c("stateFIPS", "AKorHI", "famsize", "ruleYear"))
-      
+
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
-      
+
       temp$FTcopay<-NA
-      
+
       temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1Max]<-temp$CopayBin1[temp$income>=0 & temp$income<=temp$Bin1Max]
       temp$FTcopay[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]<-temp$CopayBin2[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]
       temp$FTcopay[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]<-temp$CopayBin3[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]
@@ -7735,69 +7613,69 @@ function.CCDFcopay<-function(data
       temp$FTcopay[temp$income>temp$Bin18Max & temp$income<=temp$Bin19Max]<-temp$CopayBin19[temp$income>temp$Bin18Max & temp$income<=temp$Bin19Max]
       temp$FTcopay[temp$income>temp$Bin19Max & temp$income<=temp$Bin20Max]<-temp$CopayBin20[temp$income>temp$Bin19Max & temp$income<=temp$Bin20Max]
       temp$FTcopay[temp$income>temp$Bin20Max & temp$income<=temp$Bin21Max]<-temp$CopayBin21[temp$income>temp$Bin20Max & temp$income<=temp$Bin21Max]
-      
+
       # CopayBin21 explanation:
       # Family Income in the following ranges at the time of redetermination will result in a 3-month eligibility extension, known as
       # a Graduated Phase Out for more information, see CCAP Policy 02.03.01 https://www.dhs.state.il.us/page.aspx?item=10568
-      
+
       # If results start to look incorrect for any scenario that achieves copaybin21, just eliminate from this code for the time being
-      
+
       # Apply asset test
       subset<-temp$totalassets > temp$AssetTest
       temp$FTcopay[subset]<-NA_real_
-      
+
       #----------------------------------
       # Step 2: Calculate total copays
       #----------------------------------
-      
+
       #set copays to 0 if family has no kids that are not in head start
       temp$FTcopay[temp$numkidsincare0to4+temp$numkidsincare5to12==0]<-0
-      
+
       # Adjust for a part-time care (school age kids only)
       temp$FTcopay[temp$numkidsincare0to4==0 & temp$numkidsincare5to12>0]<-0.5*temp$FTcopay[temp$numkidsincare0to4==0 & temp$numkidsincare5to12>0]
-      
+
       #calculation # of months needed
       temp<- temp %>%
         mutate(monthsofcareneeded0to4=12*daysofcareneeded0to4/(parameters.defaults$numberofSummerChildcareDays[1]+parameters.defaults$numberofSchoolDays[1]),
                monthsofcareneeded5to12=12*daysofcareneeded5to12/ (0.5*(parameters.defaults$numberofSummerChildcareDays[1]+parameters.defaults$numberofSchoolDays[1])))#school age kids get pt care in summer & school year
-      
+
       temp$monthsofcareneeded=rowMaxs(cbind(temp$monthsofcareneeded0to4,temp$monthsofcareneeded5to12))
-      
+
       # Calculate total copay (12 months needed)
       temp$FTcopay[!is.na(temp$FTcopay)]<-as.numeric(temp$FTcopay[!is.na(temp$FTcopay)])*temp$monthsofcareneeded[!is.na(temp$FTcopay)]
-      
-      
+
+
       #copay is per family so no need to calculate totalcopay
-      
+
       # Note: code produces NAs for a good reason, because family is ineligible for CCDF
       # Copay is NOT zero for ineligible, but there are people who pay 0 copay
-      
+
       # Make sure the variables names are the same
       temp$totcopay <- temp$FTcopay #totcopay is initilaized to NA in beginning
-      
+
       # Adjust overage depending on whether states allow to charge it
       temp$childcare.overage[temp$OverageOption=="No"]<-0
-      
+
       # Merge back
       data$childcare.overage[data$stateFIPS==17]<-temp$childcare.overage
       data$totcopay[data$stateFIPS==17]<-temp$totcopay
       data$InitialEligibility[data$stateFIPS==17]<-temp$InitialEligibility.y
     }
-    
-    
+
+
     # INDIANA ----
-    
+
     # Description:
     # Copay is a percentage of total income
     # Monthly frequency
     if(18 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-      
+
       ccdfData_IN$stateFIPS <- 18
       ccdfData_IN$AssetTest <- 1000000
       #ccdfData_IN <- ccdfData_IN[ccdfData_IN$famsize < 8,]
-      
+
       temp<-data[data$stateFIPS==18,]
-      
+
       # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
       # years<-unique(data$ruleYear) # years in data set
       # yearsinexpdata<- unique(ccdfData_IN$ruleYear) # rule years in benefit data
@@ -7828,19 +7706,19 @@ function.CCDFcopay<-function(data
       # }  # Attach copied future, historical, and missing benefit data
       # if(length(futureYrs)>0) {ccdfData_IN<-ccdfData_IN %>% rbind(expand)}
       # if(length(nonFutureYrs)>0) {ccdfData_IN<-ccdfData_IN %>% rbind(expandPastMiss2)}
-      # 
+      #
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
-      
-      
+
+
       temp<-left_join(temp, ccdfData_IN, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize"))
-      
+
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
-      
+
       temp$FTcopay<-NA
-      
+
       temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1Max]<-temp$CopayBin1[temp$income>=0 & temp$income<=temp$Bin1Max]
       temp$FTcopay[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]<-temp$CopayBin2[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]
       temp$FTcopay[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]<-temp$CopayBin3[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]
@@ -7852,49 +7730,49 @@ function.CCDFcopay<-function(data
       temp$FTcopay[temp$income>temp$Bin8Max & temp$income<=temp$Bin9Max]<-temp$CopayBin9[temp$income>temp$Bin8Max & temp$income<=temp$Bin9Max]
       temp$FTcopay[temp$income>temp$Bin9Max & temp$income<=temp$Bin10Max]<-temp$CopayBin10[temp$income>temp$Bin9Max & temp$income<=temp$Bin10Max]
       temp$FTcopay[temp$income>temp$Bin10Max & temp$income<=temp$Bin11Max]<-temp$CopayBin11[temp$income>temp$Bin10Max & temp$income<=temp$Bin11Max]
-      
-      
-      
+
+
+
       # Apply asset test
       subset<-temp$totalassets > temp$AssetTest
       temp$FTcopay[subset]<-NA_real_
-      
+
       #----------------------------------
       # Step 2: Calculate total copays
       #----------------------------------
       # Can't pay more than the total remaining expenses
       temp$totcopay<-rowMins(cbind(temp$income*temp$FTcopay,temp$netexp.childcare))
-      
+
       # Set copay to zero if no children
       temp$totcopay[temp$numkidsincare0to4+temp$numkidsincare5to12==0]<-0
-      
+
       temp$totcopay[is.na(temp$FTcopay)]<-NA
       # Note: code produces NAs for a good reason, because family is ineligible for CCDF
       # Copay is NOT zero for ineligible, but there are people who pay 0 copay
-      
+
       # Adjust overage depending on whether states allow to charge it
       temp$childcare.overage[temp$OverageOption=="No"]<-0
-      
+
       # Merge back
       data$childcare.overage[data$stateFIPS==18]<-temp$childcare.overage
       data$totcopay[data$stateFIPS==18]<-temp$totcopay
       data$InitialEligibility[data$stateFIPS==18]<-temp$InitialEligibility.y
     }
-    
-    
-    
+
+
+
     # KANSAS ----
-    
+
     # Description:
     # Fixed copay dollar amount per family
     # Monthly frequency
     if(20 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-      
+
       ccdfData_KS$stateFIPS <- 20
-      
-      
+
+
       temp<-data[data$stateFIPS==20,]
-      
+
       # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
       # years<-unique(data$ruleYear) # years in data set
       # yearsinexpdata<- unique(ccdfData_KS$ruleYear) # rule years in benefit data
@@ -7925,17 +7803,17 @@ function.CCDFcopay<-function(data
       # }  # Attach copied future, historical, and missing benefit data
       # if(length(futureYrs)>0) {ccdfData_KS<-ccdfData_KS %>% rbind(expand)}
       # if(length(nonFutureYrs)>0) {ccdfData_KS<-ccdfData_KS %>% rbind(expandPastMiss2)}
-      # 
+      #
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
       temp<-left_join(temp, ccdfData_KS, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize"))
-      
+
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
-      
+
       temp$FTcopay<-NA
-      
+
       temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1Max]<-temp$CopayBin1[temp$income>=0 & temp$income<=temp$Bin1Max]
       temp$FTcopay[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]<-temp$CopayBin2[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]
       temp$FTcopay[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]<-temp$CopayBin3[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]
@@ -7948,63 +7826,63 @@ function.CCDFcopay<-function(data
       temp$FTcopay[temp$income>temp$Bin9Max & temp$income<=temp$Bin10Max]<-temp$CopayBin10[temp$income>temp$Bin9Max & temp$income<=temp$Bin10Max]
       temp$FTcopay[temp$income>temp$Bin10Max & temp$income<=temp$Bin11Max]<-temp$CopayBin11[temp$income>temp$Bin10Max & temp$income<=temp$Bin11Max]
       temp$FTcopay[temp$income>temp$Bin11Max & temp$income<=temp$Bin12Max]<-temp$CopayBin12[temp$income>temp$Bin11Max & temp$income<=temp$Bin12Max]
-      
-      
-      
-      
+
+
+
+
       # Apply asset test
       subset<-temp$totalassets > temp$AssetTest
       temp$FTcopay[subset]<-NA_real_
-      
+
       #----------------------------------
       # Step 2: Calculate total copays
       #----------------------------------
-      
+
       # Calculate total copay (12 months needed)
       temp$totcopay<-temp$FTcopay*12
-      
+
       # Set copay to zero if no children
       temp$totcopay[temp$numkidsincare0to4+temp$numkidsincare5to12==0]<-0
-      
+
       temp$totcopay[is.na(temp$FTcopay)]<-NA
       # Note: code produces NAs for a good reason, because family is ineligible for CCDF
       # Copay is NOT zero for ineligible, but there are people who pay 0 copay
-      
+
       # Adjust overage depending on whether states allow to charge it
       temp$childcare.overage[temp$OverageOption=="No"]<-0
-      
+
       # Merge back
       data$childcare.overage[data$stateFIPS==20]<-temp$childcare.overage
       data$totcopay[data$stateFIPS==20]<-temp$totcopay
       data$InitialEligibility[data$stateFIPS==20]<-temp$InitialEligibility.y
     }
-    
-    
-    
+
+
+
     # KENTUCKY ----
-    
+
     # Description:
     # Copay is a fixed amount per child
     # Copay amount varies by number of children that family has in care
     # Daily frequency
     if(21 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-      
+
       ccdfData_KY$stateFIPS <- 21
-      
+
       temp<-data[data$stateFIPS==21,]
-      
-    
-     
+
+
+
       #----------------------------------``
       # Step 1: Assign copays
       #----------------------------------
       temp<-left_join(temp, ccdfData_KY, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize"))
-      
+
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
-      
+
       temp$FTcopay<-NA
-      
+
       temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1Max]<-temp$CopayBin1[temp$income>=0 & temp$income<=temp$Bin1Max]
       temp$FTcopay[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]<-temp$CopayBin2[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]
       temp$FTcopay[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]<-temp$CopayBin3[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]
@@ -8036,52 +7914,52 @@ function.CCDFcopay<-function(data
       temp$FTcopay[temp$income>temp$Bin27Max & temp$income<=temp$Bin28Max]<-temp$CopayBin28[temp$income>temp$Bin27Max & temp$income<=temp$Bin28Max]
       temp$FTcopay[temp$income>temp$Bin28Max & temp$income<=temp$Bin29Max]<-temp$CopayBin29[temp$income>temp$Bin28Max & temp$income<=temp$Bin29Max]
       #temp$FTcopay[temp$income>temp$Bin29Max & temp$income<=temp$Bin30Max]<-temp$CopayBin30[temp$income>temp$Bin29Max & temp$income<=temp$Bin30Max]
-      
-      
+
+
       # Apply asset test
       subset<-temp$totalassets > temp$AssetTest
       temp$FTcopay[subset]<-NA_real_
-      
+
       #apply income test
       subset<-temp$income > temp$InitialEligibility.y
       temp$FTcopay[subset]<-NA_real_
-      
-      
+
+
       #----------------------------------
       # Step 2: Calculate total copays
       #----------------------------------
-      
+
       # Initialize
-      
+
       temp$totcopay<-NA
-      
+
       temp$totcopay<-temp$FTcopay*52*12
-      
+
       # Adjust overage depending on whether states allow to charge it
       temp$childcare.overage[temp$OverageOption=="No"]<-0
-      
+
       # Merge back
       data$childcare.overage[data$stateFIPS==21]<-temp$childcare.overage
       data$totcopay[data$stateFIPS==21]<-temp$totcopay
       data$InitialEligibility[data$stateFIPS==21]<-temp$InitialEligibility.y
     }
-    
-    
-    
+
+
+
     # Louisiana ----
-    
+
     # Description:
     # Copay is a dollar amount per child, same for each child
     # Daily frequency
     # No fee after certain number of children (under construction)
     if(22 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-      
-      
+
+
       ccdfData_LA$stateFIPS <- 22
-      
-      
+
+
       temp<-data[data$stateFIPS==22,]
-      
+
       # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
       # years<-unique(data$ruleYear) # years in data set
       # yearsinexpdata<- unique(ccdfData_LA$ruleYear) # rule years in benefit data
@@ -8112,70 +7990,71 @@ function.CCDFcopay<-function(data
       # }  # Attach copied future, historical, and missing benefit data
       # if(length(futureYrs)>0) {ccdfData_LA<-ccdfData_LA %>% rbind(expand)}
       # if(length(nonFutureYrs)>0) {ccdfData_LA<-ccdfData_LA %>% rbind(expandPastMiss2)}
-      # 
-      
+      #
+
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
       temp<-left_join(temp, ccdfData_LA, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize"))
-      
+
       # Adjust for the income disregard
       #  temp$income<-temp$income-12*temp$IncomeDisregard
-      
+
       temp$FTcopay<-NA
-      
+
       temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1Max]<-temp$CopayBin1[temp$income>=0 & temp$income<=temp$Bin1Max]
       temp$FTcopay[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]<-temp$CopayBin2[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]
       temp$FTcopay[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]<-temp$CopayBin3[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]
       temp$FTcopay[temp$income>temp$Bin3Max & temp$income<=temp$Bin4Max]<-temp$CopayBin4[temp$income>temp$Bin3Max & temp$income<=temp$Bin4Max]
       temp$FTcopay[temp$income>temp$Bin4Max & temp$income<=temp$Bin5Max]<-temp$CopayBin5[temp$income>temp$Bin4Max & temp$income<=temp$Bin5Max]
-      
-      
+
+
       # Apply asset test
       subset<-temp$totalassets > temp$AssetTest
       temp$FTcopay[subset]<-NA_real_
-      
+
       #----------------------------------
       # Step 2: Calculate total copays
       #----------------------------------
-      
+
       # Initialize
-      
+
       temp$totcopay<-NA
-      
+
       temp$totcopay<-temp$FTcopay*(temp$daysofcareneeded0to4+temp$daysofcareneeded5to12)
-      
+
       # Set copay to zero if no children
       temp$totcopay[temp$numkidsincare0to4+temp$numkidsincare5to12==0]<-0
-      
+
       temp$totcopay[is.na(temp$FTcopay)]<-NA
       # Note: code produces NAs for a good reason, because family is ineligible for CCDF
       # Copay is NOT zero for ineligible, but there are people who pay 0 copay
-      
+
       # Adjust overage depending on whether states allow to charge it
       temp$childcare.overage[temp$OverageOption=="No"]<-0
-      
+
       # Merge back
       data$childcare.overage[data$stateFIPS==22]<-temp$childcare.overage
       data$totcopay[data$stateFIPS==22]<-temp$totcopay
       data$InitialEligibility[data$stateFIPS==22]<-temp$InitialEligibility.y
     }
-    
-    
-    
+
+
+
     # MAINE ----
-    
+    test <<- data
+    data <- test
     # Description:
     # Copay is a percentage of total income
     # Monthly frequency
     if(23 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-      
+
       #ccdfData_ME$stateFIPS <- 23
       #ccdfData_ME$InitialEligibility[11:12] <- c(112662,114960)
       #ccdfData_ME$ContinuousEligibility[11:12] <- c(112662,114960)
-      
+
       temp<-data[data$stateFIPS==23,]
-      
+
       # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
       # years<-unique(data$ruleYear) # years in data set
       # yearsinexpdata<- unique(ccdfData_ME$ruleYear) # rule years in benefit data
@@ -8206,17 +8085,17 @@ function.CCDFcopay<-function(data
       # }  # Attach copied future, historical, and missing benefit data
       # if(length(futureYrs)>0) {ccdfData_ME<-ccdfData_ME %>% rbind(expand)}
       # if(length(nonFutureYrs)>0) {ccdfData_ME<-ccdfData_ME %>% rbind(expandPastMiss2)}
-      # 
+      #
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
       temp<-left_join(temp, ccdfData_ME, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize"))
-      
+
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
-      
+
       temp$FTcopay<-NA
-      
+
       temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1Max]<-temp$CopayBin1[temp$income>=0 & temp$income<=temp$Bin1Max]
       temp$FTcopay[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]<-temp$CopayBin2[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]
       temp$FTcopay[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]<-temp$CopayBin3[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]
@@ -8224,52 +8103,57 @@ function.CCDFcopay<-function(data
       temp$FTcopay[temp$income>temp$Bin4Max & temp$income<=temp$Bin5Max]<-temp$CopayBin5[temp$income>temp$Bin4Max & temp$income<=temp$Bin5Max]
       temp$FTcopay[temp$income>temp$Bin5Max & temp$income<=temp$Bin6Max]<-temp$CopayBin6[temp$income>temp$Bin5Max & temp$income<=temp$Bin6Max]
       temp$FTcopay[temp$income>temp$Bin6Max & temp$income<=temp$Bin7Max]<-temp$CopayBin7[temp$income>temp$Bin6Max & temp$income<=temp$Bin7Max]
-      
-      
-      
+      temp$FTcopay[temp$income>temp$Bin7Max & temp$income<=temp$Bin8Max]<-temp$CopayBin8[temp$income>temp$Bin7Max & temp$income<=temp$Bin8Max]
+      temp$FTcopay[temp$income>temp$Bin8Max & temp$income<=temp$Bin9Max]<-temp$CopayBin9[temp$income>temp$Bin8Max & temp$income<=temp$Bin9Max]
+      temp$FTcopay[temp$income>temp$Bin9Max & temp$income<=temp$Bin10Max]<-temp$CopayBin10[temp$income>temp$Bin9Max & temp$income<=temp$Bin10Max]
+      temp$FTcopay[temp$income>temp$Bin10Max & temp$income<=temp$Bin11Max]<-temp$CopayBin11[temp$income>temp$Bin10Max & temp$income<=temp$Bin11Max]
+
+
+
+
       # Apply asset test
       subset<-temp$totalassets > temp$AssetTest
       temp$FTcopay[subset]<-NA_real_
-      
+
       #----------------------------------
       # Step 2: Calculate total copays
       #----------------------------------
-      
+
       # Can't pay more than the total remaining expenses
       temp$totcopay<-rowMins(cbind(temp$income*temp$FTcopay,temp$netexp.childcare))
-      
+
       # Set copay to zero if no children
       temp$totcopay[temp$numkidsincare0to4+temp$numkidsincare5to12==0]<-0
-      
+
       temp$totcopay[is.na(temp$FTcopay)]<-NA
       # Note: code produces NAs for a good reason, because family is ineligible for CCDF
       # Copay is NOT zero for ineligible, but there are people who pay 0 copay
-      
+
       # Adjust overage depending on whether states allow to charge it
       temp$childcare.overage[temp$OverageOption=="No"]<-0
-      
+
       # Merge back
       data$childcare.overage[data$stateFIPS==23]<-temp$childcare.overage
       data$totcopay[data$stateFIPS==23]<-temp$totcopay
       data$InitialEligibility[data$stateFIPS==23]<-temp$InitialEligibility.y
     }
-    
+
     # MARYLAND ----
-    
+
     # Description:
     # Copay is a fixed amount based on the number of children
     # Copay amount varies by number of children that family has in care
     # Copay amount varies by region in state -> UNDER CONSTRUCTION
     # Weekly frequency
     if(24 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-      
+
       # ccdfData_MD$stateFIPS <- 24
       #  ccdfData_MD$AssetTest <- 1000000
-      
+
       temp<-data[data$stateFIPS==24,]
-      
+
       temp$numkidsInCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
-      
+
       # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
       years<-unique(data$ruleYear) # years in data set
       yearsinexpdata<- unique(ccdfData_MD$ruleYear) # rule years in benefit data
@@ -8300,17 +8184,17 @@ function.CCDFcopay<-function(data
       }  # Attach copied future, historical, and missing benefit data
       if(length(futureYrs)>0) {ccdfData_MD<-ccdfData_MD %>% rbind(expand)}
       if(length(nonFutureYrs)>0) {ccdfData_MD<-ccdfData_MD %>% rbind(expandPastMiss2)}
-      
+
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
       temp<-left_join(temp, ccdfData_MD, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare", "ruleYear"))
-      
+
       # Adjust for the income disregard
       #   temp$income<-temp$income-12*temp$IncomeDisregard
-      
+
       temp$FTcopay<-NA
-      
+
       temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1Max]<-temp$CopayBin1_RegionBC[temp$income>=0 & temp$income<=temp$Bin1Max]
       temp$FTcopay[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]<-temp$CopayBin2_RegionBC[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]
       temp$FTcopay[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]<-temp$CopayBin3_RegionBC[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]
@@ -8322,47 +8206,47 @@ function.CCDFcopay<-function(data
       temp$FTcopay[temp$income>temp$Bin8Max & temp$income<=temp$Bin9Max]<-temp$CopayBin9_RegionBC[temp$income>temp$Bin8Max & temp$income<=temp$Bin9Max]
       temp$FTcopay[temp$income>temp$Bin9Max & temp$income<=temp$Bin10Max]<-temp$CopayBin10_RegionBC[temp$income>temp$Bin9Max & temp$income<=temp$Bin10Max]
       temp$FTcopay[temp$income>temp$Bin10Max & temp$income<=temp$Bin11Max]<-temp$CopayBin11_RegionBC[temp$income>temp$Bin10Max & temp$income<=temp$Bin11Max]
-      
+
       # Apply asset test
       subset<-temp$totalassets > temp$AssetTest
       temp$FTcopay[subset]<-NA_real_
-      
+
       #----------------------------------
       # Step 2: Calculate total copays
       #----------------------------------
-      
+
       # Set copay to zero if no children
       temp$totcopay[temp$numkidsincare0to4+temp$numkidsincare5to12==0]<-0
-      
+
       # Calculate total copay (12 months needed)
       temp$FTcopay[!is.na(temp$FTcopay)]<-as.numeric(temp$FTcopay[!is.na(temp$FTcopay)])
-      
+
       temp$totcopay[is.na(temp$FTcopay)]<-NA
       # Note: code produces NAs for a good reason, because family is ineligible for CCDF
       # Copay is NOT zero for ineligible, but there are people who pay 0 copay
-      
+
       # Make sure the variables names are the same
       temp$totcopay <- temp$FTcopay*52 #totcopay is initilaized to NA in beginning
-      
+
       # Adjust overage depending on whether states allow to charge it
       temp$childcare.overage[temp$OverageOption=="No"]<-0
-      
+
       # Merge back
       data$childcare.overage[data$stateFIPS==24]<-temp$childcare.overage
       data$totcopay[data$stateFIPS==24]<-temp$totcopay
       data$InitialEligibility[data$stateFIPS==24]<-temp$InitialEligibility.y
     }
-    
-    
+
+
     # MASSACHUSETTS ----
-    
+
     # Description:
     # Copay is a percentage of total income (above poverty level)
     # Monthly frequency
     if(25 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-      
+
       temp<-data[data$stateFIPS==25,]
-      
+
       # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
       # years<-unique(data$ruleYear) # years in data set
       # yearsinexpdata<- unique(ccdfData_MA$ruleYear) # rule years in benefit data
@@ -8393,18 +8277,18 @@ function.CCDFcopay<-function(data
       # }  # Attach copied future, historical, and missing benefit data
       # if(length(futureYrs)>0) {ccdfData_MA<-ccdfData_MA %>% rbind(expand)}
       # if(length(nonFutureYrs)>0) {ccdfData_MA<-ccdfData_MA %>% rbind(expandPastMiss2)}
-      # 
+      #
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
-      
+
       temp<-left_join(temp, ccdfData_MA, by=c("stateFIPS", "AKorHI", "famsize", "ruleYear"))
-      
+
       # Adjust for the income disregard
       #  temp$income<-temp$income-12*temp$IncomeDisregard
-      
+
       temp$FTcopay<-NA
-      
+
       temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1Max]<-temp$CopayBin1[temp$income>=0 & temp$income<=temp$Bin1Max]
       temp$FTcopay[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]<-temp$CopayBin2[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]
       temp$FTcopay[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]<-temp$CopayBin3[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]
@@ -8433,56 +8317,56 @@ function.CCDFcopay<-function(data
       temp$FTcopay[temp$income>temp$Bin25Max & temp$income<=temp$Bin26Max]<-temp$CopayBin26[temp$income>temp$Bin25Max & temp$income<=temp$Bin26Max]
       temp$FTcopay[temp$income>temp$Bin26Max & temp$income<=temp$Bin27Max]<-temp$CopayBin27[temp$income>temp$Bin26Max & temp$income<=temp$Bin27Max]
       temp$FTcopay[temp$income>temp$Bin27Max & temp$income<=temp$Bin28Max]<-temp$CopayBin28[temp$income>temp$Bin27Max & temp$income<=temp$Bin28Max]
-      
-      
+
+
       # Apply asset test
       subset<-temp$totalassets > temp$AssetTest
       temp$FTcopay[subset]<-NA_real_
-      
+
       #----------------------------------
       # Step 2: Calculate total copays
       #----------------------------------
-      
+
       # MA calculates their copayments by Percentage of (family income minus bin 1 max)
-      
+
       temp$income_above_FPL<-rowMaxs(cbind(temp$income-temp$Bin1Max,0)) # Make sure it's not negative
-      
-      
+
+
       # Can't pay more than the total remaining expenses
       temp$totcopay<-rowMins(cbind(temp$income_above_FPL*temp$FTcopay,temp$netexp.childcare))
-      
-      
+
+
       # Set copay to zero if no children
       temp$totcopay[temp$numkidsincare0to4+temp$numkidsincare5to12==0]<-0
-      
+
       temp$totcopay[is.na(temp$FTcopay)]<-NA
       # Note: code produces NAs for a good reason, because family is ineligible for CCDF
       # Copay is NOT zero for ineligible, but there are people who pay 0 copay
-      
+
       # Adjust overage depending on whether states allow to charge it
       temp$childcare.overage[temp$OverageOption=="No"]<-0
-      
+
       # Merge back
       data$childcare.overage[data$stateFIPS==25]<-temp$childcare.overage
       data$totcopay[data$stateFIPS==25]<-temp$totcopay
       data$InitialEligibility[data$stateFIPS==25]<-temp$InitialEligibility.y
     }
-    
-    
-    
+
+
+
     # MICHIGAN ----
-    
+
     # Description:
     # Copay is a dollar amount per child, same for each child, up to a maximum
     # Biweekly (every 2 weeks) frequency
     # No fee after a maximum copay is reached (under construction)
     if(26 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-      
+
       ccdfData_MI$stateFIPS <- 26
       #ccdfData_MI <- ccdfData_MI[ccdfData_MI$famsize < 8,]
-      
+
       temp<-data[data$stateFIPS==26,]
-      
+
       # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
       # years<-unique(data$ruleYear) # years in data set
       # yearsinexpdata<- unique(ccdfData_MI$ruleYear) # rule years in benefit data
@@ -8512,17 +8396,17 @@ function.CCDFcopay<-function(data
       # }  # Attach copied future, historical, and missing benefit data
       # if(length(futureYrs)>0) {ccdfData_MI<-ccdfData_MI %>% rbind(expand)}
       # if(length(nonFutureYrs)>0) {ccdfData_MI<-ccdfData_MI %>% rbind(expandPastMiss2)}
-      # 
+      #
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
       temp<-left_join(temp, ccdfData_MI, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize"))
-      
+
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
-      
+
       temp$FTcopay<-NA
-      
+
       temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1Max]<-temp$CopayBin1[temp$income>=0 & temp$income<=temp$Bin1Max]
       temp$FTcopay[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]<-temp$CopayBin2[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]
       temp$FTcopay[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]<-temp$CopayBin3[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]
@@ -8530,45 +8414,45 @@ function.CCDFcopay<-function(data
       temp$FTcopay[temp$income>temp$Bin4Max & temp$income<=temp$Bin5Max]<-temp$CopayBin5[temp$income>temp$Bin4Max & temp$income<=temp$Bin5Max]
       temp$FTcopay[temp$income>temp$Bin5Max & temp$income<=temp$Bin6Max]<-temp$CopayBin6[temp$income>temp$Bin5Max & temp$income<=temp$Bin6Max]
       temp$FTcopay[temp$income>temp$Bin6Max & temp$income<=temp$Bin7Max]<-temp$CopayBin7[temp$income>temp$Bin6Max & temp$income<=temp$Bin7Max]
-      
+
       # Apply asset test
       subset<-temp$totalassets > temp$AssetTest
       temp$FTcopay[subset]<-NA_real_
-      
+
       #----------------------------------
       # Step 2: Calculate total copays
       #----------------------------------
-      
+
       # Calculate total copay
       temp$totcopay<-temp$FTcopay*(temp$numkidsincare0to4+temp$numkidsincare5to12)*26 # bi-weekly frequency
-      
+
       # Set copay to zero if no children
       temp$totcopay[temp$numkidsincare0to4+temp$numkidsincare5to12==0]<-0
-      
+
       temp$totcopay[is.na(temp$FTcopay)]<-NA
       # Note: code produces NAs for a good reason, because family is ineligible for CCDF
       # Copay is NOT zero for ineligible, but there are people who pay 0 copay
-      
+
       # Adjust overage depending on whether states allow to charge it
       temp$childcare.overage[temp$OverageOption=="No"]<-0
-      
+
       # Merge back
       data$childcare.overage[data$stateFIPS==26]<-temp$childcare.overage
       data$totcopay[data$stateFIPS==26]<-temp$totcopay
       data$InitialEligibility[data$stateFIPS==26]<-temp$InitialEligibility.y
     }
-    
+
     # MINNESOTA ----
-    
+
     # Description:
     # Copay is a dollar amount per family
     # Biweekly (every 2 weeks) frequency
     if(27 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-      
+
       ccdfData_MN$stateFIPS <- 27
-      
+
       temp<-data[data$stateFIPS==27,]
-      
+
       # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
       # years<-unique(data$ruleYear) # years in data set
       # yearsinexpdata<- unique(ccdfData_MN$ruleYear) # rule years in benefit data
@@ -8599,17 +8483,17 @@ function.CCDFcopay<-function(data
       # }  # Attach copied future, historical, and missing benefit data
       # if(length(futureYrs)>0) {ccdfData_MN<-ccdfData_MN %>% rbind(expand)}
       # if(length(nonFutureYrs)>0) {ccdfData_MN<-ccdfData_MN %>% rbind(expandPastMiss2)}
-      # 
+      #
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
       temp<-left_join(temp, ccdfData_MN, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize"))
-      
+
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
-      
+
       temp$FTcopay<-NA
-      
+
       temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1Max]<-temp$CopayBin1[temp$income>=0 & temp$income<=temp$Bin1Max]
       temp$FTcopay[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]<-temp$CopayBin2[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]
       temp$FTcopay[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]<-temp$CopayBin3[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]
@@ -8643,58 +8527,59 @@ function.CCDFcopay<-function(data
       temp$FTcopay[temp$income>temp$Bin30Max & temp$income<=temp$Bin31Max]<-temp$CopayBin31[temp$income>temp$Bin30Max & temp$income<=temp$Bin31Max]
       temp$FTcopay[temp$income>temp$Bin31Max & temp$income<=temp$Bin32Max]<-temp$CopayBin32[temp$income>temp$Bin31Max & temp$income<=temp$Bin32Max]
       #temp$FTcopay[temp$income>temp$Bin32Max & temp$income<=temp$Bin33Max]<-temp$CopayBin33[temp$income>temp$Bin32Max & temp$income<=temp$Bin33Max]
-      
-      
+
+
       # Apply asset test
       subset<-temp$totalassets > temp$AssetTest
       temp$FTcopay[subset]<-NA_real_
-      
+
       #----------------------------------
       # Step 2: Calculate total copays
       #----------------------------------
-      
+
       temp$totcopay[temp$numkidsincare0to4+temp$numkidsincare5to12==0]<-0
-      
+
       # Calculate total copay (26 periods needed)
       temp$FTcopay[!is.na(temp$FTcopay)]<-as.numeric(temp$FTcopay[!is.na(temp$FTcopay)])
-      
+
       temp$totcopay[is.na(temp$FTcopay)]<-NA
       # Note: code produces NAs for a good reason, because family is ineligible for CCDF
       # Copay is NOT zero for ineligible, but there are people who pay 0 copay
-      
+
       # Make sure the variables names are the same
       temp$totcopay <- temp$FTcopay*26 #totcopay is initilaized to NA in beginning
-      
+
       # Adjust overage depending on whether states allow to charge it
       temp$childcare.overage[temp$OverageOption=="No"]<-0
-      
+
       # Merge back
       data$childcare.overage[data$stateFIPS==27]<-temp$childcare.overage
       data$totcopay[data$stateFIPS==27]<-temp$totcopay
       data$InitialEligibility[data$stateFIPS==27]<-temp$InitialEligibility.y
     }
-    
-    
+
+
     # MISSISSIPPI
-    
+    test <<- data
+    data <- test
     if(28 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-      
+
       ccdfData_MS$stateFIPS <- 28
-      
+
       temp<-data[data$stateFIPS==28,]
 
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
       temp<-left_join(temp, ccdfData_MS, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize"))
-      
 
-      
+
+
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
-      
+
       temp$FTcopay<-NA
-      
+
       temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1Max]<-temp$CopayBin1[temp$income>=0 & temp$income<=temp$Bin1Max]
       temp$FTcopay[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]<-temp$CopayBin2[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]
       temp$FTcopay[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]<-temp$CopayBin3[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]
@@ -8776,49 +8661,49 @@ function.CCDFcopay<-function(data
       temp$FTcopay[temp$income>temp$Bin79Max & temp$income<=temp$Bin79Max]<-temp$CopayBin79[temp$income>temp$Bin78Max & temp$income<=temp$Bin78Max]
       temp$FTcopay[temp$income>temp$Bin80Max & temp$income<=temp$Bin79Max]<-temp$CopayBin80[temp$income>temp$Bin79Max & temp$income<=temp$Bin79Max]
       temp$FTcopay[temp$income>temp$Bin81Max & temp$income<=temp$Bin80Max]<-temp$CopayBin81[temp$income>temp$Bin80Max & temp$income<=temp$Bin80Max]
-      
+
       # Apply asset test
       subset<-temp$totalassets > temp$AssetTest
       temp$FTcopay[subset]<-NA_real_
-      
-      #Apply eligibility test 
+
+      #Apply eligibility test
       subset<-temp$InitialEligibility.y < temp$income
       temp$FTcopay[subset]<-NA_real_
-      
-      
+
+
       #----------------------------------
       # Step 2: Calculate total copays
       #----------------------------------
-      
+
       # Calculate total copay (12 months needed)
       temp$totcopay<-temp$FTcopay*12
-      
+
       # Set copay to zero if no children
       temp$totcopay[temp$numkidsincare0to4+temp$numkidsincare5to12==0]<-0
-      
+
       temp$totcopay[is.na(temp$FTcopay)]<-NA
       # Note: code produces NAs for a good reason, because family is ineligible for CCDF
       # Copay is NOT zero for ineligible, but there are people who pay 0 copay
-      
+
       # Adjust overage depending on whether states allow to charge it
       temp$childcare.overage[temp$OverageOption=="No"]<-0
-      
+
       # Merge back
       data$childcare.overage[data$stateFIPS==28]<-temp$childcare.overage
       data$totcopay[data$stateFIPS==28]<-temp$totcopay
       data$InitialEligibility[data$stateFIPS==28]<-temp$InitialEligibility.y
     }
-    
-    
+
+
     # Missouri-----
-    
+
     # Description:
     # Copay is a fixed dollar amount per child
     # Daily frequency
     if(29 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-      
+
       temp<-data[data$stateFIPS==29,]
-      
+
       # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
       # years<-unique(data$ruleYear) # years in data set
       # yearsinexpdata<- unique(ccdfData_MO$ruleYear) # rule years in benefit data
@@ -8849,17 +8734,17 @@ function.CCDFcopay<-function(data
       # }  # Attach copied future, historical, and missing benefit data
       # if(length(futureYrs)>0) {ccdfData_MO<-ccdfData_MO %>% rbind(expand)}
       # if(length(nonFutureYrs)>0) {ccdfData_MO<-ccdfData_MO %>% rbind(expandPastMiss2)}
-      # 
+      #
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
       temp<-left_join(temp, ccdfData_MO, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize"))
-      
+
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
-      
+
       temp$FTcopay<-NA
-      
+
       temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1Max]<-temp$CopayBin1_FT[temp$income>=0 & temp$income<=temp$Bin1Max]
       temp$FTcopay[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]<-temp$CopayBin2_FT[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]
       temp$FTcopay[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]<-temp$CopayBin3_FT[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]
@@ -8871,52 +8756,52 @@ function.CCDFcopay<-function(data
       temp$FTcopay[temp$income>temp$Bin8Max & temp$income<=temp$Bin9Max]<-temp$CopayBin9_FT[temp$income>temp$Bin8Max & temp$income<=temp$Bin9Max]
       temp$FTcopay[temp$income>temp$Bin9Max & temp$income<=temp$Bin10Max]<-temp$CopayBin10_FT[temp$income>temp$Bin9Max & temp$income<=temp$Bin10Max]
       temp$FTcopay[temp$income>temp$Bin10Max & temp$income<=temp$Bin11Max]<-temp$CopayBin11_FT[temp$income>temp$Bin10Max & temp$income<=temp$Bin11Max]
-      
-      
+
+
       # Apply asset test
       subset<-temp$totalassets > temp$AssetTest
       temp$FTcopay[subset]<-NA_real_
-      
+
       #----------------------------------
       # Step 2: Calculate total copays
       #----------------------------------
-      
+
       # Determine how much care child need
       # age < 5 requires full-time school time care and full-time summer care
       # age 5 to 12 requires part-time school time care and full-time summer care
-      
+
       temp$totcopay<-temp$FTcopay*(temp$daysofcareneeded0to4+temp$daysofcareneeded5to12)
-      
+
       # Set copay to zero if no children
       temp$totcopay[temp$numkidsincare0to4+temp$numkidsincare5to12==0]<-0
-      
+
       temp$totcopay[is.na(temp$FTcopay)]<-NA
       # Note: code produces NAs for a good reason, because family is ineligible for CCDF
       # Copay is NOT zero for ineligible, but there are people who pay 0 copay
-      
+
       # Adjust overage depending on whether states allow to charge it
       temp$childcare.overage[temp$OverageOption=="No"]<-0
-      
+
       # Merge back
       data$childcare.overage[data$stateFIPS==29]<-temp$childcare.overage
       data$totcopay[data$stateFIPS==29]<-temp$totcopay
       data$InitialEligibility[data$stateFIPS==29]<-temp$InitialEligibility.y
     }
-    
-    
-    
+
+
+
     # MONTANA ----
-    
+
     # Description:
     # Copay is a percentage of total income
     # Weekly frequency
     # Discount for a second child (UNDER CONSTRUCTION)
     if(30 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-      
+
       ccdfData_MT$stateFIPS <- 30
-      
+
       temp<-data[data$stateFIPS==30,]
-      
+
       # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
       # years<-unique(data$ruleYear) # years in data set
       # yearsinexpdata<- unique(ccdfData_MT$ruleYear) # rule years in benefit data
@@ -8946,17 +8831,17 @@ function.CCDFcopay<-function(data
       # }  # Attach copied future, historical, and missing benefit data
       # if(length(futureYrs)>0) {ccdfData_MT<-ccdfData_MT %>% rbind(expand)}
       # if(length(nonFutureYrs)>0) {ccdfData_MT<-ccdfData_MT %>% rbind(expandPastMiss2)}
-      # 
+      #
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
       temp<-left_join(temp, ccdfData_MT, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize"))
-      
+
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
-      
+
       temp$FTcopay<-NA
-      
+
       temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1Max]<-temp$CopayBin1[temp$income>=0 & temp$income<=temp$Bin1Max]
       temp$FTcopay[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]<-temp$CopayBin2[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]
       temp$FTcopay[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]<-temp$CopayBin3[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]
@@ -8981,44 +8866,44 @@ function.CCDFcopay<-function(data
       temp$FTcopay[temp$income>temp$Bin21Max & temp$income<=temp$Bin22Max]<-temp$CopayBin22[temp$income>temp$Bin21Max & temp$income<=temp$Bin22Max]
       temp$FTcopay[temp$income>temp$Bin22Max & temp$income<=temp$Bin23Max]<-temp$CopayBin23[temp$income>temp$Bin22Max & temp$income<=temp$Bin23Max]
       temp$FTcopay[temp$income>temp$Bin23Max & temp$income<=temp$Bin24Max]<-temp$CopayBin24[temp$income>temp$Bin23Max & temp$income<=temp$Bin24Max]
-      
+
       # Apply asset test
       subset<-temp$totalassets > temp$AssetTest
       temp$FTcopay[subset]<-NA_real_
-      
+
       #----------------------------------
       # Step 2: Calculate total copays
       #----------------------------------
-      
+
       # Can't pay more than the total remaining expenses
       temp$totcopay<-rowMins(cbind(temp$income*temp$FTcopay,temp$netexp.childcare))
-      
+
       # Set copay to zero if no children
       temp$totcopay[temp$numkidsincare0to4+temp$numkidsincare5to12==0]<-0
-      
+
       temp$totcopay[is.na(temp$FTcopay)]<-NA
       # Note: code produces NAs for a good reason, because family is ineligible for CCDF
       # Copay is NOT zero for ineligible, but there are people who pay 0 copay
-      
+
       # Adjust overage depending on whether states allow to charge it
       temp$childcare.overage[temp$OverageOption=="No"]<-0
-      
+
       # Merge back
       data$childcare.overage[data$stateFIPS==30]<-temp$childcare.overage
       data$totcopay[data$stateFIPS==30]<-temp$totcopay
       data$InitialEligibility[data$stateFIPS==30]<-temp$InitialEligibility.y
     }
-    
+
     # NEBRASKA ----
-    
-    
+
+
     if(31 %in% unique(data$stateFIPS)){
-      
+
       ccdfData_NE$stateFIPS <- 31
       #ccdfData_NE <- ccdfData_NE[ccdfData_NE$famsize <= 12,]
-      
+
       temp <- data[data$stateFIPS==31,]
-      
+
       # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
       # years<-unique(data$ruleYear) # years in data set
       # yearsinexpdata<- unique(ccdfData_NE$ruleYear) # rule years in benefit data
@@ -9049,63 +8934,63 @@ function.CCDFcopay<-function(data
       # }  # Attach copied future, historical, and missing benefit data
       # if(length(futureYrs)>0) {ccdfData_NE<-ccdfData_NE %>% rbind(expand)}
       # if(length(nonFutureYrs)>0) {ccdfData_NE<-ccdfData_NE %>% rbind(expandPastMiss2)}
-      # 
+      #
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
       temp<-left_join(temp, ccdfData_NE, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize"))
-      
+
       temp$income<-temp$income-12*temp$IncomeDisregard
-      
-      
-      
+
+
+
       temp$FTcopay<-NA
-      
+
       temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1Max]<-temp$CopayBin1[temp$income>=0 & temp$income<=temp$Bin1Max]
       temp$FTcopay[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]<-temp$CopayBin2[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]
-      
+
       # Apply asset test
       subset<-temp$totalassets > temp$AssetTest
       temp$FTcopay[subset]<-NA_real_
-      
+
       #----------------------------------
       # Step 2: Calculate total copays
       #----------------------------------
-      
+
       temp$totcopay<-rowMins(cbind(temp$income*temp$FTcopay,temp$netexp.childcare))
-      
+
       # Set copay to zero if no children
       temp$totcopay[temp$numkidsincare0to4+temp$numkidsincare5to12==0]<-0
-      
+
       temp$totcopay[is.na(temp$FTcopay)]<-NA
       # Note: code produces NAs for a good reason, because family is ineligible for CCDF
       # Copay is NOT zero for ineligible, but there are people who pay 0 copay
-      
+
       # Adjust overage depending on whether states allow to charge it
       temp$childcare.overage[temp$OverageOption=="No"]<-0
-      
+
       # Merge back
       data$childcare.overage[data$stateFIPS==31]<-temp$childcare.overage
       data$totcopay[data$stateFIPS==31]<-temp$totcopay
       data$InitialEligibility[data$stateFIPS==31]<-temp$InitialEligibility.y
     }
-    
+
     # NEVADA ----
-    
-    
+
+
     if(32 %in% unique(data$stateFIPS)){
-      
+
       temp <- data[data$stateFIPS==32,]
-      
+
       ### DOUBLE CHECK THAT THE CCDFDATA_NV DATASET IN THE GLOBAL ENVIRONMENT HAS THESE CORRECT
       # ccdfData_NV$stateFIPS <- 32
       #  ccdfData_NV$AssetTest <- 1000000
       #  ccdfData_NV$IncomeDisregard <- 0
-      
+
       #### SAME GOES FOR PROVIDERCOST_NV
       #  providercost_NV$stateFIPS <- 32
-      
-      
+
+
       # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
       # years<-unique(data$ruleYear) # years in data set
       # yearsinexpdata<- unique(providercost_NV$ruleYear) # rule years in benefit data
@@ -9136,18 +9021,18 @@ function.CCDFcopay<-function(data
       # }  # Attach copied future, historical, and missing benefit data
       # if(length(futureYrs)>0) {providercost_NV<-providercost_NV %>% rbind(expand)}
       # if(length(nonFutureYrs)>0) {providercost_NV<-providercost_NV %>% rbind(expandPastMiss2)}
-      # 
+      #
       #  if(ruleYear > 2022){
       #   temp$ruleYear <- 2022
       #   }
       #temp<-left_join(temp, providercost_NV, by=c("stateFIPS", "countyortownName", "ruleYear")) # EI: ruleYear is not working here !!
       #  providercost_NV$ruleYear<-providercost_NV$yearofdata
-      
-      
-      
-      
+
+
+
+
       temp<-left_join(temp, providercost_NV, by=c("stateFIPS", "countyortownName", "ruleYear","stateName","stateAbbrev","AKorHI"))
-      
+
       # Determine Expense based on Age of Children
       temp<-temp %>%
         mutate(sprPerson1=(case_when(agePerson1 %in% c(0)~ftdailyrate.infant,
@@ -9157,7 +9042,7 @@ function.CCDFcopay<-function(data
                                      TRUE~0)
         )
         )
-      
+
       temp<-temp %>%
         mutate(sprPerson2=(case_when(agePerson2 %in% c(0)~ftdailyrate.infant,
                                      agePerson2 %in% c(1:2)~ftdailyrate.toddler,
@@ -9166,7 +9051,7 @@ function.CCDFcopay<-function(data
                                      TRUE~0)
         )
         )
-      
+
       temp<-temp %>%
         mutate(sprPerson3=(case_when(agePerson3 %in% c(0)~ftdailyrate.infant,
                                      agePerson3 %in% c(1:2)~ftdailyrate.toddler,
@@ -9175,7 +9060,7 @@ function.CCDFcopay<-function(data
                                      TRUE~0)
         )
         )
-      
+
       temp<-temp %>%
         mutate(sprPerson4=(case_when(agePerson4 %in% c(0)~ftdailyrate.infant,
                                      agePerson4 %in% c(1:2)~ftdailyrate.toddler,
@@ -9184,7 +9069,7 @@ function.CCDFcopay<-function(data
                                      TRUE~0)
         )
         )
-      
+
       temp<-temp %>%
         mutate(sprPerson5=(case_when(agePerson5 %in% c(0)~ftdailyrate.infant,
                                      agePerson5 %in% c(1:2)~ftdailyrate.toddler,
@@ -9193,7 +9078,7 @@ function.CCDFcopay<-function(data
                                      TRUE~0)
         )
         )
-      
+
       temp<-temp %>%
         mutate(sprPerson6=(case_when(agePerson6 %in% c(0)~ftdailyrate.infant,
                                      agePerson6 %in% c(1:2)~ftdailyrate.toddler,
@@ -9202,7 +9087,7 @@ function.CCDFcopay<-function(data
                                      TRUE~0)
         )
         )
-      
+
       temp<-temp %>%
         mutate(sprPerson7=(case_when(agePerson7 %in% c(0)~ftdailyrate.infant,
                                      agePerson7 %in% c(1:2)~ftdailyrate.toddler,
@@ -9211,7 +9096,7 @@ function.CCDFcopay<-function(data
                                      TRUE~0)
         )
         )
-      
+
       temp<-temp %>%
         mutate(sprPerson8=(case_when(agePerson8 %in% c(0)~ftdailyrate.infant,
                                      agePerson8 %in% c(1:2)~ftdailyrate.toddler,
@@ -9220,7 +9105,7 @@ function.CCDFcopay<-function(data
                                      TRUE~0)
         )
         )
-      
+
       temp<-temp %>%
         mutate(sprPerson9=(case_when(agePerson9 %in% c(0)~ftdailyrate.infant,
                                      agePerson9 %in% c(1:2)~ftdailyrate.toddler,
@@ -9229,7 +9114,7 @@ function.CCDFcopay<-function(data
                                      TRUE~0)
         )
         )
-      
+
       temp<-temp %>%
         mutate(sprPerson10=(case_when(agePerson10 %in% c(0)~ftdailyrate.infant,
                                       agePerson10 %in% c(1:2)~ftdailyrate.toddler,
@@ -9238,7 +9123,7 @@ function.CCDFcopay<-function(data
                                       TRUE~0)
         )
         )
-      
+
       temp<-temp %>%
         mutate(sprPerson11=(case_when(agePerson11 %in% c(0)~ftdailyrate.infant,
                                       agePerson11 %in% c(1:2)~ftdailyrate.toddler,
@@ -9247,7 +9132,7 @@ function.CCDFcopay<-function(data
                                       TRUE~0)
         )
         )
-      
+
       temp<-temp %>%
         mutate(sprPerson12=(case_when(agePerson12 %in% c(0)~ftdailyrate.infant,
                                       agePerson12 %in% c(1:2)~ftdailyrate.toddler,
@@ -9256,7 +9141,7 @@ function.CCDFcopay<-function(data
                                       TRUE~0)
         )
         )
-      
+
       # sprTotal=sprPerson1+sprPerson2+sprPerson3+sprPerson4+sprPerson5+sprPerson6+sprPerson7
       temp<-temp %>%
         mutate(annualcost1=(case_when(agePerson1 < 5 ~ sprPerson1*daysofcareneeded0to4,
@@ -9264,86 +9149,86 @@ function.CCDFcopay<-function(data
                                       TRUE~0)
         )
         )
-      
+
       temp<-temp %>%
         mutate(annualcost2=(case_when(agePerson2 < 5 ~ sprPerson2*daysofcareneeded0to4,
                                       agePerson2 > 4 & agePerson2 < 13 ~ sprPerson2*daysofcareneeded5to12,
                                       TRUE~0)
         )
         )
-      
+
       temp<-temp %>%
         mutate(annualcost3=(case_when(agePerson3 < 5 ~ sprPerson3*daysofcareneeded0to4,
                                       agePerson3 > 4 & agePerson3 < 13 ~ sprPerson3*daysofcareneeded5to12,
                                       TRUE~0)
         )
         )
-      
+
       temp<-temp %>%
         mutate(annualcost4=(case_when(agePerson4 < 5 ~ sprPerson4*daysofcareneeded0to4,
                                       agePerson4 > 4 & agePerson4 < 13 ~ sprPerson4*daysofcareneeded5to12,
                                       TRUE~0)
         )
         )
-      
+
       temp<-temp %>%
         mutate(annualcost5=(case_when(agePerson5 < 5 ~ sprPerson5*daysofcareneeded0to4,
                                       agePerson5 > 4 & agePerson5 < 13 ~ sprPerson5*daysofcareneeded5to12,
                                       TRUE~0)
         )
         )
-      
+
       temp<-temp %>%
         mutate(annualcost6=(case_when(agePerson6 < 5 ~ sprPerson6*daysofcareneeded0to4,
                                       agePerson6 > 4 & agePerson6 < 13 ~ sprPerson6*daysofcareneeded5to12,
                                       TRUE~0)
         )
         )
-      
+
       temp<-temp %>%
         mutate(annualcost7=(case_when(agePerson7 < 5 ~ sprPerson7*daysofcareneeded0to4,
                                       agePerson7 > 4 & agePerson7 < 13 ~ sprPerson7*daysofcareneeded5to12,
                                       TRUE~0)
         )
         )
-      
+
       temp<-temp %>%
         mutate(annualcost8=(case_when(agePerson8 < 5 ~ sprPerson8*daysofcareneeded0to4,
                                       agePerson8 > 4 & agePerson8 < 13 ~ sprPerson8*daysofcareneeded5to12,
                                       TRUE~0)
         )
         )
-      
+
       temp<-temp %>%
         mutate(annualcost9=(case_when(agePerson9 < 5 ~ sprPerson9*daysofcareneeded0to4,
                                       agePerson9 > 4 & agePerson9 < 13 ~ sprPerson9*daysofcareneeded5to12,
                                       TRUE~0)
         )
         )
-      
+
       temp<-temp %>%
         mutate(annualcost10=(case_when(agePerson10 < 5 ~ sprPerson10*daysofcareneeded0to4,
                                        agePerson10 > 4 & agePerson10 < 13 ~ sprPerson10*daysofcareneeded5to12,
                                        TRUE~0)
         )
         )
-      
+
       temp<-temp %>%
         mutate(annualcost11=(case_when(agePerson11 < 5 ~ sprPerson11*daysofcareneeded0to4,
                                        agePerson11 > 4 & agePerson11 < 13 ~ sprPerson11*daysofcareneeded5to12,
                                        TRUE~0)
         )
         )
-      
+
       temp<-temp %>%
         mutate(annualcost12=(case_when(agePerson12 < 5 ~ sprPerson12*daysofcareneeded0to4,
                                        agePerson12 > 4 & agePerson12 < 13 ~ sprPerson12*daysofcareneeded5to12,
                                        TRUE~0)
         )
         )
-      
+
       temp$annualCost<-temp$annualcost1+temp$annualcost2+temp$annualcost3+temp$annualcost4+temp$annualcost5+temp$annualcost6+temp$annualcost7+temp$annualcost8+temp$annualcost9+temp$annualcost10+temp$annualcost11+temp$annualcost12
-      
+
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
@@ -9378,17 +9263,17 @@ function.CCDFcopay<-function(data
       # }  # Attach copied future, historical, and missing benefit data
       # if(length(futureYrs)>0) {ccdfData_NV<-ccdfData_NV %>% rbind(expand)}
       # if(length(nonFutureYrs)>0) {ccdfData_NV<-ccdfData_NV %>% rbind(expandPastMiss2)}
-      # 
+      #
       #   if(ruleYear > 2022){
       #     temp$ruleYear <- 2022
       #    }
-      
+
       temp<-left_join(temp, ccdfData_NV, by=c("stateFIPS","stateName", "famsize", "countyortownName", "AKorHI", "ruleYear"))
-      
+
       # temp$income<-temp$income-12*temp$IncomeDisregard
-      
+
       temp$FTcopay<-NA
-      
+
       temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1Max]<-temp$ShareofCost1[temp$income>=0 & temp$income<=temp$Bin1Max]
       temp$FTcopay[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]<-temp$ShareofCost2[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]
       temp$FTcopay[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]<-temp$ShareofCost3[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]
@@ -9399,49 +9284,49 @@ function.CCDFcopay<-function(data
       temp$FTcopay[temp$income>temp$Bin7Max & temp$income<=temp$Bin8Max]<-temp$ShareofCost8[temp$income>temp$Bin7Max & temp$income<=temp$Bin8Max]
       temp$FTcopay[temp$income>temp$Bin8Max & temp$income<=temp$Bin9Max]<-temp$ShareofCost9[temp$income>temp$Bin8Max & temp$income<=temp$Bin9Max]
       temp$FTcopay[temp$income>temp$Bin9Max & temp$income<=temp$Bin10Max]<-temp$ShareofCost10[temp$income>temp$Bin9Max & temp$income<=temp$Bin10Max]
-      
+
       # Apply asset test
       subset<-temp$totalassets > temp$AssetTest
       temp$FTcopay[subset]<-NA_real_
-      
+
       #----------------------------------
       # Step 2: Calculate total copays
       #----------------------------------
       temp$totcopay[temp$ruleYear<=2022] <- temp$annualCost[temp$ruleYear<=2022]*(1-temp$FTcopay[temp$ruleYear<=2022])
-      
+
       temp$totcopay[temp$ruleYear>=2023] <- temp$income[temp$ruleYear>=2023]*temp$FTcopay[temp$ruleYear>=2023]
-      
-      
-      
+
+
+
       temp$totcopay<-rowMins(cbind(temp$totcopay,temp$netexp.childcare))
-      
+
       # Set copay to zero if no children
       temp$totcopay[temp$numkidsincare0to4+temp$numkidsincare5to12==0]<-0
-      
+
       temp$totcopay[is.na(temp$FTcopay)]<-NA
       # Note: code produces NAs for a good reason, because family is ineligible for CCDF
       # Copay is NOT zero for ineligible, but there are people who pay 0 copay
-      
+
       # Adjust overage depending on whether states allow to charge it
       temp$childcare.overage[temp$OverageOption=="No"]<-0
-      
+
       # Merge back
       data$childcare.overage[data$stateFIPS==32]<-temp$childcare.overage
       data$totcopay[data$stateFIPS==32]<-temp$totcopay
       data$InitialEligibility[data$stateFIPS==32]<-temp$InitialEligibility.y
     }
-    
+
     # NEW MEXICO ----
-    
+
     # Description:
     # Copay is a dollar amount per child
     # Monthly frequency
     if(35 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-      
+
       ccdfData_NM$stateFIPS <- 35
-      
+
       temp<-data[data$stateFIPS==35,]
-      
+
       # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
       # years<-unique(data$ruleYear) # years in data set
       # yearsinexpdata<- unique(ccdfData_NM$ruleYear) # rule years in benefit data
@@ -9472,57 +9357,57 @@ function.CCDFcopay<-function(data
       # }  # Attach copied future, historical, and missing benefit data
       # if(length(futureYrs)>0) {ccdfData_NM<-ccdfData_NM %>% rbind(expand)}
       # if(length(nonFutureYrs)>0) {ccdfData_NM<-ccdfData_NM %>% rbind(expandPastMiss2)}
-      # 
+      #
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
       temp<-left_join(temp, ccdfData_NM, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize"))
-      
+
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
-      
+
       temp$FTcopay<-NA
-      
+
       temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1Max]<-temp$CopayBin1[temp$income>=0 & temp$income<=temp$Bin1Max]
-     
+
       # Apply asset test
       subset<-temp$totalassets > temp$AssetTest
       temp$FTcopay[subset]<-NA_real_
-      
+
       #----------------------------------
       # Step 2: Calculate total copays
       #----------------------------------
       # Calculate total copay
       temp$totcopay<-temp$FTcopay*(temp$numkidsincare0to4+temp$numkidsincare5to12)*12
-      
+
       # Set copay to zero if no children
       temp$totcopay[temp$numkidsincare0to4+temp$numkidsincare5to12==0]<-0
-      
+
       temp$totcopay[is.na(temp$FTcopay)]<-NA
       # Note: code produces NAs for a good reason, because family is ineligible for CCDF
       # Copay is NOT zero for ineligible, but there are people who pay 0 copay
-      
+
       # Adjust overage depending on whether states allow to charge it
       temp$childcare.overage[temp$OverageOption=="No"]<-0
-      
+
       # Merge back
       data$childcare.overage[data$stateFIPS==35]<-temp$childcare.overage
       data$totcopay[data$stateFIPS==35]<-temp$totcopay
       data$InitialEligibility[data$stateFIPS==35]<-temp$InitialEligibility.y
     }
-    
-    
-    
+
+
+
     # NEW HAMPSHIRE ----
-    
+
     # Description:
     # Copay is a percentage of total income
     # Monthly frequency
     if(33 %in% unique(data$stateFIPS)){
-      
-      
+
+
       temp <- data[data$stateFIPS==33,]
-      
+
       # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
       # years<-unique(data$ruleYear) # years in data set
       # yearsinexpdata<- unique(ccdfData_NH$ruleYear) # rule years in benefit data
@@ -9557,11 +9442,11 @@ function.CCDFcopay<-function(data
       # Step 1: Assign copays
       #----------------------------------
       temp<-left_join(temp, ccdfData_NH, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize"))
-      
+
       temp$income<-temp$income-12*temp$IncomeDisregard
-      
+
       temp$FTcopay<-NA
-      
+
       temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1Max]<-temp$CopayBin1[temp$income>=0 & temp$income<=temp$Bin1Max]
       temp$FTcopay[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]<-temp$CopayBin2[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]
       temp$FTcopay[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]<-temp$CopayBin3[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]
@@ -9569,57 +9454,57 @@ function.CCDFcopay<-function(data
       temp$FTcopay[temp$income>temp$Bin4Max & temp$income<=temp$Bin5Max]<-temp$CopayBin5[temp$income>temp$Bin4Max & temp$income<=temp$Bin5Max]
       temp$FTcopay[temp$income>temp$Bin5Max & temp$income<=temp$Bin6Max]<-temp$CopayBin6[temp$income>temp$Bin5Max & temp$income<=temp$Bin6Max]
       temp$FTcopay[temp$income>temp$Bin6Max & temp$income<=temp$Bin7Max]<-temp$CopayBin7[temp$income>temp$Bin6Max & temp$income<=temp$Bin7Max]
-      
+
       # Apply asset test
       subset<-temp$totalassets > temp$AssetTest
       temp$FTcopay[subset]<-NA_real_
-      
+
       #----------------------------------
       # Step 2: Calculate total copays
       #----------------------------------
       #temp$totcopay<-rowMins(cbind(temp$income*temp$FTcopay,temp$netexp.childcare))
-      
-      
+
+
       #New Hampshie overhauled CCDF for ruleYear 2025
       #they decreased the amount of bins from 7 to 3 and copay are caluated based on weekly dollar amounts (bins 1 & 2) or percentage of income (bin 3)
-      
+
       temp$totcopay[temp$income>=0 & temp$income<=temp$Bin1Max]<-temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1Max]
       temp$totcopay[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]<-temp$FTcopay[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]
       temp$totcopay[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]<-rowMins(cbind(temp$income[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]*temp$FTcopay[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max],temp$netexp.childcare[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]))
-      
-      
-      
-      
-      
-      
-      
+
+
+
+
+
+
+
       # Set copay to zero if no children
       temp$totcopay[temp$numkidsincare0to4+temp$numkidsincare5to12==0]<-0
-      
+
       temp$totcopay[is.na(temp$FTcopay)]<-NA
       # Note: code produces NAs for a good reason, because family is ineligible for CCDF
       # Copay is NOT zero for ineligible, but there are people who pay 0 copay
-      
+
       # Adjust overage depending on whether states allow to charge it
       temp$childcare.overage[temp$OverageOption=="No"]<-0
-      
+
       # Merge back
       data$childcare.overage[data$stateFIPS==33]<-temp$childcare.overage
       data$totcopay[data$stateFIPS==33]<-temp$totcopay
       data$InitialEligibility[data$stateFIPS==33]<-temp$InitialEligibility.y
     }
-    
-    
+
+
     # NEW JERSEY ----
-    
+
     if(34 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-      
+
       ccdfData_NJ$stateFIPS <- 34
-      
+
       temp<-data[data$stateFIPS==34,]
-      
+
       temp$numkidsInCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
-      
+
       # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
       # years<-unique(data$ruleYear) # years in data set
       # yearsinexpdata<- unique(ccdfData_NJ$ruleYear) # rule years in benefit data
@@ -9654,12 +9539,12 @@ function.CCDFcopay<-function(data
       # Step 1: Assign copays
       #----------------------------------
       temp<-left_join(temp, ccdfData_NJ, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare", "ruleYear"))
-      
+
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
-      
+
       temp$FTcopay<-NA
-      
+
       temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1Max]<-temp$CopayBin1[temp$income>=0 & temp$income<=temp$Bin1Max]
       temp$FTcopay[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]<-temp$CopayBin2[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]
       temp$FTcopay[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]<-temp$CopayBin3[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]
@@ -9691,52 +9576,52 @@ function.CCDFcopay<-function(data
       temp$FTcopay[temp$income>temp$Bin28Max & temp$income<=temp$Bin29Max]<-temp$CopayBin29[temp$income>temp$Bin28Max & temp$income<=temp$Bin29Max]
       temp$FTcopay[temp$income>temp$Bin29Max & temp$income<=temp$Bin30Max]<-temp$CopayBin30[temp$income>temp$Bin29Max & temp$income<=temp$Bin30Max]
       temp$FTcopay[temp$income>temp$Bin30Max & temp$income<=temp$Bin31Max]<-temp$CopayBin31[temp$income>temp$Bin30Max & temp$income<=temp$Bin31Max]
-      
-      
+
+
       # Apply asset test
       subset<-temp$totalassets > temp$AssetTest
       temp$FTcopay[subset]<-NA_real_
-      
+
       #----------------------------------
       # Step 2: Calculate total copays
       #----------------------------------
-      
+
       # Set copay to zero if no children
       temp$totcopay[temp$numkidsincare0to4+temp$numkidsincare5to12==0]<-0
-      
+
       # Calculate total copay (12 months needed)
       temp$FTcopay[!is.na(temp$FTcopay)]<-as.numeric(temp$FTcopay[!is.na(temp$FTcopay)])
-      
+
       temp$totcopay[is.na(temp$FTcopay)]<-NA
       # Note: code produces NAs for a good reason, because family is ineligible for CCDF
       # Copay is NOT zero for ineligible, but there are people who pay 0 copay
-      
+
       # Make sure the variables names are the same
       temp$totcopay <- temp$FTcopay*12 #totcopay is initilaized to NA in beginning
-      
+
       # Adjust overage depending on whether states allow to charge it
       temp$childcare.overage[temp$OverageOption=="No"]<-0
-      
+
       # Merge back
       data$childcare.overage[data$stateFIPS==34]<-temp$childcare.overage
       data$totcopay[data$stateFIPS==34]<-temp$totcopay
       data$InitialEligibility[data$stateFIPS==34]<-temp$InitialEligibility.y
     }
-    
-    
-    
+
+
+
     # NORTH CAROLINA ----
-    
+
     # Description:
     # Copay is a percentage of total income
     # Monthly frequency
     if(37 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-      
+
       ccdfData_NC$stateFIPS <- 37
       #ccdfData_NC <- ccdfData_NC[ccdfData_NC$famsize < 8,]
-      
+
       temp<-data[data$stateFIPS==37,]
-      
+
       # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
       # years<-unique(data$ruleYear) # years in data set
       # yearsinexpdata<- unique(ccdfData_NC$ruleYear) # rule years in benefit data
@@ -9771,49 +9656,49 @@ function.CCDFcopay<-function(data
       # Step 1: Assign copays
       #----------------------------------
       temp<-left_join(temp, ccdfData_NC, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize"))
-      
+
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
-      
+
       temp$FTcopay<-NA
-      
+
       temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1]<-temp$CopayBin1_MaxFractionOfIncome[temp$income>=0 & temp$income<=temp$Bin1]
-      
+
       # Apply asset test
       subset<-temp$totalassets > temp$AssetTest
       temp$FTcopay[subset]<-NA_real_
-      
+
       #----------------------------------
       # Step 2: Calculate total copays
       #----------------------------------
-      
+
       # Can't pay more than the total remaining expenses
       temp$totcopay<-rowMins(cbind(temp$income*temp$FTcopay,temp$netexp.childcare))
-      
+
       # Set copay to zero if no children
       temp$totcopay[temp$numkidsincare0to4+temp$numkidsincare5to12==0]<-0
-      
+
       temp$totcopay[is.na(temp$FTcopay)]<-NA
       # Note: code produces NAs for a good reason, because family is ineligible for CCDF
       # Copay is NOT zero for ineligible, but there are people who pay 0 copay
-      
+
       # Adjust overage depending on whether states allow to charge it
       temp$childcare.overage[temp$OverageOption=="No"]<-0
-      
+
       # Merge back
       data$childcare.overage[data$stateFIPS==37]<-temp$childcare.overage
       data$totcopay[data$stateFIPS==37]<-temp$totcopay
       data$InitialEligibility[data$stateFIPS==37]<-temp$InitialEligibility.y
     }
-    
-    
-    
+
+
+
     # NORTH DAKOTA ----
-    
+
     if(38 %in% unique(data$stateFIPS)){
-      
+
       temp <- data[data$stateFIPS==38,]
-      
+
       # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
       # years<-unique(data$ruleYear) # years in data set
       # yearsinexpdata<- unique(ccdfData_ND$ruleYear) # rule years in benefit data
@@ -9848,11 +9733,11 @@ function.CCDFcopay<-function(data
       # Step 1: Assign copays
       #----------------------------------
       temp<-left_join(temp, ccdfData_ND, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize"))
-      
+
       temp$income<-temp$income-12*temp$IncomeDisregard
-      
+
       temp$FTcopay<-NA
-      
+
       temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1Max]<-temp$CopayBin1[temp$income>=0 & temp$income<=temp$Bin1Max]
       temp$FTcopay[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]<-temp$CopayBin2[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]
       temp$FTcopay[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]<-temp$CopayBin3[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]
@@ -9897,41 +9782,41 @@ function.CCDFcopay<-function(data
       # Apply asset test
       subset<-temp$totalassets > temp$AssetTest
       temp$FTcopay[subset]<-NA_real_
-      
+
       #----------------------------------
       # Step 2: Calculate total copays
       #----------------------------------
       # Calculate total copay (12 months needed)
       temp$totcopay<-temp$FTcopay#*12
-      
+
       # Set copay to zero if no children
       temp$totcopay[temp$numkidsincare0to4+temp$numkidsincare5to12==0]<-0
-      
+
       temp$totcopay[is.na(temp$FTcopay)]<-NA
       # Note: code produces NAs for a good reason, because family is ineligible for CCDF
       # Copay is NOT zero for ineligible, but there are people who pay 0 copay
-      
+
       # Adjust overage depending on whether states allow to charge it
       temp$childcare.overage[temp$OverageOption=="No"]<-0
-      
+
       # Merge back
       data$childcare.overage[data$stateFIPS==38]<-temp$childcare.overage
       data$totcopay[data$stateFIPS==38]<-temp$totcopay
       data$InitialEligibility[data$stateFIPS==38]<-temp$InitialEligibility.y
-      
+
     }
-    
-    
+
+
     # NEW YORK ----
-    
+
     # Description:
     # Copay is a percentage of total income in excess of SIS
     # Weekly frequency
     if(36 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-      
+
       ccdfData_NY$stateFIPS <- 36
       temp<-data[data$stateFIPS==36,]
-      
+
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
@@ -9939,61 +9824,61 @@ function.CCDFcopay<-function(data
       temp<-left_join(temp, ccdfData_NY, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize"))
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
-      
-      
+
+
       temp$weeklyCopay<-NA
-      
+
       temp$weeklyCopay[temp$income>=0 & temp$income<=temp$Bin1Max]<-temp$CopayBin1[temp$income>=0 & temp$income<=temp$Bin1Max]
       temp$weeklyCopay[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]<-temp$CopayBin2[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]
       temp$weeklyCopay[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]<-temp$CopayBin3[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]
       temp$weeklyCopay[temp$income>temp$Bin3Max & temp$income<=temp$Bin4Max]<-temp$CopayBin4[temp$income>temp$Bin3Max & temp$income<=temp$Bin4Max]
       temp$weeklyCopay[temp$income>temp$Bin4Max & temp$income<=temp$Bin5Max]<-temp$CopayBin5[temp$income>temp$Bin4Max & temp$income<=temp$Bin5Max]
       temp$weeklyCopay[temp$income>temp$Bin5Max & temp$income<=temp$Bin6Max]<-temp$CopayBin6[temp$income>temp$Bin5Max & temp$income<=temp$Bin6Max]
-      
+
       # Apply asset test
       subset<-temp$totalassets > temp$AssetTest
-      
+
       temp$weeklyCopay[subset]<-NA_real_
-      
+
       #----------------------------------
       # Step 2: Calculate total copays
       #----------------------------------
-      
+
       # TOTAL copays (number of weeks needed) - no weeks when family doesn't need childcare at all
       temp$totcopay<-temp$weeklyCopay*52
-      
+
       # Can't pay more than the total remaining expenses
       temp$totcopay<-rowMins(cbind(temp$totcopay,temp$netexp.childcare))
-      
+
       # Set copay to zero if no children
       temp$totcopay[temp$numkidsincare0to4+temp$numkidsincare5to12==0]<-0
-      
+
       temp$totcopay[is.na(temp$weeklyCopay)]<-NA
       # Note: code produces NAs for a good reason, because family is ineligible for CCDF
       # Copay is NOT zero for ineligible, but there are people who pay 0 copay
-      
+
       # Adjust overage depending on whether states allow to charge it
       temp$childcare.overage[temp$OverageOption=="No"]<-0
-      
+
       # Merge back
       data$childcare.overage[data$stateFIPS==36]<-temp$childcare.overage
       data$totcopay[data$stateFIPS==36]<-temp$totcopay
       data$InitialEligibility[data$stateFIPS==36]<-temp$InitialEligibility.y
     }
-    
-    
-    
+
+
+
     # OHIO ----
-    
+
     # Description:
     # Copay is a percentage of total income
     # Monthly frequency
     if(39 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-      
+
       ccdfData_OH$stateFIPS <- 39
-      
+
       temp<-data[data$stateFIPS==39,]
-      
+
       # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
       # years<-unique(data$ruleYear) # years in data set
       # yearsinexpdata<- unique(ccdfData_OH$ruleYear) # rule years in benefit data
@@ -10028,12 +9913,12 @@ function.CCDFcopay<-function(data
       # Step 1: Assign copays
       #----------------------------------
       temp<-left_join(temp, ccdfData_OH, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize"))
-      
+
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
-      
+
       temp$FTcopay<-NA
-      
+
       temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1Max]<-temp$CopayBin1_FractionOfGrossIncome[temp$income>=0 & temp$income<=temp$Bin1Max]
       temp$FTcopay[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]<-temp$CopayBin2_FractionOfGrossIncome[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]
       temp$FTcopay[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]<-temp$CopayBin3_FractionOfGrossIncome[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]
@@ -10075,59 +9960,59 @@ function.CCDFcopay<-function(data
       temp$FTcopay[temp$income>temp$Bin38Max & temp$income<=temp$Bin39Max]<-temp$CopayBin39_FractionOfGrossIncome[temp$income>temp$Bin38Max & temp$income<=temp$Bin39Max]
       temp$FTcopay[temp$income>temp$Bin39Max & temp$income<=temp$Bin40Max]<-temp$CopayBin40_FractionOfGrossIncome[temp$income>temp$Bin39Max & temp$income<=temp$Bin40Max]
       temp$FTcopay[temp$income>temp$Bin40Max & temp$income<=temp$Bin41Max]<-temp$CopayBin41_FractionOfGrossIncome[temp$income>temp$Bin40Max & temp$income<=temp$Bin41Max]
-      
+
       # Apply asset test
       subset<-temp$totalassets > temp$AssetTest
       temp$FTcopay[subset]<-NA_real_
-      
-      
-      
+
+
+
       #----------------------------------
       # Step 2: Calculate total copays
       #----------------------------------
-      
+
       # Can't pay more than the total remaining expenses
-      
-      
+
+
       #temp$totcopay<-rowMins(cbind(temp$income*temp$FTcopay,temp$netexp.childcare))
-      
+
       temp$totcopay[temp$ruleYear<=2022] <- temp$income[temp$ruleYear<=2022]*temp$FTcopay[temp$ruleYear<=2022]
-      
+
       temp$totcopay[temp$ruleYear>=2023] <- temp$FTcopay[temp$ruleYear>=2023]*52 # 2023 onwards, Ohio charges copay as a weekly dollar amount, rather than as a monthly percentage of income
-      
+
       temp$totcopay<-rowMins(cbind(temp$totcopay,temp$netexp.childcare))
-      
+
       # Set copay to zero if no children
       temp$totcopay[temp$numkidsincare0to4+temp$numkidsincare5to12==0]<-0
-      
+
       temp$totcopay[is.na(temp$FTcopay)]<-NA
       # Note: code produces NAs for a good reason, because family is ineligible for CCDF
       # Copay is NOT zero for ineligible, but there are people who pay 0 copay
-      
+
       # Adjust overage depending on whether states allow to charge it
       temp$childcare.overage[temp$OverageOption=="No"]<-0
-      
+
       # Merge back
       data$childcare.overage[data$stateFIPS==39]<-temp$childcare.overage
       data$totcopay[data$stateFIPS==39]<-temp$totcopay
       data$InitialEligibility[data$stateFIPS==39]<-temp$InitialEligibility.y
     }
-    
-    
-    
+
+
+
     # OKLAHOMA ----
-    
+
     # Description:
     # Variation at the state level
     # Fixed copay per family
     # Monthly frequency
     # No additional charge after certain number of children
     if(40 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-      
+
       #ccdfData_OK <- ccdfData_OK[ccdfData_OK$famsize <= 12,]
-      
+
       temp<-data[data$stateFIPS==40,]
-      
+
       # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
       # years<-unique(data$ruleYear) # years in data set
       # yearsinexpdata<- unique(ccdfData_OK$ruleYear) # rule years in benefit data
@@ -10162,12 +10047,12 @@ function.CCDFcopay<-function(data
       # Step 1: Assign copays
       #----------------------------------
       temp<-left_join(temp, ccdfData_OK, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize"))
-      
+
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
-      
+
       temp$FTcopay<-NA
-      
+
       temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1Max]<-temp$CopayBin1[temp$income>=0 & temp$income<=temp$Bin1Max]
       temp$FTcopay[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]<-temp$CopayBin2[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]
       temp$FTcopay[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]<-temp$CopayBin3[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]
@@ -10180,92 +10065,92 @@ function.CCDFcopay<-function(data
       temp$FTcopay[temp$income>temp$Bin9Max & temp$income<=temp$Bin10Max]<-temp$CopayBin10[temp$income>temp$Bin9Max & temp$income<=temp$Bin10Max]
       temp$FTcopay[temp$income>temp$Bin10Max & temp$income<=temp$Bin11Max]<-temp$CopayBin11[temp$income>temp$Bin10Max & temp$income<=temp$Bin11Max]
       temp$FTcopay[temp$income>temp$Bin11Max & temp$income<=temp$Bin12Max]<-temp$CopayBin12[temp$income>temp$Bin11Max & temp$income<=temp$Bin12Max]
-      
+
       #View(temp[,c("countyortownName", "FTcopay", "numkidsincare0to4", "numkidsincare5to12", "SCHcopay", "SUMcopay", "netexp.childcare")])
       # Apply asset test
       subset<-temp$totalassets > temp$AssetTest
       temp$FTcopay[subset]<-NA_real_
-      
+
       #----------------------------------
       # Step 2: Calculate total copays
       #----------------------------------
-      
+
       # Calculate total copay (12 months needed)
       temp$totcopay<-temp$FTcopay*12
-      
+
       # Set copay to zero if no children
       temp$totcopay[temp$numkidsincare0to4+temp$numkidsincare5to12==0]<-0
-      
+
       temp$totcopay[is.na(temp$FTcopay)]<-NA
       # Note: code produces NAs for a good reason, because family is ineligible for CCDF
       # Copay is NOT zero for ineligible, but there are people who pay 0 copay
-      
+
       # Adjust overage depending on whether states allow to charge it
       temp$childcare.overage[temp$OverageOption=="No"]<-0
-      
+
       # Merge back
       data$childcare.overage[data$stateFIPS==40]<-temp$childcare.overage
       data$totcopay[data$stateFIPS==40]<-temp$totcopay
       data$InitialEligibility[data$stateFIPS==40]<-temp$InitialEligibility.y
     }
-    
-    
+
+
     # OREGON ----
-    
+
     if(41 %in% unique(data$stateFIPS)){
-      
+
       temp <- data[data$stateFIPS==41,]
-      
-     
+
+
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
       temp<-left_join(temp, ccdfData_OR, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize"))
-      
+
       temp$income<-temp$income-12*temp$IncomeDisregard
-      
+
       temp$FTcopay<-NA
-      
+
       temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1Max]<-temp$CopayBin1[temp$income>=0 & temp$income<=temp$Bin1Max]
       temp$FTcopay[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]<-temp$CopayBin2[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]
       temp$FTcopay[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]<-temp$CopayBin3[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]
       temp$FTcopay[temp$income>temp$Bin3Max & temp$income<=temp$Bin4Max]<-temp$CopayBin4[temp$income>temp$Bin3Max & temp$income<=temp$Bin4Max]
       temp$FTcopay[temp$income>temp$Bin4Max & temp$income<=temp$Bin5Max]<-temp$CopayBin5[temp$income>temp$Bin4Max & temp$income<=temp$Bin5Max]
       temp$FTcopay[temp$income>temp$Bin5Max & temp$income<=temp$Bin6Max]<-temp$CopayBin6[temp$income>temp$Bin5Max & temp$income<=temp$Bin6Max]
-      
+
       # Apply asset test
       subset<-temp$totalassets > temp$AssetTest
       temp$FTcopay[subset]<-NA_real_
-      
+
       #----------------------------------
       # Step 2: Calculate total copays
       #----------------------------------
       # Calculate total copay (12 months needed)
       temp$totcopay<-temp$FTcopay*12
-      
+
       # Set copay to zero if no children
       temp$totcopay[temp$numkidsincare0to4+temp$numkidsincare5to12==0]<-0
-      
+
       temp$totcopay[is.na(temp$FTcopay)]<-NA
       # Note: code produces NAs for a good reason, because family is ineligible for CCDF
       # Copay is NOT zero for ineligible, but there are people who pay 0 copay
-      
+
       # Adjust overage depending on whether states allow to charge it
       temp$childcare.overage[temp$OverageOption=="No"]<-0
-      
+
       # Merge back
       data$childcare.overage[data$stateFIPS==41]<-temp$childcare.overage
       data$totcopay[data$stateFIPS==41]<-temp$totcopay
       data$InitialEligibility[data$stateFIPS==41]<-temp$InitialEligibility.y
-      
+
     }
-    
+
     # PENNSYLVANIA ----
-    
+
     if(42 %in% unique(data$stateFIPS)){
-      
+
       temp <- data[data$stateFIPS==42,]
-      
+
       # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
       # years<-unique(data$ruleYear) # years in data set
       # yearsinexpdata<- unique(ccdfData_PA$ruleYear) # rule years in benefit data
@@ -10296,19 +10181,19 @@ function.CCDFcopay<-function(data
       # }  # Attach copied future, historical, and missing benefit data
       # if(length(futureYrs)>0) {ccdfData_PA<-ccdfData_PA %>% rbind(expand)}
       # if(length(nonFutureYrs)>0) {ccdfData_PA<-ccdfData_PA %>% rbind(expandPastMiss2)}
-      # 
+      #
       #----------------------------------
       # Step 1: Assign copays
       # #----------------------------------
       #ccdfData_PA$IncomeDisregard <- 0
-      
+
       temp<-left_join(temp, ccdfData_PA, by=c("stateFIPS", "AKorHI", "famsize", "ruleYear"))
-      
+
       temp[is.na(temp)] <- 0
       #temp$income<-temp$income-12*temp$IncomeDisregard
-      
+
       temp$FTcopay<-NA
-      
+
       temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1Max]<-temp$CopayBin1[temp$income>=0 & temp$income<=temp$Bin1Max]
       temp$FTcopay[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]<-temp$CopayBin2[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]
       temp$FTcopay[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]<-temp$CopayBin3[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]
@@ -10367,45 +10252,45 @@ function.CCDFcopay<-function(data
       temp$FTcopay[temp$income>temp$Bin55Max & temp$income<=temp$Bin56Max]<-temp$CopayBin56[temp$income>temp$Bin55Max & temp$income<=temp$Bin56Max]
       temp$FTcopay[temp$income>temp$Bin56Max & temp$income<=temp$Bin57Max]<-temp$CopayBin57[temp$income>temp$Bin56Max & temp$income<=temp$Bin57Max]
       temp$FTcopay[temp$income>temp$Bin57Max & temp$income<=temp$Bin58Max]<-temp$CopayBin58[temp$income>temp$Bin57Max & temp$income<=temp$Bin58Max]
-      
-      
+
+
       # Apply asset test
       subset<-temp$totalassets > temp$AssetTest
       temp$FTcopay[subset]<-NA_real_
-      
+
       #----------------------------------
       # Step 2: Calculate total copays
       #----------------------------------
       # Calculate total copay (12 months needed)
       temp$totcopay<-temp$FTcopay*52
-      
+
       # Set copay to zero if no children
       temp$totcopay[temp$numkidsincare0to4+temp$numkidsincare5to12==0]<-0
-      
+
       temp$totcopay[is.na(temp$FTcopay)]<-NA
       # Note: code produces NAs for a good reason, because family is ineligible for CCDF
       # Copay is NOT zero for ineligible, but there are people who pay 0 copay
-      
+
       # Adjust overage depending on whether states allow to charge it
       temp$childcare.overage[temp$OverageOption=="No"]<-0
-      
+
       # Merge back
       data$childcare.overage[data$stateFIPS==42]<-temp$childcare.overage
       data$totcopay[data$stateFIPS==42]<-temp$totcopay
       data$InitialEligibility[data$stateFIPS==42]<-temp$InitialEligibility.y
-      
+
     }
-    
-    
+
+
     # RHODE ISLAND ----
-    
+
     # Description:
     # Copay is a percentage of total income
     # Monthly frequency
     if(44 %in% unique(data$stateFIPS)){
-      
+
       temp <- data[data$stateFIPS==44,]
-      
+
       # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
       # years<-unique(data$ruleYear) # years in data set
       # yearsinexpdata<- unique(ccdfData_RI$ruleYear) # rule years in benefit data
@@ -10436,58 +10321,58 @@ function.CCDFcopay<-function(data
       # }  # Attach copied future, historical, and missing benefit data
       # if(length(futureYrs)>0) {ccdfData_RI<-ccdfData_RI %>% rbind(expand)}
       # if(length(nonFutureYrs)>0) {ccdfData_RI<-ccdfData_RI %>% rbind(expandPastMiss2)}
-      # 
+      #
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
       temp<-left_join(temp, ccdfData_RI, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize"))
-      
+
       temp$income<-temp$income-12*temp$IncomeDisregard
-      
+
       temp$FTcopay<-NA
-      
+
       temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1Max]<-temp$CopayBin1[temp$income>=0 & temp$income<=temp$Bin1Max]
       temp$FTcopay[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]<-temp$CopayBin2[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]
       temp$FTcopay[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]<-temp$CopayBin3[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]
       temp$FTcopay[temp$income>temp$Bin3Max & temp$income<=temp$Bin4Max]<-temp$CopayBin4[temp$income>temp$Bin3Max & temp$income<=temp$Bin4Max]
       temp$FTcopay[temp$income>temp$Bin4Max & temp$income<=temp$Bin5Max]<-temp$CopayBin5[temp$income>temp$Bin4Max & temp$income<=temp$Bin5Max]
       temp$FTcopay[temp$income>temp$Bin5Max & temp$income<=temp$Bin6Max]<-temp$CopayBin6[temp$income>temp$Bin5Max & temp$income<=temp$Bin6Max]
-      
+
       # Apply asset test
       subset<-temp$totalassets > temp$AssetTest
       temp$FTcopay[subset]<-NA_real_
-      
+
       #----------------------------------
       # Step 2: Calculate total copays
       #----------------------------------
       temp$totcopay<-rowMins(cbind(temp$income*temp$FTcopay,temp$netexp.childcare))
-      
+
       # Set copay to zero if no children
       temp$totcopay[temp$numkidsincare0to4+temp$numkidsincare5to12==0]<-0
-      
+
       temp$totcopay[is.na(temp$FTcopay)]<-NA
       # Note: code produces NAs for a good reason, because family is ineligible for CCDF
       # Copay is NOT zero for ineligible, but there are people who pay 0 copay
-      
+
       # Adjust overage depending on whether states allow to charge it
       temp$childcare.overage[temp$OverageOption=="No"]<-0
-      
+
       # Merge back
       data$childcare.overage[data$stateFIPS==44]<-temp$childcare.overage
       data$totcopay[data$stateFIPS==44]<-temp$totcopay
       data$InitialEligibility[data$stateFIPS==44]<-temp$InitialEligibility.y
     }
-    
-    
+
+
     # SOUTH CAROLINA ----
-    
+
     # Description:
     # Copay is a fixed dollar amount per child, same for each child
     # Weekly frequency
     if(45 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-      
+
       temp<-data[data$stateFIPS==45,]
-      
+
       # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
       # years<-unique(data$ruleYear) # years in data set
       # yearsinexpdata<- unique(ccdfData_SC$ruleYear) # rule years in benefit data
@@ -10518,60 +10403,60 @@ function.CCDFcopay<-function(data
       # }  # Attach copied future, historical, and missing benefit data
       # if(length(futureYrs)>0) {ccdfData_SC<-ccdfData_SC %>% rbind(expand)}
       # if(length(nonFutureYrs)>0) {ccdfData_SC<-ccdfData_SC %>% rbind(expandPastMiss2)}
-      # 
+      #
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
       temp<-left_join(temp, ccdfData_SC, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize"))
-      
+
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
-      
+
       temp$FTcopay<-NA
-      
+
       temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1Max]<-temp$CopayBin1[temp$income>=0 & temp$income<=temp$Bin1Max]
       temp$FTcopay[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]<-temp$CopayBin2[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]
       temp$FTcopay[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]<-temp$CopayBin3[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]
       temp$FTcopay[temp$income>temp$Bin3Max & temp$income<=temp$Bin4Max]<-temp$CopayBin4[temp$income>temp$Bin3Max & temp$income<=temp$Bin4Max]
       temp$FTcopay[temp$income>temp$Bin4Max & temp$income<=temp$Bin5Max]<-temp$CopayBin5[temp$income>temp$Bin4Max & temp$income<=temp$Bin5Max]
-      
+
       # Apply asset test
       subset<-temp$totalassets > temp$AssetTest
       temp$FTcopay[subset]<-NA_real_
-      
+
       #----------------------------------
       # Step 2: Calculate total copays
       #----------------------------------
-      
+
       # Calculate total copay
       temp$totcopay<-temp$FTcopay*(temp$numkidsincare0to4+temp$numkidsincare5to12)*52
-      
+
       # Set copay to zero if no children
       temp$totcopay[temp$numkidsincare0to4+temp$numkidsincare5to12==0]<-0
-      
+
       temp$totcopay[is.na(temp$FTcopay)]<-NA
       # Note: code produces NAs for a good reason, because family is ineligible for CCDF
       # Copay is NOT zero for ineligible, but there are people who pay 0 copay
-      
+
       # Adjust overage depending on whether states allow to charge it
       temp$childcare.overage[temp$OverageOption=="No"]<-0
-      
+
       # Merge back
       data$childcare.overage[data$stateFIPS==45]<-temp$childcare.overage
       data$totcopay[data$stateFIPS==45]<-temp$totcopay
       data$InitialEligibility[data$stateFIPS==45]<-temp$InitialEligibility.y
     }
-    
-    
+
+
     # SOUTH DAKOTA ----
-    
+
     # Description:
     # Fixed copay dollar amount per family
     # Monthly frequency
     if(46 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-      
+
       temp<-data[data$stateFIPS==46,]
-      
+
       # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
       # years<-unique(data$ruleYear) # years in data set
       # yearsinexpdata<- unique(ccdfData_SD$ruleYear) # rule years in benefit data
@@ -10602,17 +10487,17 @@ function.CCDFcopay<-function(data
       # }  # Attach copied future, historical, and missing benefit data
       # if(length(futureYrs)>0) {ccdfData_SD<-ccdfData_SD %>% rbind(expand)}
       # if(length(nonFutureYrs)>0) {ccdfData_SD<-ccdfData_SD %>% rbind(expandPastMiss2)}
-      # 
+      #
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
       temp<-left_join(temp, ccdfData_SD, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize"))
-      
+
       # Adjust for the income disregard
       temp$income<-temp$income*(1-temp$IncomeDisregard)
-      
+
       temp$FTcopay<-NA
-      
+
       temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1Max]<-temp$CopayBin1[temp$income>=0 & temp$income<=temp$Bin1Max]
       temp$FTcopay[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]<-temp$CopayBin2[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]
       temp$FTcopay[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]<-temp$CopayBin3[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]
@@ -10627,36 +10512,36 @@ function.CCDFcopay<-function(data
       temp$FTcopay[temp$income>temp$Bin11Max & temp$income<=temp$Bin12Max]<-temp$CopayBin12[temp$income>temp$Bin11Max & temp$income<=temp$Bin12Max]
       temp$FTcopay[temp$income>temp$Bin12Max & temp$income<=temp$Bin13Max]<-temp$CopayBin13[temp$income>temp$Bin12Max & temp$income<=temp$Bin13Max]
       temp$FTcopay[temp$income>temp$Bin13Max & temp$income<=temp$Bin14Max]<-temp$CopayBin14[temp$income>temp$Bin13Max & temp$income<=temp$Bin14Max]
-      
-      
+
+
       # Apply asset test
       subset<-temp$totalassets > temp$AssetTest
       temp$FTcopay[subset]<-NA_real_
-      
+
       #----------------------------------
       # Step 2: Calculate total copays
       #----------------------------------
       # Calculate total copay (12 months needed)
       temp$totcopay<-temp$FTcopay*12
-      
+
       # Set copay to zero if no children
       temp$totcopay[temp$numkidsincare0to4+temp$numkidsincare5to12==0]<-0
-      
+
       temp$totcopay[is.na(temp$FTcopay)]<-NA
       # Note: code produces NAs for a good reason, because family is ineligible for CCDF
       # Copay is NOT zero for ineligible, but there are people who pay 0 copay
-      
+
       # Adjust overage depending on whether states allow to charge it
       temp$childcare.overage[temp$OverageOption=="No"]<-0
-      
+
       # Merge back
       data$childcare.overage[data$stateFIPS==46]<-temp$childcare.overage
       data$totcopay[data$stateFIPS==46]<-temp$totcopay
       data$InitialEligibility[data$stateFIPS==46]<-temp$InitialEligibility.y
     }
-    
-    
-    
+
+
+
     # TENNESSEE ----
     # Description:
     # Copay is a dollar amount per child
@@ -10664,14 +10549,14 @@ function.CCDFcopay<-function(data
     # Discount for two or more children (under construction)
     # Fee is up to a maximum per family (under construction)
     if(47 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-      
+
       ccdfData_TN$stateFIPS <- 47
-      
+
       temp<-data[data$stateFIPS==47,]
       #  temp$numkidsInCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
       #temp$numkidsInCare<-temp$numkidsincare0to4
       temp$numkidsInCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
-      
+
       # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
       # years<-unique(data$ruleYear) # years in data set
       # yearsinexpdata<- unique(ccdfData_TN$ruleYear) # rule years in benefit data
@@ -10702,17 +10587,17 @@ function.CCDFcopay<-function(data
       # }  # Attach copied future, historical, and missing benefit data
       # if(length(futureYrs)>0) {ccdfData_TN<-ccdfData_TN %>% rbind(expand)}
       # if(length(nonFutureYrs)>0) {ccdfData_TN<-ccdfData_TN %>% rbind(expandPastMiss2)}
-      # 
+      #
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
       temp<-left_join(temp, ccdfData_TN, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize", "numkidsInCare"))
-      
+
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
-      
+
       temp$FTcopay<-NA
-      
+
       temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1Max]<-temp$CopayBin1[temp$income>=0 & temp$income<=temp$Bin1Max]
       temp$FTcopay[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]<-temp$CopayBin2[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]
       temp$FTcopay[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]<-temp$CopayBin3[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]
@@ -10735,29 +10620,29 @@ function.CCDFcopay<-function(data
       temp$FTcopay[temp$income>temp$Bin19Max & temp$income<=temp$Bin20Max]<-temp$CopayBin20[temp$income>temp$Bin19Max & temp$income<=temp$Bin20Max]
       temp$FTcopay[temp$income>temp$Bin20Max & temp$income<=temp$Bin21Max]<-temp$CopayBin21[temp$income>temp$Bin20Max & temp$income<=temp$Bin21Max]
       temp$FTcopay[temp$income>temp$Bin21Max & temp$income<=temp$Bin22Max]<-temp$CopayBin22[temp$income>temp$Bin21Max & temp$income<=temp$Bin22Max]
-      
-      
+
+
       # Apply asset test
       subset<-temp$totalassets > temp$AssetTest
       temp$FTcopay[subset]<-NA_real_
-      
+
       #----------------------------------
       # Step 2: Calculate total copays
       #----------------------------------
-      
+
       # Initialize
-      
+
       temp$totcopay<-NA
-      
+
       # temp$totcopay<-temp$FTcopay*(temp$daysofcareneeded0to4+temp$daysofcareneeded5to12)
-      
+
       # temp$totcopay<-rowMins(cbind(temp$FTcopay*(temp$daysofcareneeded0to4+temp$daysofcareneeded5to12),temp$netexp.childcare))
       temp$totcopay <- temp$FTcopay*12
-      
+
       temp$totcopay[temp$numkidsincare0to4+temp$numkidsincare5to12==0]<-0
-      
+
       temp$totcopay[is.na(temp$FTcopay)]<-NA
-      
+
       # NEED TO REWORK THIS ONCE EDGAR & CO GET FAMILY MAX SIZE UP TO 12
       temp$totcopay[temp$agePerson7>5 & !is.na(temp$agePerson7>5)] <- temp$totcopay[temp$agePerson7>5 & !is.na(temp$agePerson7>5)] + temp$netexp.childcareperson7[temp$agePerson7>5 & !is.na(temp$agePerson7>5)]
       temp$totcopay[temp$agePerson8>5 & !is.na(temp$agePerson8>5)] <- temp$totcopay[temp$agePerson8>5 & !is.na(temp$agePerson8>5)] + temp$netexp.childcareperson8[temp$agePerson8>5 & !is.na(temp$agePerson8>5)]
@@ -10768,19 +10653,19 @@ function.CCDFcopay<-function(data
       # Set copay to zero if no children
       # Note: code produces NAs for a good reason, because family is ineligible for CCDF
       # Copay is NOT zero for ineligible, but there are people who pay 0 copay
-      
+
       # Adjust overage depending on whether states allow to charge it
       temp$childcare.overage[temp$OverageOption=="No"]<-0
-      
+
       # Merge back
       data$childcare.overage[data$stateFIPS==47]<-temp$childcare.overage
       data$totcopay[data$stateFIPS==47]<-temp$totcopay
       data$InitialEligibility[data$stateFIPS==47]<-temp$InitialEligibility.y
-      
+
     }
-    
-    
-    
+
+
+
     # TEXAS ----
     # Description:
     # Variation at the Board level (approximated by Gulf Coast as the most populated area)
@@ -10794,14 +10679,14 @@ function.CCDFcopay<-function(data
       # Step 1: Assign copays
       #----------------------------------
       temp<-left_join(temp, ccdfData_TX, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize"))
-      
+
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
-    
-      
+
+
       temp$FTcopay.FirstChild<-NA
       temp$FTcopay.AdditionalChild<-NA
-      
+
       temp$FTcopay.FirstChild[temp$income>=0 & temp$income<=temp$Bin1Max]<-temp$CopayBin1.FirstChild[temp$income>=0 & temp$income<=temp$Bin1Max]
       temp$FTcopay.FirstChild[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]<-temp$CopayBin2.FirstChild[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]
       temp$FTcopay.FirstChild[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]<-temp$CopayBin3.FirstChild[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]
@@ -10811,7 +10696,7 @@ function.CCDFcopay<-function(data
       temp$FTcopay.FirstChild[temp$income>temp$Bin6Max & temp$income<=temp$Bin7Max]<-temp$CopayBin7.FirstChild[temp$income>temp$Bin6Max & temp$income<=temp$Bin7Max]
       temp$FTcopay.FirstChild[temp$income>temp$Bin7Max & temp$income<=temp$Bin8Max]<-temp$CopayBin8.FirstChild[temp$income>temp$Bin7Max & temp$income<=temp$Bin8Max]
       temp$FTcopay.FirstChild[temp$income>temp$Bin8Max & temp$income<=temp$Bin9Max]<-temp$CopayBin9.FirstChild[temp$income>temp$Bin8Max & temp$income<=temp$Bin9Max]
-     
+
       temp$FTcopay.AdditionalChild[temp$income>0 & temp$income<=temp$Bin1Max]<-temp$CopayBin1.AdditionalChild[temp$income>0 & temp$income<=temp$Bin1Max]
       temp$FTcopay.AdditionalChild[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]<-temp$CopayBin2.AdditionalChild[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]
       temp$FTcopay.AdditionalChild[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]<-temp$CopayBin3.AdditionalChild[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]
@@ -10821,65 +10706,65 @@ function.CCDFcopay<-function(data
       temp$FTcopay.AdditionalChild[temp$income>temp$Bin6Max & temp$income<=temp$Bin7Max]<-temp$CopayBin7.AdditionalChild[temp$income>temp$Bin6Max & temp$income<=temp$Bin7Max]
       temp$FTcopay.AdditionalChild[temp$income>temp$Bin7Max & temp$income<=temp$Bin8Max]<-temp$CopayBin8.AdditionalChild[temp$income>temp$Bin7Max & temp$income<=temp$Bin8Max]
       temp$FTcopay.AdditionalChild[temp$income>temp$Bin8Max & temp$income<=temp$Bin9Max]<-temp$CopayBin9.AdditionalChild[temp$income>temp$Bin8Max & temp$income<=temp$Bin9Max]
-      
+
       # Apply asset test
       subset<-temp$totalassets > temp$AssetTest
       temp$FTcopay[subset]<-NA_real_
-      
+
       #----------------------------------
       # Step 2: Calculate total copays
       #----------------------------------
-      
+
       # Initialize
       temp$SCHcopay<-NA
       temp$SUMcopay<-NA
       temp$totcopay<-NA
-      
+
       # Determine how much care child need
       # age < 5 requires full-time school time care and full-time summer care (Full-time school is)
       # age 5 to 12 requires part-time school time care and part-time summer care
-      
+
       # TOTAL School time copay
       temp$SCHcopay<-6.5*(temp$FTcopay.FirstChild+(temp$numkidsincare0to4+temp$numkidsincare5to12-1)*temp$FTcopay.AdditionalChild)
       temp$SUMcopay<-2.3*(temp$FTcopay.FirstChild+(temp$numkidsincare0to4+temp$numkidsincare5to12-1)*temp$FTcopay.AdditionalChild)
-      
+
       # Before and after-school care is 40% reduction
       # UNDER CONSTRUCTION
-      
+
       temp$totcopay<-temp$SUMcopay+temp$SCHcopay
-      
+
       # Set copay to zero if no children
       temp$totcopay[temp$numkidsincare0to4+temp$numkidsincare5to12==0]<-0
-      
+
       temp$totcopay[is.na(temp$FTcopay.FirstChild)]<-NA
       # Note: code produces NAs for a good reason, because family is ineligible for CCDF
       # Copay is NOT zero for ineligible, but there are people who pay 0 copay
-      
+
       # Adjust overage depending on whether states allow to charge it
       temp$childcare.overage[temp$OverageOption=="No"]<-0
-      
+
       # Merge back
       data$childcare.overage[data$stateFIPS==48]<-temp$childcare.overage
       data$totcopay[data$stateFIPS==48]<-temp$totcopay
       data$InitialEligibility[data$stateFIPS==48]<-temp$InitialEligibility.y
-      
+
     }
-    
-    
+
+
     # UTAH ----
     # Description:
     # Copay is a fixed amount per child
     # Copay amount varies by number of children that family has in care
     # Monthly frequency
     if(49 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-      
+
       ccdfData_UT$stateFIPS <- 49
       ccdfData_UT$AssetTest <- 1000000
-      
+
       temp<-data[data$stateFIPS==49,]
-      
+
       temp$numkidsInCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
-      
+
       # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
       # years<-unique(data$ruleYear) # years in data set
       # yearsinexpdata<- unique(ccdfData_UT$ruleYear) # rule years in benefit data
@@ -10910,17 +10795,17 @@ function.CCDFcopay<-function(data
       # }  # Attach copied future, historical, and missing benefit data
       # if(length(futureYrs)>0) {ccdfData_UT<-ccdfData_UT %>% rbind(expand)}
       # if(length(nonFutureYrs)>0) {ccdfData_UT<-ccdfData_UT %>% rbind(expandPastMiss2)}
-      # 
+      #
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
       temp<-left_join(temp, ccdfData_UT, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize", "numkidsInCare"))
-      
+
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
-      
+
       temp$FTcopay<-NA
-      
+
       temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1Max]<-temp$CopayBin1[temp$income>=0 & temp$income<=temp$Bin1Max]
       temp$FTcopay[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]<-temp$CopayBin2[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]
       temp$FTcopay[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]<-temp$CopayBin3[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]
@@ -10938,45 +10823,45 @@ function.CCDFcopay<-function(data
       temp$FTcopay[temp$income>temp$Bin13Max & temp$income<=temp$Bin14Max]<-temp$CopayBin14[temp$income>temp$Bin13Max & temp$income<=temp$Bin14Max]
       temp$FTcopay[temp$income>temp$Bin14Max & temp$income<=temp$Bin15Max]<-temp$CopayBin15[temp$income>temp$Bin14Max & temp$income<=temp$Bin15Max]
       temp$FTcopay[temp$income>temp$Bin15Max & temp$income<=temp$Bin16Max]<-temp$CopayBin16[temp$income>temp$Bin15Max & temp$income<=temp$Bin16Max]
-      
-      
+
+
       # Apply asset test
       subset<-temp$totalassets > temp$AssetTest
       temp$FTcopay[subset]<-NA_real_
-      
+
       #----------------------------------
       # Step 2: Calculate total copays
       #----------------------------------
-      
+
       # Calculate total copay (12 months needed)
       temp$totcopay<-temp$FTcopay*12
-      
+
       # Set copay to zero if no children
       temp$totcopay[temp$numkidsincare0to4+temp$numkidsincare5to12==0]<-0
-      
+
       temp$totcopay[is.na(temp$FTcopay)]<-NA
       # Note: code produces NAs for a good reason, because family is ineligible for CCDF
       # Copay is NOT zero for ineligible, but there are people who pay 0 copay
-      
+
       # Adjust overage depending on whether states allow to charge it
       temp$childcare.overage[temp$OverageOption=="No"]<-0
-      
+
       # Merge back
       data$childcare.overage[data$stateFIPS==49]<-temp$childcare.overage
       data$totcopay[data$stateFIPS==49]<-temp$totcopay
       data$InitialEligibility[data$stateFIPS==49]<-temp$InitialEligibility.y
     }
-    
-    
+
+
     # VERMONT ----
     if(50 %in% unique(data$stateFIPS)){
-      
+
       temp <- data[data$stateFIPS==50,]
-      
+
       # providercost_VT$stateFIPS <- 50
       #
       #if(temp$ruleYear < 2022){
-      
+
       # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
       # years<-unique(data$ruleYear) # years in data set
       # yearsinexpdata<- unique(providercost_VT$ruleYear) # rule years in benefit data
@@ -11007,10 +10892,10 @@ function.CCDFcopay<-function(data
       # }  # Attach copied future, historical, and missing benefit data
       # if(length(futureYrs)>0) {providercost_VT<-providercost_VT %>% rbind(expand)}
       # if(length(nonFutureYrs)>0) {providercost_VT<-providercost_VT %>% rbind(expandPastMiss2)}
-      # 
-      # 
+      #
+      #
       temp<-left_join(temp, providercost_VT, by=c("stateFIPS", "ruleYear"))
-      
+
       # Determine Expense based on Age of Children
       temp<-temp %>%
         mutate(sprPerson1=(case_when(agePerson1 %in% c(0)~ftdailyrate.infant,
@@ -11039,7 +10924,7 @@ function.CCDFcopay<-function(data
                                      TRUE~0)
         )
         )
-      
+
       temp<-temp %>%
         mutate(sprPerson4=(case_when(agePerson4 %in% c(0)~ftdailyrate.infant,
                                      agePerson4 %in% c(1:2)~ftdailyrate.toddler,
@@ -11049,7 +10934,7 @@ function.CCDFcopay<-function(data
                                      TRUE~0)
         )
         )
-      
+
       temp<-temp %>%
         mutate(sprPerson5=(case_when(agePerson5 %in% c(0)~ftdailyrate.infant,
                                      agePerson5 %in% c(1:2)~ftdailyrate.toddler,
@@ -11059,7 +10944,7 @@ function.CCDFcopay<-function(data
                                      TRUE~0)
         )
         )
-      
+
       temp<-temp %>%
         mutate(sprPerson6=(case_when(agePerson6 %in% c(0)~ftdailyrate.infant,
                                      agePerson6 %in% c(1:2)~ftdailyrate.toddler,
@@ -11069,7 +10954,7 @@ function.CCDFcopay<-function(data
                                      TRUE~0)
         )
         )
-      
+
       temp<-temp %>%
         mutate(sprPerson7=(case_when(agePerson7 %in% c(0)~ftdailyrate.infant,
                                      agePerson7 %in% c(1:2)~ftdailyrate.toddler,
@@ -11079,7 +10964,7 @@ function.CCDFcopay<-function(data
                                      TRUE~0)
         )
         )
-      
+
       temp<-temp %>%
         mutate(sprPerson8=(case_when(agePerson8 %in% c(0)~ftdailyrate.infant,
                                      agePerson8 %in% c(1:2)~ftdailyrate.toddler,
@@ -11088,7 +10973,7 @@ function.CCDFcopay<-function(data
                                      TRUE~0)
         )
         )
-      
+
       temp<-temp %>%
         mutate(sprPerson9=(case_when(agePerson9 %in% c(0)~ftdailyrate.infant,
                                      agePerson9 %in% c(1:2)~ftdailyrate.toddler,
@@ -11097,7 +10982,7 @@ function.CCDFcopay<-function(data
                                      TRUE~0)
         )
         )
-      
+
       temp<-temp %>%
         mutate(sprPerson10=(case_when(agePerson10 %in% c(0)~ftdailyrate.infant,
                                       agePerson10 %in% c(1:2)~ftdailyrate.toddler,
@@ -11106,7 +10991,7 @@ function.CCDFcopay<-function(data
                                       TRUE~0)
         )
         )
-      
+
       temp<-temp %>%
         mutate(sprPerson11=(case_when(agePerson11 %in% c(0)~ftdailyrate.infant,
                                       agePerson11 %in% c(1:2)~ftdailyrate.toddler,
@@ -11115,7 +11000,7 @@ function.CCDFcopay<-function(data
                                       TRUE~0)
         )
         )
-      
+
       temp<-temp %>%
         mutate(sprPerson12=(case_when(agePerson12 %in% c(0)~ftdailyrate.infant,
                                       agePerson12 %in% c(1:2)~ftdailyrate.toddler,
@@ -11124,10 +11009,10 @@ function.CCDFcopay<-function(data
                                       TRUE~0)
         )
         )
-      
+
       temp<-temp %>%
         mutate(sprTotal=sprPerson1+sprPerson2+sprPerson3+sprPerson4+sprPerson5+sprPerson6+sprPerson7+sprPerson8+sprPerson9+sprPerson10+sprPerson11+sprPerson12)
-      
+
       temp<-temp %>%
         mutate(annualcost1=(case_when(agePerson1 < 5 ~ sprPerson1*daysofcareneeded0to4,
                                       agePerson1 > 4 & agePerson1 < 13 ~ sprPerson1*daysofcareneeded5to12,
@@ -11135,7 +11020,7 @@ function.CCDFcopay<-function(data
                                       TRUE~0)
         )
         )
-      
+
       temp<-temp %>%
         mutate(annualcost2=(case_when(agePerson2 < 5 ~ sprPerson2*daysofcareneeded0to4,
                                       agePerson2 > 4 & agePerson2 < 13 ~ sprPerson2*daysofcareneeded5to12,
@@ -11143,7 +11028,7 @@ function.CCDFcopay<-function(data
                                       TRUE~0)
         )
         )
-      
+
       temp<-temp %>%
         mutate(annualcost3=(case_when(agePerson3 < 5 ~ sprPerson3*daysofcareneeded0to4,
                                       agePerson3 > 4 & agePerson3 < 13 ~ sprPerson3*daysofcareneeded5to12,
@@ -11151,7 +11036,7 @@ function.CCDFcopay<-function(data
                                       TRUE~0)
         )
         )
-      
+
       temp<-temp %>%
         mutate(annualcost4=(case_when(agePerson4 < 5 ~ sprPerson4*daysofcareneeded0to4,
                                       agePerson4 > 4 & agePerson4 < 13 ~ sprPerson4*daysofcareneeded5to12,
@@ -11159,7 +11044,7 @@ function.CCDFcopay<-function(data
                                       TRUE~0)
         )
         )
-      
+
       temp<-temp %>%
         mutate(annualcost5=(case_when(agePerson5 < 5 ~ sprPerson5*daysofcareneeded0to4,
                                       agePerson5 > 4 & agePerson5 < 13 ~ sprPerson5*daysofcareneeded5to12,
@@ -11167,7 +11052,7 @@ function.CCDFcopay<-function(data
                                       TRUE~0)
         )
         )
-      
+
       temp<-temp %>%
         mutate(annualcost6=(case_when(agePerson6 < 5 ~ sprPerson6*daysofcareneeded0to4,
                                       agePerson6 > 4 & agePerson6 < 13 ~ sprPerson6*daysofcareneeded5to12,
@@ -11175,7 +11060,7 @@ function.CCDFcopay<-function(data
                                       TRUE~0)
         )
         )
-      
+
       temp<-temp %>%
         mutate(annualcost7=(case_when(agePerson7 < 5 ~ sprPerson7*daysofcareneeded0to4,
                                       agePerson7 > 4 & agePerson7 < 13 ~ sprPerson7*daysofcareneeded5to12,
@@ -11183,52 +11068,52 @@ function.CCDFcopay<-function(data
                                       TRUE~0)
         )
         )
-      
+
       temp<-temp %>%
         mutate(annualcost8=(case_when(agePerson8 < 5 ~ sprPerson8*daysofcareneeded0to4,
                                       agePerson8 > 4 & agePerson8 < 13 ~ sprPerson8*daysofcareneeded5to12,
                                       TRUE~0)
         )
         )
-      
+
       temp<-temp %>%
         mutate(annualcost9=(case_when(agePerson9 < 5 ~ sprPerson9*daysofcareneeded0to4,
                                       agePerson9 > 4 & agePerson9 < 13 ~ sprPerson9*daysofcareneeded5to12,
                                       TRUE~0)
         )
         )
-      
+
       temp<-temp %>%
         mutate(annualcost10=(case_when(agePerson10 < 5 ~ sprPerson10*daysofcareneeded0to4,
                                        agePerson10 > 4 & agePerson10 < 13 ~ sprPerson10*daysofcareneeded5to12,
                                        TRUE~0)
         )
         )
-      
+
       temp<-temp %>%
         mutate(annualcost11=(case_when(agePerson11 < 5 ~ sprPerson11*daysofcareneeded0to4,
                                        agePerson11 > 4 & agePerson11 < 13 ~ sprPerson11*daysofcareneeded5to12,
                                        TRUE~0)
         )
         )
-      
+
       temp<-temp %>%
         mutate(annualcost12=(case_when(agePerson12 < 5 ~ sprPerson12*daysofcareneeded0to4,
                                        agePerson12 > 4 & agePerson12 < 13 ~ sprPerson12*daysofcareneeded5to12,
                                        TRUE~0)
         )
         )
-      
+
       temp$annualCost<-temp$annualcost1+temp$annualcost2+temp$annualcost3+temp$annualcost4+temp$annualcost5+temp$annualcost6+temp$annualcost7+temp$annualcost8+temp$annualcost9+temp$annualcost10+temp$annualcost11+temp$annualcost12
       # }
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
       # Uses most current rules in PRD and imputes them for years in the data set
-      
+
       #  ccdfData_VT <- ccdfData_VT[ccdfData_VT$ruleYear == 2022,]
       #  ccdfData_VT$ruleYear <- 2021
-      
+
       # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
       # years<-unique(data$ruleYear) # years in data set
       # yearsinexpdata<- unique(ccdfData_VT$ruleYear) # rule years in benefit data
@@ -11259,13 +11144,13 @@ function.CCDFcopay<-function(data
       # }  # Attach copied future, historical, and missing benefit data
       # if(length(futureYrs)>0) {ccdfData_VT<-ccdfData_VT %>% rbind(expand)}
       # if(length(nonFutureYrs)>0) {ccdfData_VT<-ccdfData_VT %>% rbind(expandPastMiss2)}
-      # 
+      #
       temp<-left_join(temp, ccdfData_VT, by=c("stateFIPS", "famsize", "ruleYear"))
-      
+
       # temp$income<-temp$income-12*temp$IncomeDisregard
-      
+
       temp$FTcopay<-NA
-      
+
       temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1Max]<-temp$ShareofCost1[temp$income>=0 & temp$income<=temp$Bin1Max]
       temp$FTcopay[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]<-temp$ShareofCost2[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]
       temp$FTcopay[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]<-temp$ShareofCost3[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]
@@ -11275,7 +11160,7 @@ function.CCDFcopay<-function(data
       temp$FTcopay[temp$income>temp$Bin6Max & temp$income<=temp$Bin7Max]<-temp$ShareofCost7[temp$income>temp$Bin6Max & temp$income<=temp$Bin7Max]
       temp$FTcopay[temp$income>temp$Bin7Max & temp$income<=temp$Bin8Max]<-temp$ShareofCost8[temp$income>temp$Bin7Max & temp$income<=temp$Bin8Max]
       temp$FTcopay[temp$income>temp$Bin8Max & temp$income<=temp$Bin9Max]<-temp$ShareofCost9[temp$income>temp$Bin8Max & temp$income<=temp$Bin9Max]
-      
+
       temp$FTcopay[temp$income>temp$Bin9Max & temp$income<=temp$Bin10Max]<-temp$ShareofCost10[temp$income>temp$Bin9Max & temp$income<=temp$Bin10Max]
       temp$FTcopay[temp$income>temp$Bin10Max & temp$income<=temp$Bin11Max]<-temp$ShareofCost11[temp$income>temp$Bin10Max & temp$income<=temp$Bin11Max]
       temp$FTcopay[temp$income>temp$Bin11Max & temp$income<=temp$Bin12Max]<-temp$ShareofCost12[temp$income>temp$Bin11Max & temp$income<=temp$Bin12Max]
@@ -11290,58 +11175,58 @@ function.CCDFcopay<-function(data
       temp$FTcopay[temp$income>temp$Bin20Max & temp$income<=temp$Bin21Max]<-temp$ShareofCost21[temp$income>temp$Bin20Max & temp$income<=temp$Bin21Max]
       temp$FTcopay[temp$income>temp$Bin21Max & temp$income<=temp$Bin22Max]<-temp$ShareofCost22[temp$income>temp$Bin21Max & temp$income<=temp$Bin22Max]
       temp$FTcopay[temp$income>temp$Bin22Max & temp$income<=temp$Bin23Max]<-temp$ShareofCost23[temp$income>temp$Bin22Max & temp$income<=temp$Bin23Max]
-      
-      
+
+
       # Apply asset test
       subset<-temp$totalassets > temp$AssetTest
       temp$FTcopay[subset]<-NA_real_
-      
-      
-      
+
+
+
       #
       # temp$totcopay[temp$ruleYear!=2022]<-rowMins(cbind(temp$annualCost[temp$ruleYear!=2022]*(1-temp$FTcopay[temp$ruleYear!=2022]),temp$netexp.childcare[temp$ruleYear!=2022]))
-      
-      
+
+
       #----------------------------------
       # Step 2: Calculate total copays
       #----------------------------------
-      
+
       temp$totcopay[temp$ruleYear<=2022] <- temp$annualCost[temp$ruleYear<=2022]*(1-temp$FTcopay[temp$ruleYear<=2022])
-      
+
       temp$totcopay[temp$ruleYear>=2023] <- temp$FTcopay[temp$ruleYear>=2023]*52
-      
+
       temp$totcopay<-rowMins(cbind(temp$totcopay,temp$netexp.childcare))
-      
-      
-      
+
+
+
       # Set copay to zero if no children
       temp$totcopay[temp$numkidsincare0to4+temp$numkidsincare5to12==0]<-0
-      
+
       temp$totcopay[is.na(temp$FTcopay)]<-NA
       # Note: code produces NAs for a good reason, because family is ineligible for CCDF
       # Copay is NOT zero for ineligible, but there are people who pay 0 copay
-      
+
       # Adjust overage depending on whether states allow to charge it
       temp$childcare.overage[temp$OverageOption=="No"]<-0
-      
+
       # Merge back
       data$childcare.overage[data$stateFIPS==50]<-temp$childcare.overage
       data$totcopay[data$stateFIPS==50]<-temp$totcopay
       data$InitialEligibility[data$stateFIPS==50]<-temp$InitialEligibility.y
     }
-    
-    
-    
+
+
+
     # VIRGINIA ----
     # Description:
     # Copay is a percentage of total income
     # Weekly frequency
     if(51 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-      
+
       ccdfData_VA$stateFIPS <- 51
-      
+
       temp<-data[data$stateFIPS==51,]
-      
+
       # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
       # years<-unique(data$ruleYear) # years in data set
       # yearsinexpdata<- unique(ccdfData_VA$ruleYear) # rule years in benefit data
@@ -11376,63 +11261,63 @@ function.CCDFcopay<-function(data
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
-      
+
       temp<-left_join(temp, ccdfData_VA, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize", "countyortownName"))
-      
+
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
-      
+
       temp$FTcopay<-NA
-      
+
       temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1Max]<-temp$CopayBin1[temp$income>=0 & temp$income<=temp$Bin1Max]
       temp$FTcopay[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]<-temp$CopayBin2[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]
       temp$FTcopay[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]<-temp$CopayBin3[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]
       temp$FTcopay[temp$income>temp$Bin3Max & temp$income<=temp$Bin4Max]<-temp$CopayBin4[temp$income>temp$Bin3Max & temp$income<=temp$Bin4Max]
       # temp$FTcopay[temp$income>temp$Bin4Max & temp$income<=temp$Bin5Max]<-temp$CopayBin5[temp$income>temp$Bin4Max & temp$income<=temp$Bin5Max]
       # temp$FTcopay[temp$income>temp$Bin5Max & temp$income<=temp$Bin6Max]<-temp$CopayBin6[temp$income>temp$Bin5Max & temp$income<=temp$Bin6Max]
-      # 
+      #
       # Apply asset test
       subset<-temp$totalassets > temp$AssetTest
       temp$FTcopay[subset]<-NA_real_
-      
+
       #----------------------------------
       # Step 2: Calculate total copays
       #----------------------------------
-      
+
       temp$totcopay<-temp$FTcopay*12
       temp$totcopay<-rowMins(cbind(temp$totcopay,temp$netexp.childcare))
-      
+
       # Set copay to zero if no children
       temp$totcopay[temp$numkidsincare0to4+temp$numkidsincare5to12==0]<-0
-      
+
       temp$totcopay[is.na(temp$FTcopay)]<-NA
       # Note: code produces NAs for a good reason, because family is ineligible for CCDF
       # Copay is NOT zero for ineligible, but there are people who pay 0 copay
-      
+
       # Adjust overage depending on whether states allow to charge it
       temp$childcare.overage[temp$OverageOption=="No"]<-0
-      
+
       # Merge back
       data$childcare.overage[data$stateFIPS==51]<-temp$childcare.overage
       data$totcopay[data$stateFIPS==51]<-temp$totcopay
       data$InitialEligibility[data$stateFIPS==51]<-temp$InitialEligibility.y
-      
-      
-      
-      
+
+
+
+
     }
-    
-    
-    
+
+
+
     # WASHINGTON  ----
     # Description:
     # Variation at the state level
     # Fixed copay per family
     # Monthly frequency
     if(53 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-      
+
       temp<-data[data$stateFIPS==53,]
-      
+
       # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
       # years<-unique(data$ruleYear) # years in data set
       # yearsinexpdata<- unique(ccdfData_WA$ruleYear) # rule years in benefit data
@@ -11463,18 +11348,18 @@ function.CCDFcopay<-function(data
       # }  # Attach copied future, historical, and missing benefit data
       # if(length(futureYrs)>0) {ccdfData_WA<-ccdfData_WA %>% rbind(expand)}
       # if(length(nonFutureYrs)>0) {ccdfData_WA<-ccdfData_WA %>% rbind(expandPastMiss2)}
-      # 
+      #
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
       temp<-left_join(temp, ccdfData_WA, by=c("stateFIPS", "AKorHI", "ruleYear", "famsize"))
-      
-      
+
+
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
-      
+
       temp$FTcopay<-NA
-      
+
       temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1Max]<-temp$CopayBin1[temp$income>=0 & temp$income<=temp$Bin1Max]
       temp$FTcopay[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]<-temp$CopayBin2[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]
       temp$FTcopay[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]<-temp$CopayBin3[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]
@@ -11482,55 +11367,55 @@ function.CCDFcopay<-function(data
       temp$FTcopay[temp$income>temp$Bin4Max & temp$income<=temp$Bin5Max]<-temp$CopayBin5[temp$income>temp$Bin4Max & temp$income<=temp$Bin5Max]
       temp$FTcopay[temp$income>temp$Bin5Max & temp$income<=temp$Bin6Max]<-temp$CopayBin6[temp$income>temp$Bin5Max & temp$income<=temp$Bin6Max]
       temp$FTcopay[temp$income>temp$Bin6Max & temp$income<=temp$Bin7Max]<-temp$CopayBin7[temp$income>temp$Bin6Max & temp$income<=temp$Bin7Max]
-      
-      
-      
-      
+
+
+
+
       temp$FTcopay<-as.numeric(temp$FTcopay)
-      
+
       # Apply asset test
       subset<-temp$totalassets > temp$AssetTest
       temp$totcopay[subset]<-NA_real_
-      
+
       #----------------------------------
       # Step 2: Calculate total copays
       #----------------------------------
-      
+
       # Calculate total copay (12 months needed)
       temp$totcopay<-temp$FTcopay*12
-      
+
       # Set copay to zero if no children
       temp$totcopay[temp$numkidsincare0to4+temp$numkidsincare5to12==0]<-0
-      
+
       temp$totcopay[is.na(temp$FTcopay)]<-NA
       # Note: code produces NAs for a good reason, because family is ineligible for CCDF
       # Copay is NOT zero for ineligible, but there are people who pay 0 copay
-      
+
       # Adjust overage depending on whether states allow to charge it
       temp$childcare.overage[temp$OverageOption=="No"]<-0
-      
+
       temp$childcare.overage[temp$ruleYear==2024]<-temp$childcare.overage
       temp$totcopay[temp$ruleYear==2024]<-temp$totcopay
-      
-      
+
+
       # Merge back
       data$childcare.overage[data$stateFIPS==53]<-temp$childcare.overage
       data$totcopay[data$stateFIPS==53]<-temp$totcopay
       data$InitialEligibility[data$stateFIPS==53]<-temp$InitialEligibility.y
     }
-    
-    
+
+
     # WEST VIRIGINIA ----
     # Description:
     # Copay is a dollar amount per child
     # Daily frequency
     if(54 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-      
+
       ccdfData_WV$stateFIPS <- 54
       ccdfData_WV$AssetTest <- 1000000
-      
+
       temp<-data[data$stateFIPS==54,]
-      
+
       # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
       # years<-unique(data$ruleYear) # years in data set
       # yearsinexpdata<- unique(ccdfData_WV$ruleYear) # rule years in benefit data
@@ -11561,17 +11446,17 @@ function.CCDFcopay<-function(data
       # }  # Attach copied future, historical, and missing benefit data
       # if(length(futureYrs)>0) {ccdfData_WV<-ccdfData_WV %>% rbind(expand)}
       # if(length(nonFutureYrs)>0) {ccdfData_WV<-ccdfData_WV %>% rbind(expandPastMiss2)}
-      # 
+      #
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
       temp<-left_join(temp, ccdfData_WV, by=c("stateFIPS", "AKorHI", "famsize", "ruleYear"))
-      
+
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
-      
+
       temp$FTcopay<-NA
-      
+
       temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1Max]<-temp$CopayBin1[temp$income>=0 & temp$income<=temp$Bin1Max]
       temp$FTcopay[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]<-temp$CopayBin2[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]
       temp$FTcopay[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]<-temp$CopayBin3[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]
@@ -11588,48 +11473,48 @@ function.CCDFcopay<-function(data
       temp$FTcopay[temp$income>temp$Bin13Max & temp$income<=temp$Bin14Max]<-temp$CopayBin14[temp$income>temp$Bin13Max & temp$income<=temp$Bin14Max]
       temp$FTcopay[temp$income>temp$Bin14Max & temp$income<=temp$Bin15Max]<-temp$CopayBin15[temp$income>temp$Bin14Max & temp$income<=temp$Bin15Max]
       temp$FTcopay[temp$income>temp$Bin15Max & temp$income<=temp$Bin16Max]<-temp$CopayBin16[temp$income>temp$Bin15Max & temp$income<=temp$Bin16Max]
-      
-      
+
+
       # Apply asset test
       subset<-temp$totalassets > temp$AssetTest
       temp$FTcopay[subset]<-NA_real_
-      
+
       #----------------------------------
       # Step 2: Calculate total copays
       #----------------------------------
-      
+
       # Initialize
       temp$totcopay<-NA
-      
+
       temp$totcopay<-temp$FTcopay*(temp$daysofcareneeded0to4+temp$daysofcareneeded5to12)
-      
+
       # Set copay to zero if no children
       temp$totcopay[temp$numkidsincare0to4+temp$numkidsincare5to12==0]<-0
-      
+
       temp$totcopay[is.na(temp$FTcopay)]<-NA
       # Note: code produces NAs for a good reason, because family is ineligible for CCDF
       # Copay is NOT zero for ineligible, but there are people who pay 0 copay
-      
+
       # Adjust overage depending on whether states allow to charge it
       temp$childcare.overage[temp$OverageOption=="No"]<-0
-      
+
       # Merge back
       data$childcare.overage[data$stateFIPS==54]<-temp$childcare.overage
       data$totcopay[data$stateFIPS==54]<-temp$totcopay
       data$InitialEligibility[data$stateFIPS==54]<-temp$InitialEligibility.y
     }
-    
+
     # WYOMING ----
-    
+
     # Description:
     # Copay is a fixed dollar amount per child
     # Daily frequency
     if(56 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-      
+
       ccdfData_WY$stateFIPS <- 56
-      
+
       temp<-data[data$stateFIPS==56,]
-      
+
       # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
       # years<-unique(data$ruleYear) # years in data set
       # yearsinexpdata<- unique(ccdfData_WY$ruleYear) # rule years in benefit data
@@ -11660,69 +11545,69 @@ function.CCDFcopay<-function(data
       # }  # Attach copied future, historical, and missing benefit data
       # if(length(futureYrs)>0) {ccdfData_WY<-ccdfData_WY %>% rbind(expand)}
       # if(length(nonFutureYrs)>0) {ccdfData_WY<-ccdfData_WY %>% rbind(expandPastMiss2)}
-      # 
+      #
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
       temp<-left_join(temp, ccdfData_WY, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize"))
-      
-      
+
+
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
-      
+
       temp$FTcopay<-NA
-      
+
       temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1Max]<-temp$CopayBin1[temp$income>=0 & temp$income<=temp$Bin1Max]
       temp$FTcopay[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]<-temp$CopayBin2[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]
       temp$FTcopay[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]<-temp$CopayBin3[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]
       temp$FTcopay[temp$income>temp$Bin3Max & temp$income<=temp$Bin4Max]<-temp$CopayBin4[temp$income>temp$Bin3Max & temp$income<=temp$Bin4Max]
       temp$FTcopay[temp$income>temp$Bin4Max & temp$income<=temp$Bin5Max]<-temp$CopayBin5[temp$income>temp$Bin4Max & temp$income<=temp$Bin5Max]
       temp$FTcopay[temp$income>temp$Bin5Max & temp$income<=temp$Bin6Max]<-temp$CopayBin6[temp$income>temp$Bin5Max & temp$income<=temp$Bin6Max]
-      
+
       # Apply asset test
       subset<-temp$totalassets > temp$AssetTest
       temp$FTcopay[subset]<-NA_real_
-      
+
       #----------------------------------
       # Step 2: Calculate total copays
       #----------------------------------
-      
+
       # Determine how much care child need
       # age < 5 requires full-time school time care and full-time summer care
       # age 5 to 12 requires part-time school time care and full-time summer care
-      
+
       temp$totcopay<-temp$FTcopay*(temp$daysofcareneeded0to4+temp$daysofcareneeded5to12)
-      
+
       # Set copay to zero if no children
-      
+
       temp$totcopay[is.na(temp$FTcopay)]<-NA
       # Note: code produces NAs for a good reason, because family is ineligible for CCDF
       # Copay is NOT zero for ineligible, but there are people who pay 0 copay
-      
+
       # Adjust overage depending on whether states allow to charge it
       temp$childcare.overage[temp$OverageOption=="No"]<-0
-      
+
       # Merge back
       data$childcare.overage[data$stateFIPS==56]<-temp$childcare.overage
       data$totcopay[data$stateFIPS==56]<-temp$totcopay
       data$InitialEligibility[data$stateFIPS==56]<-temp$InitialEligibility.y
     }
-    
-    
-    
+
+
+
     # WISCONSIN ----
-    
+
     # Description:
     # Copay is a fixed amount per child
     # Copay amount varies by number of children that family has in care
     # Hourly frequency
     # ! Need to adjust definition of countable income
     if(55 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-      
+
       temp<-data[data$stateFIPS==55,]
-      
+
       temp$numkidsInCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
-      
+
       # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
       # years<-unique(data$ruleYear) # years in data set
       # yearsinexpdata<- unique(ccdfData_WI$ruleYear) # rule years in benefit data
@@ -11753,17 +11638,17 @@ function.CCDFcopay<-function(data
       # }  # Attach copied future, historical, and missing benefit data
       # if(length(futureYrs)>0) {ccdfData_WI<-ccdfData_WI %>% rbind(expand)}
       # if(length(nonFutureYrs)>0) {ccdfData_WI<-ccdfData_WI %>% rbind(expandPastMiss2)}
-      # 
+      #
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
       temp<-left_join(temp, ccdfData_WI, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize", "numkidsInCare"))
-      
+
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
-      
+
       temp$FTcopay<-NA
-      
+
       temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1Max]<-temp$CopayBin1[temp$income>=0 & temp$income<=temp$Bin1Max]
       temp$FTcopay[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]<-temp$CopayBin2[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]
       temp$FTcopay[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]<-temp$CopayBin3[temp$income>temp$Bin2Max & temp$income<=temp$Bin3Max]
@@ -11794,56 +11679,56 @@ function.CCDFcopay<-function(data
       temp$FTcopay[temp$income>temp$Bin26Max & temp$income<=temp$Bin27Max]<-temp$CopayBin27[temp$income>temp$Bin26Max & temp$income<=temp$Bin27Max]
       temp$FTcopay[temp$income>temp$Bin27Max & temp$income<=temp$Bin28Max]<-temp$CopayBin28[temp$income>temp$Bin27Max & temp$income<=temp$Bin28Max]
       temp$FTcopay[temp$income>temp$Bin28Max & temp$income<=temp$Bin29Max]<-temp$CopayBin28[temp$income>temp$Bin28Max & temp$income<=temp$Bin29Max]
-      
-      
+
+
       # On purpose assign copay from the 28th bin. Adjust later
       #temp$FTcopay[temp$income>temp$Bin28Max & temp$income<=temp$Bin29Max]<-temp$CopayBin28[temp$income>temp$Bin28Max & temp$income<=temp$Bin29Max]
-      
+
       # Apply asset test
       subset<-temp$totalassets > temp$AssetTest
       temp$FTcopay[subset]<-NA_real_
-      
+
       #----------------------------------
       # Step 2: Calculate total copays
       #----------------------------------
-      
+
       # Initialize
-      
+
       temp$totcopay<-NA
-      
+
       #turn hourly copay into daily copay (assume 8 hours)
       temp$FTcopay=8*temp$FTcopay
-      
+
       temp$totcopay<-temp$FTcopay*(temp$daysofcareneeded0to4+temp$daysofcareneeded5to12)
-      
+
       # For the last income bin the AG (total monthly) copay is increasing by $1 for every $3 that the income exceeds IncomeBin 27
       subset<-temp$income>temp$Bin28Max & temp$income<=temp$Bin29Max
       temp$totcopay[subset]<-temp$totcopay[subset]+((1/3)*(temp$income[subset]-temp$Bin28Max[subset])#*12
       )
-      
+
       # Adjust overage depending on whether states allow to charge it
       temp$childcare.overage[temp$OverageOption=="No"]<-0
-      
+
       # Merge back
       data$childcare.overage[data$stateFIPS==55]<-temp$childcare.overage
       data$totcopay[data$stateFIPS==55]<-temp$totcopay
       data$InitialEligibility[data$stateFIPS==55]<-temp$InitialEligibility.y
     }
-    
+
     # Final Calculation ----
     data$totcopay<-as.numeric(data$totcopay)
-    
+
     data$childcare.overage <- 0
-    
+
     # Calculate value of CCDF as a portion of remaining net expenses covered by the subsidy
     data$value.CCDF<-rowMaxs(cbind(data$netexp.childcare-data$totcopay-data$childcare.overage,0))
-    
+
     data$value.CCDF[is.na(data$value.CCDF)]<-0
-    
+
     data$numkidsunder13=rowSums(cbind(data$agePerson1, data$agePerson2, data$agePerson3, data$agePerson4, data$agePerson5, data$agePerson6, data$agePerson7, data$agePerson8, data$agePerson9, data$agePerson10, data$agePerson11, data$agePerson12)<=12,na.rm=TRUE)
-    
+
     data$value.CCDF[data$numkidsunder13 == 0 | is.na(data$numkidsunder13)] <- 0
-    
+
     #determine initial elig  & use this elig if contelig=FALSE & its the first yr receivng the program
     #NOTE! need to do this by unique id if using a larger dataset w/ multiple ppl
     data<- data %>%
@@ -11851,11 +11736,11 @@ function.CCDFcopay<-function(data
              firstyearofCCDF=min(Year[value.CCDF>0 & incomeeligible_initial_ccdf==1], 9999, na.rm = TRUE), #min function cant handle missing values, so set to 9999 if person is never eligible for head start
              incomeeligible_CCDF=case_when(`contelig.ccdf`==TRUE ~1 , Year>firstyearofCCDF ~1, `contelig.ccdf`==FALSE & firstyearofCCDF!=9999 & Year<=firstyearofCCDF ~ incomeeligible_initial_ccdf, TRUE~0),
              value.CCDF=value.CCDF*incomeeligible_CCDF)
-    
-  }  
-  
+
+  }
+
   return(data$value.CCDF)
- 
+
 } #end function.CCDF
 
 
