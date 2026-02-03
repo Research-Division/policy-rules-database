@@ -50,7 +50,7 @@ function.tanfBenefit<-function(data){
     data$value.tanf <- 0
   }
 
-  if(min(data$ruleYear)==2025){
+  if(max(data$ruleYear)==2025){
     
     tanfData<-tanfData[tanfData$RuleYear==2025,]
     
@@ -4787,7 +4787,7 @@ function.tanfBenefit<-function(data){
   ### result ####
   }
   
-  if(min(data$ruleYear)==2026){
+  if(max(data$ruleYear)==2026){
     
     tanfData<-tanfData[tanfData$RuleYear==2026,]
     
