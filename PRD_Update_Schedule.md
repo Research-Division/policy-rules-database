@@ -240,6 +240,17 @@ July 2026
 </tr>
 <tr>
 <td style="text-align:left;">
+Update Food Costs 
+</td>
+<td style="text-align:left;">
+Update food cost ahead of October SNAP update
+</td>
+<td style="text-align:left;">
+September 2026
+</td>
+</tr>
+</tr>
+<td style="text-align:left;">
 Supplemental Nutrition Assistance Program (SNAP)
 </td>
 <td style="text-align:left;">
