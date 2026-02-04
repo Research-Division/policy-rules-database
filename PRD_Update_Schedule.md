@@ -1,3 +1,11 @@
+<table>
+<tbody>
+<tr class="odd">
+<td>Policy Rules Database Update Schedule</td>
+</tr>
+</tbody>
+</table>
+
 <table class="table table-striped table-hover table-condensed" style="color: black; margin-left: auto; margin-right: auto;">
 <thead>
 <tr>
@@ -51,18 +59,6 @@ January 2026
 <tr>
 <td style="text-align:left;">
 Federal Taxes and Credits
-</td>
-<td style="text-align:left;">
-Update to reflect new tax bracket definitions and credit amounts and
-eligibility
-</td>
-<td style="text-align:left;">
-January 2026
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-State Taxes and Tax Credits
 </td>
 <td style="text-align:left;">
 Update to reflect new tax bracket definitions and credit amounts and
@@ -130,10 +126,11 @@ January 2026
 </tr>
 <tr>
 <td style="text-align:left;">
-Supplemental Security Income
+Supplemental Security Income (SSI)
 </td>
 <td style="text-align:left;">
-Update eligibility thresholds to reflect new FPL release
+Update eligibility thresholds to reflect new FPL release and update new
+policy parameters
 </td>
 <td style="text-align:left;">
 January 2026
@@ -141,10 +138,11 @@ January 2026
 </tr>
 <tr>
 <td style="text-align:left;">
-Social Security Disability Insurance
+Social Security Disability Insurance (SSDI)
 </td>
 <td style="text-align:left;">
-Update eligibility thresholds to reflect new FPL release
+Update eligibility thresholds to reflect new FPL release and update new
+policy parameters
 </td>
 <td style="text-align:left;">
 January 2026
@@ -170,6 +168,18 @@ Update rules around income eligibility and premium estimates
 </td>
 <td style="text-align:left;">
 March/May 2026
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+State Taxes and Tax Credits
+</td>
+<td style="text-align:left;">
+Update to reflect new tax bracket definitions and credit amounts and
+eligibility
+</td>
+<td style="text-align:left;">
+March 2026
 </td>
 </tr>
 <tr>
