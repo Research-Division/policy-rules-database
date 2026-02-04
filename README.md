@@ -6,7 +6,9 @@ The Policy Rules Database (PRD) is an open-source repository that contains up-to
 
 * To learn more, visit the [PRD website](https://www.atlantafed.org/economic-mobility-and-resilience/advancing-careers-for-low-income-families/policy-rules-database.aspx)
 
-* Read [PRD Technical Manual](https://github.com/FRB-Atlanta-Advancing-Careers/policy-rules-database/blob/9bb1e96a5218a8b486b2b3bcbf28fdcd5a2ec906/PRD%20Technical%20Manual.pdf) to get started with the PRD and to learn details about each program included in the database
+* Read [PRD Technical Manual]([https://github.com/FRB-Atlanta-Advancing-Careers/policy-rules-database/blob/9bb1e96a5218a8b486b2b3bcbf28fdcd5a2ec906/PRD%20Technical%20Manual.pdf](https://github.com/Research-Division/policy-rules-database/blob/main/PRD%20Technical%20Manual%20-%2007-12-2024.pdf)) to get started with the PRD and to learn details about each program included in the database
+
+* Refer to the [PRD Update Schedule](https://github.com/Research-Division/policy-rules-database/blob/main/PRD_Update_Schedule.md) to see when programs will be updated in the database
 
 * Analyze the structure of the U.S. social safety net using [PRD Dashboard](https://emar-data-tools.shinyapps.io/prd_dashboard/)
 
