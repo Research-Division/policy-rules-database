@@ -1038,7 +1038,7 @@ function.careerMap<-function(data, data_init){
     temp$value.snap_max<-snap_maxBenefit * 12
   } else{temp$value.snap_max<-data_init$value.snap[1]}
 
-  if(data_init$value.tanf > 0) {
+  if(data_init$value.tanf[1] > 0) {
     temp$value.tanf_max<-tanf_maxBenefit * 12
   } else(temp$value.tanf_max<-data_init$value.tanf[1])
 
