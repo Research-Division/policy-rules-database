@@ -1027,17 +1027,19 @@ function.careerMap<-function(data, data_init){
 
   temp <-data[data$Year %in% seq(minYear, minYear + careerMapLength), ]
 
-  tempTanf <-left_join(temp, tanfData, by=c("stateFIPS", "famsize")) # get the Max benefit since DC wants us to always use max amount possible
-  tempSnap <-left_join(temp, snapData, by=c("ruleYear","stateFIPS", "famsize")) # get the Max benefit since DC wants us to always use max amount possible
+  snap_maxBenefit <- snapData$MaxBenefit[snapData$ruleYear == max(snapData$ruleYear) & snapData$stateFIPS %in% unique(temp$stateFIPS) & snapData$famsize %in% unique(temp$famsize)]
+  tanf_maxBenefit <- tanfData$Maxbenefit[tanfData$RuleYear == max(tanfData$RuleYear) & tanfData$stateFIPS %in% unique(temp$stateFIPS) & tanfData$famsize %in% unique(temp$famsize)]
+  #tempTanf <-left_join(temp, tanfData, by=c("stateFIPS", "famsize")) # get the Max benefit since DC wants us to always use max amount possible
+  #tempSnap <-left_join(temp, snapData, by=c("ruleYear","stateFIPS", "famsize")) # get the Max benefit since DC wants us to always use max amount possible
 
   # Calculate initial value of selected benefits.These lines condition on there being SNAP received or TANF received in the initial period.
   # ...do not want to apply HHF for SNAP or TANF if SNAP or TANF are not a chosen benefit.
   if(data_init$value.snap[1] > 0){
-    temp$value.snap_max<-tempSnap$MaxBenefit * 12
+    temp$value.snap_max<-snap_maxBenefit * 12
   } else{temp$value.snap_max<-data_init$value.snap[1]}
 
-  if(data_init$value.tanf > 0) {
-    temp$value.tanf_max<-tempTanf$Maxbenefit * 12
+  if(data_init$value.tanf[1] > 0) {
+    temp$value.tanf_max<-tanf_maxBenefit * 12
   } else(temp$value.tanf_max<-data_init$value.tanf[1])
 
   # set housing value for benefits calculation
