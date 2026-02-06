@@ -1967,7 +1967,8 @@ function.schoolmeals<-function(data){
     data$copay<-NA
 
     #value of school lunch depends on income
-    data$income.countable=data$income+data$income.gift + data$income.child_support+data$value.ssdi + data$value.ssi + data$value.tanf
+    #data$income.countable=data$income+data$income.gift + data$income.child_support+data$value.ssdi + data$value.ssi + data$value.tanf
+    data$income.countable= sum(c(data$income,data$income.gift,data$income.child_support,data$value.ssdi,data$value.ssi,data$value.tanf),na.rm=T)
     data$copay[data$income.countable<=data$IncomeBin1Max]<-data$CopayBin1[data$income.countable<=data$IncomeBin1Max]
     data$copay[data$income.countable>data$IncomeBin1Max & data$income.countable<=data$IncomeBin2Max]<-data$CopayBin2[data$income.countable>data$IncomeBin1Max & data$income.countable<=data$IncomeBin2Max]
     data$copay<-data$copay*parameters.defaults$numberofSchoolDays[1] #Annualize
