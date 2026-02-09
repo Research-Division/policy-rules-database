@@ -29,19 +29,19 @@ Federal Poverty Guidelines (FPL)
 New data released
 </td>
 <td style="text-align:left;">
-January 2026
+January 2027
 </td>
 </tr>
 <tr>
 <td style="text-align:left;">
-Affordable Care Act
+Affordable Care Act Subsidies
 </td>
 <td style="text-align:left;">
 Updates to subidity eligibility and marketplace average monthly
 benchmark premiums
 </td>
 <td style="text-align:left;">
-January 2026
+January 2027
 </td>
 </tr>
 <tr>
@@ -53,7 +53,7 @@ Adjust eligibility based on new FPL and update Broad Based Catergorical
 Elgibility (BBCE) rules
 </td>
 <td style="text-align:left;">
-January 2026
+January 2027
 </td>
 </tr>
 <tr>
@@ -62,10 +62,10 @@ Federal Taxes and Credits
 </td>
 <td style="text-align:left;">
 Update to reflect new tax bracket definitions and credit amounts and
-eligibility
+eligibility for Federal Income Tax, FICA, EITC, CTC, and CDCTC
 </td>
 <td style="text-align:left;">
-January 2026
+January 2027
 </td>
 </tr>
 <tr>
@@ -76,7 +76,7 @@ National School Lunch and School Breakfast Programs
 Update eligibility thresholds to reflect new FPL release
 </td>
 <td style="text-align:left;">
-January 2026
+January 2027
 </td>
 </tr>
 <tr>
@@ -87,7 +87,7 @@ Early Head Start and Head Start
 Update eligibility thresholds to reflect new FPL release
 </td>
 <td style="text-align:left;">
-January 2026
+January 2027
 </td>
 </tr>
 <tr>
@@ -98,7 +98,7 @@ Temporary Assistance for Needy Families (TANF)
 Update eligibility thresholds to reflect new FPL release
 </td>
 <td style="text-align:left;">
-January 2026
+January 2027
 </td>
 </tr>
 <tr>
@@ -109,7 +109,7 @@ Childcare Development Fund Subsidies (CCDF)
 Update eligibility thresholds to reflect new FPL release
 </td>
 <td style="text-align:left;">
-January 2026
+January 2027
 </td>
 </tr>
 <tr>
@@ -121,7 +121,7 @@ Special Supplemental Nutrition Program for Women, Infants, and Children
 Update eligibility thresholds to reflect new FPL release
 </td>
 <td style="text-align:left;">
-January 2026
+January 2027
 </td>
 </tr>
 <tr>
@@ -133,7 +133,7 @@ Update eligibility thresholds to reflect new FPL release and update new
 policy parameters
 </td>
 <td style="text-align:left;">
-January 2026
+January 2027
 </td>
 </tr>
 <tr>
@@ -145,7 +145,7 @@ Update eligibility thresholds to reflect new FPL release and update new
 policy parameters
 </td>
 <td style="text-align:left;">
-January 2026
+January 2027
 </td>
 </tr>
 <tr>
@@ -156,7 +156,7 @@ Housing Costs
 ALICE team updates estimates for housing costs
 </td>
 <td style="text-align:left;">
-January 2026
+January 2027
 </td>
 </tr>
 <tr>
