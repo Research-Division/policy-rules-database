@@ -58,7 +58,6 @@ APPLY_CHILDCARE<-inputs$APPLY_CHILDCARE #Childcare block - Head Start and CCDF
 APPLY_CCDF<-inputs$APPLY_CCDF
 APPLY_HEADSTART<-inputs$APPLY_HEADSTART 
 APPLY_PREK<-inputs$APPLY_PREK 
-APPLY_LIHEAP<-FALSE 
 APPLY_HEALTHCARE<-inputs$APPLY_HEALTHCARE 
 APPLY_MEDICAID_ADULT<-inputs$APPLY_MEDICAID_ADULT 
 APPLY_MEDICAID_CHILD<-inputs$APPLY_MEDICAID_CHILD 
@@ -73,7 +72,6 @@ APPLY_EITC<-inputs$APPLY_EITC
 APPLY_TAXES<-inputs$APPLY_TAXES 
 APPLY_CTC<-inputs$APPLY_CTC
 APPLY_CDCTC<-inputs$APPLY_CDCTC 
-APPLY_FATES<-inputs$APPLY_FATES 
 APPLY_TANF<-inputs$APPLY_TANF 
 APPLY_SSI<-inputs$APPLY_SSI 
 APPLY_SSDI<-inputs$APPLY_SSDI
@@ -91,13 +89,13 @@ data<-BenefitsCalculator.ALICEExpenses(data)
 data<-BenefitsCalculator.OtherBenefits(data, APPLY_TANF, APPLY_SSI, APPLY_SSDI) # OPTION TO END WITH APPLY_SSDI
 
 # Apply child care block
-data<-BenefitsCalculator.Childcare(data, APPLY_CHILDCARE, APPLY_HEADSTART, APPLY_PREK, APPLY_CCDF,APPLY_FATES) # OPTION TO END WITH APPLY_FATES
+data<-BenefitsCalculator.Childcare(data, APPLY_CHILDCARE, APPLY_HEADSTART, APPLY_PREK, APPLY_CCDF) 
 
 # Apply public health insurance block
 data<-BenefitsCalculator.Healthcare(data, APPLY_HEALTHCARE, APPLY_MEDICAID_ADULT, APPLY_MEDICAID_CHILD, APPLY_ACA) # OPTION TO END WITH APPLY_ACA
 
 # Apply food and housing block
-data<-BenefitsCalculator.FoodandHousing(data, APPLY_SECTION8, APPLY_LIHEAP, APPLY_SNAP, APPLY_SLP, APPLY_WIC, APPLY_RAP, APPLY_FRSP) # OPTION TO END WITH APPLY_FRSP
+data<-BenefitsCalculator.FoodandHousing(data, APPLY_SECTION8, APPLY_SNAP, APPLY_SLP, APPLY_WIC, APPLY_RAP, APPLY_FRSP) # OPTION TO END WITH APPLY_FRSP
 
 # Apply taxes and tax credits block
 data<-BenefitsCalculator.TaxesandTaxCredits(data, APPLY_EITC, APPLY_CTC, APPLY_CDCTC)
@@ -114,7 +112,7 @@ data2<-data %>%
          , income, assets.cash
          , exp.childcare, exp.food, exp.rentormortgage, exp.healthcare, exp.utilities, exp.misc, exp.transportation
          , netexp.childcare, netexp.food, netexp.rentormortgage, netexp.healthcare, netexp.utilities
-         , value.snap, value.schoolmeals, value.section8, value.liheap
+         , value.snap, value.schoolmeals, value.section8
          , value.medicaid.adult, value.medicaid.child, value.aca, value.employerhealthcare
          , value.CCDF, value.HeadStart, value.PreK
          , value.cdctc.fed, value.cdctc.state, value.ctc.fed, value.ctc.state, value.eitc.fed, value.eitc.state
