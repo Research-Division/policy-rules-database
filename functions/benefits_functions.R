@@ -1573,21 +1573,6 @@ function.schoolmeals<-function(data){
 
 # TAXES AND TAX CREDITS----
 
-# State Sales Tax ----
-
-function.statesalestax<-function(data
-                               , taxableexpensesvar
-                               , foodexpensesvar){
-
-    colnames(data)[colnames(data)==taxableexpensesvar]<-"taxableexpenses"
-    colnames(data)[colnames(data)==foodexpensesvar]<-"foodexpenses"
-
-    data<-left_join(data, salestaxData, by=c("stateFIPS"))
-
-    data$value.salestax<-data$taxableexpenses*data$SalesTaxRate+data$foodexpenses*data$SalesTaxRate.Food
-
-    return(data$value.salestax)
-  }
 
 
 # Federal Personal Income Tax ----
