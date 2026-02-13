@@ -5,7 +5,7 @@
 # - Public Assistance
 # - Taxes and Tax Credits
 
-if (!exists("FATES")) FATES=FALSE
+
 if (!exists("APPLY_FRSP")) APPLY_FRSP=FALSE
 #if (!exists("APPLY_RAP")) APPLY_RAP=FALSE
 
@@ -272,18 +272,18 @@ BenefitsCalculator.ALICEExpenses<-function(data){
 # - If available, Pre-K is the best option (NOT YET INCLUDED)
 # - If available, Head Start is the second best option
 # - If available, CCDF subsidy is the third best option
-BenefitsCalculator.Childcare<-function(data, APPLY_CHILDCARE=TRUE,APPLY_HEADSTART=TRUE,APPLY_PREK=TRUE, APPLY_CCDF=TRUE, APPLY_FATES=FALSE
+BenefitsCalculator.Childcare<-function(data, APPLY_CHILDCARE=TRUE,APPLY_HEADSTART=TRUE,APPLY_PREK=TRUE, APPLY_CCDF=TRUE
                                        , contelig.ccdf = TRUE, contelig.headstart = TRUE, contelig.earlyheadstart = TRUE
                                        , k_ftorpt="FT", schoolagesummercare="PT", headstart_ftorpt="PT", preK_ftorpt="PT"){
 
-if(APPLY_CHILDCARE==FALSE | (APPLY_HEADSTART==FALSE & APPLY_CCDF==FALSE & APPLY_PREK==FALSE)){ #Fates can only be TRUE if CCDF is also TRUE
+if(APPLY_CHILDCARE==FALSE | (APPLY_HEADSTART==FALSE & APPLY_CCDF==FALSE & APPLY_PREK==FALSE)){ 
   data$netexp.childcare <- data$exp.childcare
   data$value.CCDF<-0
   data$value.HeadStart<-0
   data$value.earlyHeadStart<-0
   data$value.PreK<-0
   data$numkidsinschool=rowSums(cbind(data$agePerson1, data$agePerson2, data$agePerson3, data$agePerson4, data$agePerson5, data$agePerson6, data$agePerson7, data$agePerson8, data$agePerson9, data$agePerson10, data$agePerson11, data$agePerson12)<=18 & cbind(data$agePerson1, data$agePerson2, data$agePerson3, data$agePerson4, data$agePerson5, data$agePerson6, data$agePerson7, data$agePerson8, data$agePerson9, data$agePerson10, data$agePerson11, data$agePerson12)>=5, na.rm=TRUE)
-  data$value.FATES<-0
+
   }else{
 
 
@@ -797,26 +797,7 @@ if(APPLY_CCDF==FALSE){
   }
 
 
-if(APPLY_FATES==FALSE){
 
-  data$value.FATES<-0
-
-}
-    else if(APPLY_FATES==TRUE){
-
-    # Calculate total copay
-  data$value.FATES<- function.CCDFcopayFATES(data
-                                      , contelig.ccdf = `contelig.ccdf`)
-
-  #Calculate net childcare expenses (net of CCDF and Head Start) for SNAP, CDCTC etc
-    data<-data %>%
-  #replace values of FATES With 0 where there is CCDF
-    mutate(value.FATES=case_when(value.CCDF>0 ~ 0,TRUE~ value.FATES)) %>%
-    #Calculate net childcare expenses (net of CCDF and Head Start) for SNAP, CDCTC etc
-    mutate(netexp.childcare = exp.childcare-value.HeadStart-value.earlyHeadStart-value.PreK-value.CCDF-value.FATES)
-
-
-}
 
   }
 
@@ -1675,7 +1656,7 @@ BenefitsCalculator.Healthcare<-function(data, APPLY_HEALTHCARE=FALSE, APPLY_MEDI
 }
 
 # OTHER Benefits ----
-# (liheap, tanf, will add ssi and ssdi here when finished)
+
 BenefitsCalculator.OtherBenefits<-function(data, APPLY_TANF, APPLY_SSDI, APPLY_SSI){
 
 
@@ -1780,10 +1761,9 @@ BenefitsCalculator.OtherBenefits<-function(data, APPLY_TANF, APPLY_SSDI, APPLY_S
 # FOOD and HOUSING----
 # (Housing Vouchers (Section 8, RAP), SNAP, SLP, WIC)
 
-BenefitsCalculator.FoodandHousing<-function(data, APPLY_SECTION8=FALSE, APPLY_LIHEAP=FALSE, APPLY_SNAP=FALSE, APPLY_SLP=FALSE, APPLY_WIC=FALSE, APPLY_RAP=FALSE, APPLY_FRSP=FALSE, frsp_share = 0.3, CareerMAP=FALSE){
+BenefitsCalculator.FoodandHousing<-function(data, APPLY_SECTION8=FALSE, APPLY_SNAP=FALSE, APPLY_SLP=FALSE, APPLY_WIC=FALSE, APPLY_RAP=FALSE, APPLY_FRSP=FALSE, frsp_share = 0.3, CareerMAP=FALSE){
 
-#some programs rely on liheap, but liheap is run last
-  data$value.liheap<-0
+
 
   # Section 8
   if(APPLY_SECTION8==FALSE & APPLY_RAP==FALSE & APPLY_FRSP==FALSE){
@@ -1912,17 +1892,7 @@ BenefitsCalculator.FoodandHousing<-function(data, APPLY_SECTION8=FALSE, APPLY_LI
 
   }}
 
-  # LIHEAP - only workign for CT right now.
-  if(APPLY_LIHEAP==FALSE & APPLY_SECTION8==FALSE){
-    data$netexp.utilities<-data$exp.utilities
-    data$value.liheap<-0
-  }else{ if(APPLY_LIHEAP==FALSE & APPLY_SECTION8==TRUE){
-      data$netexp.utilities<-data$netexp.utilities
-      data$value.liheap<-0
-  }else {
-    data$value.liheap<-function.liheapBenefit(data)
-    data$netexp.utilities<-data$netexp.utilities-data$value.liheap
-  }}
+  
 
 
 
@@ -1947,7 +1917,7 @@ BenefitsCalculator.TaxesandTaxCredits<-function(data, APPLY_EITC=FALSE, APPLY_CT
     data$tax.FICA<-0
     data$tax.federal_tm12<-0
     data$tax.income.state_tm12<-0
-    data$tax.income.local_tm12<-0
+ 
   }else if(APPLY_TAXES==TRUE){
 
 # Current Year Taxes (for take-home pay) 
@@ -2021,11 +1991,11 @@ if(APPLY_CDCTC==FALSE){
 }
 
 data$value.taxcredits.fed<-data$value.eitc.fed+data$value.ctc.fed+data$value.cdctc.fed
-# State & Local Taxes and State Tax Credits ----
+# State Taxes and State Tax Credits ----
 
 if(APPLY_TAXES==FALSE){
   data$tax.income.state<-0
-  data$tax.income.local<-0
+
  }else if(APPLY_TAXES==TRUE){
 
 # Current Year State Income Tax (for take-home pay)
@@ -2040,11 +2010,7 @@ data$tax.income.state<-function.stateinctax(data
    
 data$tax.income.state[is.na(data$tax.income.state)]<-0
 
-# Current Year- local
 
-data$tax.income.local<-function.localinctax(data
-                                            ,incomevar = "income")
-data$tax.income.local[is.na(data$tax.income.local)]<-0
 
 # Past Year
 
@@ -2056,9 +2022,6 @@ data$tax.income.state_tm12<-function.stateinctax(data
 data$tax.income.state_tm12[is.na(data$tax.income.state_tm12)]<-0
 
 
-data$tax.income.local_tm12<-function.localinctax(data
-                                            ,incomevar = "income_tm12")
-data$tax.income.local_tm12[is.na(data$tax.income.local)]<-0
 
 
 
@@ -2144,15 +2107,14 @@ return(data)
 function.createVars<-function(data){
 
 data<-data %>%
-    mutate( income.aftertax.noTC = income +income.gift+income.investment+income.child_support - tax.income.fed - tax.income.state -tax.income.local - tax.FICA
+    mutate( income.aftertax.noTC = income +income.gift+income.investment+income.child_support - tax.income.fed - tax.income.state - tax.FICA
             # uses exp.healthcare.SS: healthcare expense based on costs of employer sponsored health insurance; plotted in expenses bar chart in CLIFF Dashboard and Planner
             ,SelfSufficiency = exp.childcare+exp.healthcare.SS+exp.food+exp.rentormortgage+exp.transportation+exp.misc+exp.utilities+exp.tech
 
-              ,total.transfers = value.CCDF+value.HeadStart+value.earlyHeadStart+value.PreK+
-              value.liheap+value.section8+value.snap+value.wic+value.schoolmeals+value.tanf+
+              ,total.transfers = value.CCDF+value.HeadStart+value.earlyHeadStart+value.PreK+value.section8+value.snap+value.wic+value.schoolmeals+value.tanf+
               value.aca+value.medicaid+value.ssi+value.ssdi+
-              value.cdctc.fed+value.cdctc.state+value.eitc.fed+value.eitc.state+value.ctc.fed+value.ctc.state+value.FATES
-            , total.taxes = tax.income.fed+tax.income.state+tax.income.local + tax.FICA
+              value.cdctc.fed+value.cdctc.state+value.eitc.fed+value.eitc.state+value.ctc.fed+value.ctc.state
+            , total.taxes = tax.income.fed+tax.income.state+ tax.FICA
             # uses exp.healthcare: healthcare expense based on source of healthcare the person is on (Medicaid,ACA,etc.); used in NetResources
             ,total.expenses = exp.childcare+exp.healthcare+exp.food+exp.rentormortgage+
               exp.transportation+exp.misc+exp.utilities+exp.tech
@@ -2165,10 +2127,9 @@ data<-data %>%
             ,value.eitc=value.eitc.fed+value.eitc.state
 
             ,NetResources = income+income.gift+income.investment+income.child_support+value.employerhealthcare+total.transfers-total.taxes-total.expenses
-            ,NetResources.FATES = income+income.gift+income.investment+income.child_support+value.employerhealthcare+total.transfers-total.taxes-total.expenses +value.FATES
-
+            
             #,netexp.housing=netexp.rentormortgage+netexp.utilities
-            ,AfterTaxIncome=(income+income.gift+income.investment+income.child_support)-(tax.income.fed+tax.income.state+tax.income.local+tax.FICA)
+            ,AfterTaxIncome=(income+income.gift+income.investment+income.child_support)-(tax.income.fed+tax.income.state+tax.FICA)
 
             )
 
@@ -2185,14 +2146,13 @@ return(data)
 function.createVars.CLIFF<-function(data){
 
   data<-data %>%
-    mutate( income.aftertax.noTC = income+income.gift+income.investment+income.child_support - tax.income.fed - tax.income.state -tax.income.local - tax.FICA
+    mutate( income.aftertax.noTC = income+income.gift+income.investment+income.child_support - tax.income.fed - tax.income.state - tax.FICA
 
             # Totals
-            ,total.transfers = value.CCDF+value.HeadStart+value.earlyHeadStart+value.PreK+
-              value.liheap+value.section8+value.tanf+value.snap+value.schoolmeals+value.wic+
+            ,total.transfers = value.CCDF+value.HeadStart+value.earlyHeadStart+value.PreK+value.section8+value.tanf+value.snap+value.schoolmeals+value.wic+
               value.aca+value.medicaid+value.ssi+value.ssdi+
               value.cdctc.fed+value.cdctc.state+value.eitc.fed+value.eitc.state+value.ctc.fed+value.ctc.state
-            ,total.taxes = tax.income.fed+tax.income.state+tax.income.local+tax.FICA
+            ,total.taxes = tax.income.fed+tax.income.state+tax.FICA
             ,total.expenses = exp.childcare+exp.healthcare+exp.food+exp.rentormortgage+
               exp.transportation+exp.misc+exp.utilities+exp.tech
 
@@ -2207,7 +2167,7 @@ function.createVars.CLIFF<-function(data){
             ,NetResources = income+income.gift+income.investment+income.child_support+value.employerhealthcare+total.transfers-value.tuition.net-total.taxes-total.expenses-studentLoanRepayment-value.loans
 
             #,netexp.housing=netexp.rentormortgage+netexp.utilities
-            ,AfterTaxIncome=(income+income.gift+income.investment+income.child_support)-(tax.income.fed+tax.income.state+tax.income.local+tax.FICA)
+            ,AfterTaxIncome=(income+income.gift+income.investment+income.child_support)-(tax.income.fed+tax.income.state+tax.FICA)
 
     )
 

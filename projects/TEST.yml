@@ -5,11 +5,11 @@
 
 # Specify rule year(s) also for inflation/deflation purposes
 
-ruleYear: [2025]
+ruleYear: [2026]
 
 # Specify year of the data 
 
-Year: [2025]
+Year: [2026]
 
 
 # Age of each member of the household
@@ -176,11 +176,9 @@ APPLY_CHILDCARE: true
 
 APPLY_HEADSTART: false
 
-APPLY_CCDF: false
+APPLY_CCDF: true
 
 APPLY_PREK: false
-
-APPLY_LIHEAP: false
 
 APPLY_HEALTHCARE: true
 
@@ -204,13 +202,11 @@ APPLY_WIC: false
 
 APPLY_EITC: false
 
-APPLY_TAXES: false
+APPLY_TAXES: true
 
 APPLY_CTC: false
 
 APPLY_CDCTC: false
-
-APPLY_FATES: false
 
 APPLY_TANF: false
 
