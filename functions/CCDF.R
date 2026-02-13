@@ -100,36 +100,6 @@ function.CCDFcopay<-function(data
     temp<-data[data$stateFIPS==1,]
     temp$numkidsInCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
 
-    # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-    # years<-unique(data$ruleYear) # years in data set
-    # yearsinexpdata<- unique(ccdfData_AL$ruleYear) # rule years in benefit data
-    # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-    # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-    # # Create data for the future
-    # maxyearofdata<-max(ccdfData_AL$ruleYear) # collect latest year of benefit data
-    # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-    # if(length(futureYrs)>0){
-    #   # Create data frame with future years
-    #   expand<-expand.grid(stateFIPS=unique(ccdfData_AL$stateFIPS), AKorHI=unique(ccdfData_AL$AKorHI), famsize=unique(ccdfData_AL$famsize), numkidsInCare=unique(ccdfData_AL$numkidsInCare), Year=futureYrs)
-    #   # Collect latest benefit data there is and merge w/data frame
-    #   expand2<-ccdfData_AL[ccdfData_AL$ruleYear==maxyearofdata, ]
-    #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-    # }
-    # Create data for past and gap years (missing data) - not the future
-    # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-    # if(length(nonFutureYrs)>0){
-    #   #Create data frame with past years and year for which we are missing benefit data
-    #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_AL$stateFIPS), AKorHI=unique(ccdfData_AL$AKorHI), famsize=unique(ccdfData_AL$famsize), numkidsInCare=unique(ccdfData_AL$numkidsInCare), Year=nonFutureYrs)
-    #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-    #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_AL, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare"))
-    #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-    #   expandPastMiss2<-expandPastMiss2%>%
-    #     group_by(Year)%>%
-    #     filter(yeardiff<0)%>%
-    #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-    # }  # Attach copied future, historical, and missing benefit data
-    # if(length(futureYrs)>0) {ccdfData_AL<-ccdfData_AL %>% rbind(expand)}
-    # if(length(nonFutureYrs)>0) {ccdfData_AL<-ccdfData_AL %>% rbind(expandPastMiss2)}
 
     #----------------------------------
     # Step 1: Assign copays
@@ -196,36 +166,7 @@ function.CCDFcopay<-function(data
 
     temp<-data[data$stateFIPS==2,]
 
-    # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-    # years<-unique(data$ruleYear) # years in data set
-    # yearsinexpdata<- unique(ccdfData_AK$ruleYear) # rule years in benefit data
-    # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-    # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-    # # Create data for the future
-    # maxyearofdata<-max(ccdfData_AK$ruleYear) # collect latest year of benefit data
-    # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-    # if(length(futureYrs)>0){
-    #   # Create data frame with future years
-    #   expand<-expand.grid(stateFIPS=unique(ccdfData_AK$stateFIPS), AKorHI=unique(ccdfData_AK$AKorHI), famsize=unique(ccdfData_AK$famsize), Year=futureYrs)
-    #   # Collect latest benefit data there is and merge w/data frame
-    #   expand2<-ccdfData_AK[ccdfData_AK$ruleYear==maxyearofdata, ]
-    #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-    # }
-    # # Create data for past and gap years (missing data) - not the future
-    # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-    # if(length(nonFutureYrs)>0){
-    #   #Create data frame with past years and year for which we are missing benefit data
-    #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_AK$stateFIPS), AKorHI=unique(ccdfData_AK$AKorHI), famsize=unique(ccdfData_AK$famsize), Year=nonFutureYrs)
-    #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-    #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_AK, by=c("stateFIPS", "AKorHI", "famsize"))
-    #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-    #   expandPastMiss2<-expandPastMiss2%>%
-    #     group_by(Year)%>%
-    #     filter(yeardiff<0)%>%
-    #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-    # }  # Attach copied future, historical, and missing benefit data
-    # if(length(futureYrs)>0) {ccdfData_AK<-ccdfData_AK %>% rbind(expand)}
-    # if(length(nonFutureYrs)>0) {ccdfData_AK<-ccdfData_AK %>% rbind(expandPastMiss2)}
+
 
     #----------------------------------
     # Step 1: Assign copays
@@ -364,36 +305,7 @@ function.CCDFcopay<-function(data
 
     temp<-data[data$stateFIPS==4,]
 
-    # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-    # years<-unique(data$ruleYear) # years in data set
-    # yearsinexpdata<- unique(ccdfData_AZ$ruleYear) # rule years in benefit data
-    # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-    # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-    # # Create data for the future
-    # maxyearofdata<-max(ccdfData_AZ$ruleYear) # collect latest year of benefit data
-    # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-    # if(length(futureYrs)>0){
-    #   # Create data frame with future years
-    #   expand<-expand.grid(stateFIPS=unique(ccdfData_AZ$stateFIPS), AKorHI=unique(ccdfData_AZ$AKorHI), famsize=unique(ccdfData_AZ$famsize), Year=futureYrs)
-    #   # Collect latest benefit data there is and merge w/data frame
-    #   expand2<-ccdfData_AZ[ccdfData_AZ$ruleYear==maxyearofdata, ]
-    #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-    # }
-    # # Create data for past and gap years (missing data) - not the future
-    # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-    # if(length(nonFutureYrs)>0){
-    #   #Create data frame with past years and year for which we are missing benefit data
-    #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_AZ$stateFIPS), AKorHI=unique(ccdfData_AZ$AKorHI), famsize=unique(ccdfData_AZ$famsize), Year=nonFutureYrs)
-    #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-    #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_AZ, by=c("stateFIPS", "AKorHI", "famsize"))
-    #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-    #   expandPastMiss2<-expandPastMiss2%>%
-    #     group_by(Year)%>%
-    #     filter(yeardiff<0)%>%
-    #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-    # }  # Attach copied future, historical, and missing benefit data
-    # if(length(futureYrs)>0) {ccdfData_AZ<-ccdfData_AZ %>% rbind(expand)}
-    # if(length(nonFutureYrs)>0) {ccdfData_AZ<-ccdfData_AZ %>% rbind(expandPastMiss2)}
+   
     #
     #----------------------------------
     # Step 1: Assign copays
@@ -454,37 +366,7 @@ function.CCDFcopay<-function(data
 
     temp<-data[data$stateFIPS==5,]
 
-    # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-    # years<-unique(data$ruleYear) # years in data set
-    # yearsinexpdata<- unique(ccdfData_AR$ruleYear) # rule years in benefit data
-    # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-    # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-    # # Create data for the future
-    # maxyearofdata<-max(ccdfData_AR$ruleYear) # collect latest year of benefit data
-    # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-    # if(length(futureYrs)>0){
-    #   # Create data frame with future years
-    #   expand<-expand.grid(stateFIPS=unique(ccdfData_AR$stateFIPS), AKorHI=unique(ccdfData_AR$AKorHI), famsize=unique(ccdfData_AR$famsize), Year=futureYrs)
-    #   # Collect latest benefit data there is and merge w/data frame
-    #   expand2<-ccdfData_AR[ccdfData_AR$ruleYear==maxyearofdata, ]
-    #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-    # }
-    # # Create data for past and gap years (missing data) - not the future
-    # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-    # if(length(nonFutureYrs)>0){
-    #   #Create data frame with past years and year for which we are missing benefit data
-    #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_AR$stateFIPS), AKorHI=unique(ccdfData_AR$AKorHI), famsize=unique(ccdfData_AR$famsize), Year=nonFutureYrs)
-    #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-    #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_AR, by=c("stateFIPS", "AKorHI", "famsize"))
-    #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-    #   expandPastMiss2<-expandPastMiss2%>%
-    #     group_by(Year)%>%
-    #     filter(yeardiff<0)%>%
-    #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-    # }  # Attach copied future, historical, and missing benefit data
-    # if(length(futureYrs)>0) {ccdfData_AR<-ccdfData_AR %>% rbind(expand)}
-    # if(length(nonFutureYrs)>0) {ccdfData_AR<-ccdfData_AR %>% rbind(expandPastMiss2)}
-    #
+   
     #----------------------------------
     # Step 1: Assign copays
     #----------------------------------
@@ -613,37 +495,7 @@ function.CCDFcopay<-function(data
 
     temp$numkidsInCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
 
-    # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-    # years<-unique(data$ruleYear) # years in data set
-    # yearsinexpdata<- unique(ccdfData_CO$ruleYear) # rule years in benefit data
-    # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-    # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-    # # Create data for the future
-    # maxyearofdata<-max(ccdfData_CO$ruleYear) # collect latest year of benefit data
-    # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-    # if(length(futureYrs)>0){
-    #   # Create data frame with future years
-    #   expand<-expand.grid(stateFIPS=unique(ccdfData_CO$stateFIPS), AKorHI=unique(ccdfData_CO$AKorHI), famsize=unique(ccdfData_CO$famsize), countyortownName=unique(ccdfData_CO$countyortownName), numkidsInCare=unique(ccdfData_CO$numkidsInCare), Year=futureYrs)
-    #   # Collect latest benefit data there is and merge w/data frame
-    #   expand2<-ccdfData_CO[ccdfData_CO$ruleYear==maxyearofdata, ]
-    #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize","countyortownName", "numkidsInCare")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-    # }
-    # # Create data for past and gap years (missing data) - not the future
-    # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-    # if(length(nonFutureYrs)>0){
-    #   #Create data frame with past years and year for which we are missing benefit data
-    #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_CO$stateFIPS), AKorHI=unique(ccdfData_CO$AKorHI), famsize=unique(ccdfData_CO$famsize), countyortownName=unique(ccdfData_CO$countyortownName), numkidsInCare=unique(ccdfData_CO$numkidsInCare), Year=nonFutureYrs)
-    #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-    #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_CO, by=c("stateFIPS", "AKorHI", "famsize", "countyortownName", "numkidsInCare"))
-    #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-    #   expandPastMiss2<-expandPastMiss2%>%
-    #     group_by(Year)%>%
-    #     filter(yeardiff<0)%>%
-    #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-    # }  # Attach copied future, historical, and missing benefit data
-    # if(length(futureYrs)>0) {ccdfData_CO<-ccdfData_CO %>% rbind(expand)}
-    # if(length(nonFutureYrs)>0) {ccdfData_CO<-ccdfData_CO %>% rbind(expandPastMiss2)}
-    #
+  
     #----------------------------------
     # Step 1: Assign copays
     #----------------------------------
@@ -708,36 +560,7 @@ function.CCDFcopay<-function(data
 
     temp<-data[data$stateFIPS==9,]
 
-    # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-    # years<-unique(data$ruleYear) # years in data set
-    # yearsinexpdata<- unique(ccdfData_CT$ruleYear) # rule years in benefit data
-    # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-    # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-    # # Create data for the future
-    # maxyearofdata<-max(ccdfData_CT$ruleYear) # collect latest year of benefit data
-    # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-    # if(length(futureYrs)>0){
-    #   # Create data frame with future years
-    #   expand<-expand.grid(stateFIPS=unique(ccdfData_CT$stateFIPS), AKorHI=unique(ccdfData_CT$AKorHI), famsize=unique(ccdfData_CT$famsize), Year=futureYrs)
-    #   # Collect latest benefit data there is and merge w/data frame
-    #   expand2<-ccdfData_CT[ccdfData_CT$ruleYear==maxyearofdata, ]
-    #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-    # }
-    # # Create data for past and gap years (missing data) - not the future
-    # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-    # if(length(nonFutureYrs)>0){
-    #   #Create data frame with past years and year for which we are missing benefit data
-    #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_CT$stateFIPS), AKorHI=unique(ccdfData_CT$AKorHI), famsize=unique(ccdfData_CT$famsize), Year=nonFutureYrs)
-    #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-    #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_CT, by=c("stateFIPS", "AKorHI", "famsize"))
-    #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-    #   expandPastMiss2<-expandPastMiss2%>%
-    #     group_by(Year)%>%
-    #     filter(yeardiff<0)%>%
-    #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-    # }  # Attach copied future, historical, and missing benefit data
-    # if(length(futureYrs)>0) {ccdfData_CT<-ccdfData_CT %>% rbind(expand)}
-    # if(length(nonFutureYrs)>0) {ccdfData_CT<-ccdfData_CT %>% rbind(expandPastMiss2)}
+   
     #
     #----------------------------------
     # Step 1: Assign copays
@@ -791,36 +614,7 @@ function.CCDFcopay<-function(data
 
     temp <- data[data$stateFIPS==10,]
 
-    # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-    # years<-unique(data$ruleYear) # years in data set
-    # yearsinexpdata<- unique(ccdfData_DE$ruleYear) # rule years in benefit data
-    # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-    # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-    # # Create data for the future
-    # maxyearofdata<-max(ccdfData_DE$ruleYear) # collect latest year of benefit data
-    # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-    # if(length(futureYrs)>0){
-    #   # Create data frame with future years
-    #   expand<-expand.grid(stateFIPS=unique(ccdfData_DE$stateFIPS), AKorHI=unique(ccdfData_DE$AKorHI), famsize=unique(ccdfData_DE$famsize), Year=futureYrs)
-    #   # Collect latest benefit data there is and merge w/data frame
-    #   expand2<-ccdfData_DE[ccdfData_DE$ruleYear==maxyearofdata, ]
-    #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)# %>%drop_na()
-    # }
-    # # Create data for past and gap years (missing data) - not the future
-    # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-    # if(length(nonFutureYrs)>0){
-    #   #Create data frame with past years and year for which we are missing benefit data
-    #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_DE$stateFIPS), AKorHI=unique(ccdfData_DE$AKorHI), famsize=unique(ccdfData_DE$famsize), Year=nonFutureYrs)
-    #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-    #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_DE, by=c("stateFIPS", "AKorHI", "famsize"))
-    #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-    #   expandPastMiss2<-expandPastMiss2%>%
-    #     group_by(Year)%>%
-    #     filter(yeardiff<0)%>%
-    #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-    # }  # Attach copied future, historical, and missing benefit data
-    # if(length(futureYrs)>0) {ccdfData_DE<-ccdfData_DE %>% rbind(expand)}
-    # if(length(nonFutureYrs)>0) {ccdfData_DE<-ccdfData_DE %>% rbind(expandPastMiss2)}
+    
     #
     #----------------------------------
     # Step 1: Assign copays
@@ -875,36 +669,7 @@ function.CCDFcopay<-function(data
 
     temp<-data[data$stateFIPS==11,]
 
-    # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-    # years<-unique(data$ruleYear) # years in data set
-    # yearsinexpdata<- unique(ccdfData_DC$ruleYear) # rule years in benefit data
-    # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-    # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-    # # Create data for the future
-    # maxyearofdata<-max(ccdfData_DC$ruleYear) # collect latest year of benefit data
-    # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-    # if(length(futureYrs)>0){
-    #   # Create data frame with future years
-    #   expand<-expand.grid(stateFIPS=unique(ccdfData_DC$stateFIPS), AKorHI=unique(ccdfData_DC$AKorHI), famsize=unique(ccdfData_DC$famsize), Year=futureYrs)
-    #   # Collect latest benefit data there is and merge w/data frame
-    #   expand2<-ccdfData_DC[ccdfData_DC$ruleYear==maxyearofdata, ]
-    #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-    # }
-    # # Create data for past and gap years (missing data) - not the future
-    # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-    # if(length(nonFutureYrs)>0){
-    #   #Create data frame with past years and year for which we are missing benefit data
-    #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_DC$stateFIPS), AKorHI=unique(ccdfData_DC$AKorHI), famsize=unique(ccdfData_DC$famsize), Year=nonFutureYrs)
-    #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-    #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_DC, by=c("stateFIPS", "AKorHI", "famsize"))
-    #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-    #   expandPastMiss2<-expandPastMiss2%>%
-    #     group_by(Year)%>%
-    #     filter(yeardiff<0)%>%
-    #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-    # }  # Attach copied future, historical, and missing benefit data
-    # if(length(futureYrs)>0) {ccdfData_DC<-ccdfData_DC %>% rbind(expand)}
-    # if(length(nonFutureYrs)>0) {ccdfData_DC<-ccdfData_DC %>% rbind(expandPastMiss2)}
+    
     #----------------------------------
     # Step 1: Assign copays
     #----------------------------------
@@ -1027,36 +792,7 @@ function.CCDFcopay<-function(data
 
     temp<-data[data$stateFIPS==12,]
 
-    # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-    # years<-unique(data$ruleYear) # years in data set
-    # yearsinexpdata<- unique(ccdfData_FL$ruleYear) # rule years in benefit data
-    # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-    # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-    # # Create data for the future
-    # maxyearofdata<-max(ccdfData_FL$ruleYear) # collect latest year of benefit data
-    # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-    # if(length(futureYrs)>0){
-    #   # Create data frame with future years
-    #   expand<-expand.grid(stateFIPS=unique(ccdfData_FL$stateFIPS), AKorHI=unique(ccdfData_FL$AKorHI), famsize=unique(ccdfData_FL$famsize), countyortownName=unique(ccdfData_FL$countyortownName), Year=futureYrs)
-    #   # Collect latest benefit data there is and merge w/data frame
-    #   expand2<-ccdfData_FL[ccdfData_FL$ruleYear==maxyearofdata, ]
-    #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize", "countyortownName")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-    # }
-    # # Create data for past and gap years (missing data) - not the future
-    # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-    # if(length(nonFutureYrs)>0){
-    #   #Create data frame with past years and year for which we are missing benefit data
-    #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_FL$stateFIPS), AKorHI=unique(ccdfData_FL$AKorHI), famsize=unique(ccdfData_FL$famsize), countyortownName=unique(ccdfData_FL$countyortownName), Year=nonFutureYrs)
-    #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-    #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_FL, by=c("stateFIPS", "AKorHI", "famsize", "countyortownName"))
-    #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-    #   expandPastMiss2<-expandPastMiss2%>%
-    #     group_by(Year)%>%
-    #     filter(yeardiff<0)%>%
-    #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-    # }  # Attach copied future, historical, and missing benefit data
-    # if(length(futureYrs)>0) {ccdfData_FL<-ccdfData_FL %>% rbind(expand)}
-    # if(length(nonFutureYrs)>0) {ccdfData_FL<-ccdfData_FL %>% rbind(expandPastMiss2)}
+   
     #----------------------------------
     # Step 1: Assign copays
     #----------------------------------
@@ -1109,15 +845,7 @@ function.CCDFcopay<-function(data
     # Set copay to zero if no children
     temp$totcopay[temp$numkidsincare0to4+temp$numkidsincare5to12==0]<-0
 
-    # if(contelig.ccdf == FALSE){
-
-    #    temp$totcopay[temp$daysofcareneeded0to4 == 0 & temp$daysofcareneeded5to12 != 0 & temp$value.tanf == 0 & temp$Year == min(temp$Year)] <- temp$netexp.childcare[temp$daysofcareneeded0to4 == 0 & temp$daysofcareneeded5to12 != 0 & temp$value.tanf == 0 & temp$Year == min(temp$Year)]
-
-    #    if(temp$totcopay[temp$Year == min(temp$Year)] == temp$netexp.childcare[temp$Year == min(temp$Year)]){
-    #      temp$totcopay <- temp$netexp.childcare
-    #    }
-    #  }
-
+ 
     temp$totcopay[is.na(temp$FTcopay)]<-NA
     # Note: code produces NAs for a good reason, because family is ineligible for CCDF
     # Copay is NOT zero for ineligible, but there are people who pay 0 copay
@@ -1125,15 +853,11 @@ function.CCDFcopay<-function(data
     # Adjust overage depending on whether states allow to charge it
     temp$childcare.overage[temp$OverageOption=="No"]<-0
 
-    #View(temp[,c("InitialEligibility.y","income","totcopay","countyortownName", "FTcopay", "daysofcareneeded0to4", "daysofcareneeded5to12", "netexp.childcare")])
-
     # Merge back
     data$childcare.overage[data$stateFIPS==12]<-temp$childcare.overage
     data$totcopay[data$stateFIPS==12]<-temp$totcopay
     data$InitialEligibility[data$stateFIPS==12]<-temp$InitialEligibility.y
   }
-
-  #View(data[,c("InitialEligibility","income","totcopay","countyortownName", "daysofcareneeded0to4", "daysofcareneeded5to12", "netexp.childcare")])
 
 
   # GEORGIA ----
@@ -1143,51 +867,10 @@ function.CCDFcopay<-function(data
   # Weekly frequency
   # Discount for a second child (UNDER CONSTRUCTION)
   if(13 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-
-    #   ccdfData_GA$stateFIPS <- 13
-    #  ccdfData_GA$IncomeDisregard <- 0
-    #  ccdfData_GA$InitialEligibility <- c(19814, 25910, 32007, 38103, 44199, 50296, 56392, 62489, 68585, 74682, 80778, 86875)
-    #  ccdfData_GA$ContinuousEligibility <- c(33683, 44047, 54411, 64775, 75139, 85503, 95867, 106231, 116595, 126959, 137323, 147687)
-    #  ccdfData_GA$Bin4Max <- ccdfData_GA$ContinuousEligibility
-
-    # ER: code below does similar thing
-    # if(min(data$ruleYear)==2021){
-    # ccdfData_GA$ruleYear[ccdfData_GA$ruleYear == min(ccdfData_GA$ruleYear)] <- 2021
-    # }
+}
 
     temp<-data[data$stateFIPS==13,]
-    #
-    # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-    # years<-unique(data$ruleYear) # years in data set
-    # yearsinexpdata<- unique(ccdfData_GA$ruleYear) # rule years in benefit data
-    # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-    # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-    # # Create data for the future
-    # maxyearofdata<-max(ccdfData_GA$ruleYear) # collect latest year of benefit data
-    # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-    # if(length(futureYrs)>0){
-    #   # Create data frame with future years
-    #   expand<-expand.grid(stateFIPS=unique(ccdfData_GA$stateFIPS), AKorHI=unique(ccdfData_GA$AKorHI), famsize=unique(ccdfData_GA$famsize), Year=futureYrs)
-    #   # Collect latest benefit data there is and merge w/data frame
-    #   expand2<-ccdfData_GA[ccdfData_GA$ruleYear==maxyearofdata, ]
-    #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-    # }
-    # # Create data for past and gap years (missing data) - not the future
-    # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-    # if(length(nonFutureYrs)>0){
-    #   #Create data frame with past years and year for which we are missing benefit data
-    #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_GA$stateFIPS), AKorHI=unique(ccdfData_GA$AKorHI), famsize=unique(ccdfData_GA$famsize), Year=nonFutureYrs)
-    #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-    #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_GA, by=c("stateFIPS", "AKorHI", "famsize"))
-    #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-    #   expandPastMiss2<-expandPastMiss2%>%
-    #     group_by(Year)%>%
-    #     filter(yeardiff<0)%>%
-    #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-    # }  # Attach copied future, historical, and missing benefit data
-    # if(length(futureYrs)>0) {ccdfData_GA<-ccdfData_GA %>% rbind(expand)}
-    # if(length(nonFutureYrs)>0) {ccdfData_GA<-ccdfData_GA %>% rbind(expandPastMiss2)}
-    #
+  
     #----------------------------------
     # Step 1: Assign copays
     #----------------------------------
@@ -1241,37 +924,7 @@ function.CCDFcopay<-function(data
 
     temp<-data[data$stateFIPS==15,]
 
-    # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-    # years<-unique(data$ruleYear) # years in data set
-    # yearsinexpdata<- unique(ccdfData_HI$ruleYear) # rule years in benefit data
-    # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-    # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-    # # Create data for the future
-    # maxyearofdata<-max(ccdfData_HI$ruleYear) # collect latest year of benefit data
-    # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-    # if(length(futureYrs)>0){
-    #   # Create data frame with future years
-    #   expand<-expand.grid(stateFIPS=unique(ccdfData_HI$stateFIPS), AKorHI=unique(ccdfData_HI$AKorHI), famsize=unique(ccdfData_HI$famsize), Year=futureYrs)
-    #   # Collect latest benefit data there is and merge w/data frame
-    #   expand2<-ccdfData_HI[ccdfData_HI$ruleYear==maxyearofdata, ]
-    #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-    # }
-    # # Create data for past and gap years (missing data) - not the future
-    # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-    # if(length(nonFutureYrs)>0){
-    #   #Create data frame with past years and year for which we are missing benefit data
-    #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_HI$stateFIPS), AKorHI=unique(ccdfData_HI$AKorHI), famsize=unique(ccdfData_HI$famsize), Year=nonFutureYrs)
-    #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-    #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_HI, by=c("stateFIPS", "AKorHI", "famsize"))
-    #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-    #   expandPastMiss2<-expandPastMiss2%>%
-    #     group_by(Year)%>%
-    #     filter(yeardiff<0)%>%
-    #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-    # }  # Attach copied future, historical, and missing benefit data
-    # if(length(futureYrs)>0) {ccdfData_HI<-ccdfData_HI %>% rbind(expand)}
-    # if(length(nonFutureYrs)>0) {ccdfData_HI<-ccdfData_HI %>% rbind(expandPastMiss2)}
-    #
+   
     #----------------------------------
     # Step 1: Assign copays
     #----------------------------------
@@ -1343,37 +996,6 @@ function.CCDFcopay<-function(data
 
     temp$numkidsInCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
 
-    # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-    # years<-unique(data$ruleYear) # years in data set
-    # yearsinexpdata<- unique(ccdfData_IA$ruleYear) # rule years in benefit data
-    # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-    # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-    # # Create data for the future
-    # maxyearofdata<-max(ccdfData_IA$ruleYear) # collect latest year of benefit data
-    # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-    # if(length(futureYrs)>0){
-    #   # Create data frame with future years
-    #   expand<-expand.grid(stateFIPS=unique(ccdfData_IA$stateFIPS), AKorHI=unique(ccdfData_IA$AKorHI), famsize=unique(ccdfData_IA$famsize), numkidsInCare=unique(ccdfData_IA$numkidsInCare), Year=futureYrs)
-    #   # Collect latest benefit data there is and merge w/data frame
-    #   expand2<-ccdfData_IA[ccdfData_IA$ruleYear==maxyearofdata, ]
-    #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-    # }
-    # # Create data for past and gap years (missing data) - not the future
-    # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-    # if(length(nonFutureYrs)>0){
-    #   #Create data frame with past years and year for which we are missing benefit data
-    #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_IA$stateFIPS), AKorHI=unique(ccdfData_IA$AKorHI), famsize=unique(ccdfData_IA$famsize), numkidsInCare=unique(ccdfData_IA$numkidsInCare), Year=nonFutureYrs)
-    #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-    #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_IA, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare"))
-    #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-    #   expandPastMiss2<-expandPastMiss2%>%
-    #     group_by(Year)%>%
-    #     filter(yeardiff<0)%>%
-    #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-    # }  # Attach copied future, historical, and missing benefit data
-    # if(length(futureYrs)>0) {ccdfData_IA<-ccdfData_IA %>% rbind(expand)}
-    # if(length(nonFutureYrs)>0) {ccdfData_IA<-ccdfData_IA %>% rbind(expandPastMiss2)}
-    #
     #----------------------------------
     # Step 1: Assign copays
     #----------------------------------
@@ -1459,37 +1081,7 @@ function.CCDFcopay<-function(data
 
     temp$numkidsInCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
     #
-    # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-    # years<-unique(data$ruleYear) # years in data set
-    # yearsinexpdata<- unique(ccdfData_ID$ruleYear) # rule years in benefit data
-    # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-    # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-    # # Create data for the future
-    # maxyearofdata<-max(ccdfData_ID$ruleYear) # collect latest year of benefit data
-    # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-    # if(length(futureYrs)>0){
-    #   # Create data frame with future years
-    #   expand<-expand.grid(stateFIPS=unique(ccdfData_ID$stateFIPS), AKorHI=unique(ccdfData_ID$AKorHI), famsize=unique(ccdfData_ID$famsize), numkidsInCare=unique(ccdfData_ID$numkidsInCare), Year=futureYrs)
-    #   # Collect latest benefit data there is and merge w/data frame
-    #   expand2<-ccdfData_ID[ccdfData_ID$ruleYear==maxyearofdata, ]
-    #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-    # }
-    # # Create data for past and gap years (missing data) - not the future
-    # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-    # if(length(nonFutureYrs)>0){
-    #   #Create data frame with past years and year for which we are missing benefit data
-    #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_ID$stateFIPS), AKorHI=unique(ccdfData_ID$AKorHI), famsize=unique(ccdfData_ID$famsize), numkidsInCare=unique(ccdfData_ID$numkidsInCare), Year=nonFutureYrs)
-    #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-    #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_ID, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare"))
-    #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-    #   expandPastMiss2<-expandPastMiss2%>%
-    #     group_by(Year)%>%
-    #     filter(yeardiff<0)%>%
-    #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-    # }  # Attach copied future, historical, and missing benefit data
-    # if(length(futureYrs)>0) {ccdfData_ID<-ccdfData_ID %>% rbind(expand)}
-    # if(length(nonFutureYrs)>0) {ccdfData_ID<-ccdfData_ID %>% rbind(expandPastMiss2)}
-    #
+   
     #----------------------------------
     # Step 1: Assign copays
     #----------------------------------
@@ -1547,37 +1139,7 @@ function.CCDFcopay<-function(data
 
     temp<-data[data$stateFIPS==17,]
 
-    # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-    # years<-unique(data$ruleYear) # years in data set
-    # yearsinexpdata<- unique(ccdfData_IL$ruleYear) # rule years in benefit data
-    # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-    # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-    # # Create data for the future
-    # maxyearofdata<-max(ccdfData_IL$ruleYear) # collect latest year of benefit data
-    # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-    # if(length(futureYrs)>0){
-    #   # Create data frame with future years
-    #   expand<-expand.grid(stateFIPS=unique(ccdfData_IL$stateFIPS), AKorHI=unique(ccdfData_IL$AKorHI), famsize=unique(ccdfData_IL$famsize), Year=futureYrs)
-    #   # Collect latest benefit data there is and merge w/data frame
-    #   expand2<-ccdfData_IL[ccdfData_IL$ruleYear==maxyearofdata, ]
-    #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-    # }
-    # # Create data for past and gap years (missing data) - not the future
-    # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-    # if(length(nonFutureYrs)>0){
-    #   #Create data frame with past years and year for which we are missing benefit data
-    #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_IL$stateFIPS), AKorHI=unique(ccdfData_IL$AKorHI), famsize=unique(ccdfData_IL$famsize), Year=nonFutureYrs)
-    #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-    #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_IL, by=c("stateFIPS", "AKorHI", "famsize"))
-    #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-    #   expandPastMiss2<-expandPastMiss2%>%
-    #     group_by(Year)%>%
-    #     filter(yeardiff<0)%>%
-    #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-    # }  # Attach copied future, historical, and missing benefit data
-    # if(length(futureYrs)>0) {ccdfData_IL<-ccdfData_IL %>% rbind(expand)}
-    # if(length(nonFutureYrs)>0) {ccdfData_IL<-ccdfData_IL %>% rbind(expandPastMiss2)}
-    #
+    
     #----------------------------------
     # Step 1: Assign copays
     #----------------------------------
@@ -1673,37 +1235,7 @@ function.CCDFcopay<-function(data
 
     temp<-data[data$stateFIPS==18,]
 
-    # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-    # years<-unique(data$ruleYear) # years in data set
-    # yearsinexpdata<- unique(ccdfData_IN$ruleYear) # rule years in benefit data
-    # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-    # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-    # # Create data for the future
-    # maxyearofdata<-max(ccdfData_IN$ruleYear) # collect latest year of benefit data
-    # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-    # if(length(futureYrs)>0){
-    #   # Create data frame with future years
-    #   expand<-expand.grid(stateFIPS=unique(ccdfData_IN$stateFIPS), AKorHI=unique(ccdfData_IN$AKorHI), famsize=unique(ccdfData_IN$famsize), Year=futureYrs)
-    #   # Collect latest benefit data there is and merge w/data frame
-    #   expand2<-ccdfData_IN[ccdfData_IN$ruleYear==maxyearofdata, ]
-    #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-    # }
-    # # Create data for past and gap years (missing data) - not the future
-    # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-    # if(length(nonFutureYrs)>0){
-    #   #Create data frame with past years and year for which we are missing benefit data
-    #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_IN$stateFIPS), AKorHI=unique(ccdfData_IN$AKorHI), famsize=unique(ccdfData_IN$famsize), Year=nonFutureYrs)
-    #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-    #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_IN, by=c("stateFIPS", "AKorHI", "famsize"))
-    #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-    #   expandPastMiss2<-expandPastMiss2%>%
-    #     group_by(Year)%>%
-    #     filter(yeardiff<0)%>%
-    #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-    # }  # Attach copied future, historical, and missing benefit data
-    # if(length(futureYrs)>0) {ccdfData_IN<-ccdfData_IN %>% rbind(expand)}
-    # if(length(nonFutureYrs)>0) {ccdfData_IN<-ccdfData_IN %>% rbind(expandPastMiss2)}
-    #
+   
     #----------------------------------
     # Step 1: Assign copays
     #----------------------------------
@@ -1770,37 +1302,7 @@ function.CCDFcopay<-function(data
 
     temp<-data[data$stateFIPS==20,]
 
-    # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-    # years<-unique(data$ruleYear) # years in data set
-    # yearsinexpdata<- unique(ccdfData_KS$ruleYear) # rule years in benefit data
-    # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-    # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-    # # Create data for the future
-    # maxyearofdata<-max(ccdfData_KS$ruleYear) # collect latest year of benefit data
-    # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-    # if(length(futureYrs)>0){
-    #   # Create data frame with future years
-    #   expand<-expand.grid(stateFIPS=unique(ccdfData_KS$stateFIPS), AKorHI=unique(ccdfData_KS$AKorHI), famsize=unique(ccdfData_KS$famsize), Year=futureYrs)
-    #   # Collect latest benefit data there is and merge w/data frame
-    #   expand2<-ccdfData_KS[ccdfData_KS$ruleYear==maxyearofdata, ]
-    #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-    # }
-    # # Create data for past and gap years (missing data) - not the future
-    # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-    # if(length(nonFutureYrs)>0){
-    #   #Create data frame with past years and year for which we are missing benefit data
-    #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_KS$stateFIPS), AKorHI=unique(ccdfData_KS$AKorHI), famsize=unique(ccdfData_KS$famsize), Year=nonFutureYrs)
-    #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-    #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_KS, by=c("stateFIPS", "AKorHI", "famsize"))
-    #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-    #   expandPastMiss2<-expandPastMiss2%>%
-    #     group_by(Year)%>%
-    #     filter(yeardiff<0)%>%
-    #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-    # }  # Attach copied future, historical, and missing benefit data
-    # if(length(futureYrs)>0) {ccdfData_KS<-ccdfData_KS %>% rbind(expand)}
-    # if(length(nonFutureYrs)>0) {ccdfData_KS<-ccdfData_KS %>% rbind(expandPastMiss2)}
-    #
+   
     #----------------------------------
     # Step 1: Assign copays
     #----------------------------------
@@ -1954,37 +1456,7 @@ function.CCDFcopay<-function(data
 
     temp<-data[data$stateFIPS==22,]
 
-    # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-    # years<-unique(data$ruleYear) # years in data set
-    # yearsinexpdata<- unique(ccdfData_LA$ruleYear) # rule years in benefit data
-    # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-    # yearstouse[is.na(yearstouse)]<-years # keeps years from data set that are not in benefit data set
-    # # Create data for the future
-    # maxyearofdata<-max(ccdfData_LA$ruleYear) # collect latest year of benefit data
-    # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-    # if(length(futureYrs)>0){
-    #   # Create data frame with future years
-    #   expand<-expand.grid(stateFIPS=unique(ccdfData_LA$stateFIPS), AKorHI=unique(ccdfData_LA$AKorHI), famsize=unique(ccdfData_LA$famsize), Year=futureYrs)
-    #   # Collect latest benefit data there is and merge w/data frame
-    #   expand2<-ccdfData_LA[ccdfData_LA$ruleYear==maxyearofdata, ]
-    #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-    # }
-    # # Create data for past and gap years (missing data) - not the future
-    # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-    # if(length(nonFutureYrs)>0){
-    #   #Create data frame with past years and year for which we are missing benefit data
-    #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_LA$stateFIPS), AKorHI=unique(ccdfData_LA$AKorHI), famsize=unique(ccdfData_LA$famsize), Year=nonFutureYrs)
-    #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-    #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_LA, by=c("stateFIPS", "AKorHI", "famsize"))
-    #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-    #   expandPastMiss2<-expandPastMiss2%>%
-    #     group_by(Year)%>%
-    #     filter(yeardiff<0)%>%
-    #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-    # }  # Attach copied future, historical, and missing benefit data
-    # if(length(futureYrs)>0) {ccdfData_LA<-ccdfData_LA %>% rbind(expand)}
-    # if(length(nonFutureYrs)>0) {ccdfData_LA<-ccdfData_LA %>% rbind(expandPastMiss2)}
-    #
+  
 
     #----------------------------------
     # Step 1: Assign copays
@@ -2042,43 +1514,9 @@ function.CCDFcopay<-function(data
   # Monthly frequency
   if(23 %in% unique(data$stateFIPS)){ # make sure that state is in the list
 
-    #ccdfData_ME$stateFIPS <- 23
-    #ccdfData_ME$InitialEligibility[11:12] <- c(112662,114960)
-    #ccdfData_ME$ContinuousEligibility[11:12] <- c(112662,114960)
-
     temp<-data[data$stateFIPS==23,]
 
-    # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-    # years<-unique(data$ruleYear) # years in data set
-    # yearsinexpdata<- unique(ccdfData_ME$ruleYear) # rule years in benefit data
-    # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-    # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-    # # Create data for the future
-    # maxyearofdata<-max(ccdfData_ME$ruleYear) # collect latest year of benefit data
-    # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-    # if(length(futureYrs)>0){
-    #   # Create data frame with future years
-    #   expand<-expand.grid(stateFIPS=unique(ccdfData_ME$stateFIPS), AKorHI=unique(ccdfData_ME$AKorHI), famsize=unique(ccdfData_ME$famsize), Year=futureYrs)
-    #   # Collect latest benefit data there is and merge w/data frame
-    #   expand2<-ccdfData_ME[ccdfData_ME$ruleYear==maxyearofdata, ]
-    #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-    # }
-    # # Create data for past and gap years (missing data) - not the future
-    # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-    # if(length(nonFutureYrs)>0){
-    #   #Create data frame with past years and year for which we are missing benefit data
-    #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_ME$stateFIPS), AKorHI=unique(ccdfData_ME$AKorHI), famsize=unique(ccdfData_ME$famsize), Year=nonFutureYrs)
-    #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-    #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_ME, by=c("stateFIPS", "AKorHI", "famsize"))
-    #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-    #   expandPastMiss2<-expandPastMiss2%>%
-    #     group_by(Year)%>%
-    #     filter(yeardiff<0)%>%
-    #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-    # }  # Attach copied future, historical, and missing benefit data
-    # if(length(futureYrs)>0) {ccdfData_ME<-ccdfData_ME %>% rbind(expand)}
-    # if(length(nonFutureYrs)>0) {ccdfData_ME<-ccdfData_ME %>% rbind(expandPastMiss2)}
-    #
+   
     #----------------------------------
     # Step 1: Assign copays
     #----------------------------------
@@ -2142,36 +1580,6 @@ function.CCDFcopay<-function(data
 
     temp$numkidsInCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
 
-    # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-    years<-unique(data$ruleYear) # years in data set
-    yearsinexpdata<- unique(ccdfData_MD$ruleYear) # rule years in benefit data
-    yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-    yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-    # Create data for the future
-    maxyearofdata<-max(ccdfData_MD$ruleYear) # collect latest year of benefit data
-    futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-    if(length(futureYrs)>0){
-      # Create data frame with future years
-      expand<-expand.grid(stateFIPS=unique(ccdfData_MD$stateFIPS), AKorHI=unique(ccdfData_MD$AKorHI), famsize=unique(ccdfData_MD$famsize), numkidsInCare=unique(ccdfData_MD$numkidsInCare), Year=futureYrs)
-      # Collect latest benefit data there is and merge w/data frame
-      expand2<-ccdfData_MD[ccdfData_MD$ruleYear==maxyearofdata, ]
-      expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-    }
-    # Create data for past and gap years (missing data) - not the future
-    nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-    if(length(nonFutureYrs)>0){
-      #Create data frame with past years and year for which we are missing benefit data
-      expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_MD$stateFIPS), AKorHI=unique(ccdfData_MD$AKorHI), famsize=unique(ccdfData_MD$famsize), numkidsInCare=unique(ccdfData_MD$numkidsInCare), Year=nonFutureYrs)
-      # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-      expandPastMiss2<-left_join(expandPastMiss, ccdfData_MD, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare"))
-      expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-      expandPastMiss2<-expandPastMiss2%>%
-        group_by(Year)%>%
-        filter(yeardiff<0)%>%
-        filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-    }  # Attach copied future, historical, and missing benefit data
-    if(length(futureYrs)>0) {ccdfData_MD<-ccdfData_MD %>% rbind(expand)}
-    if(length(nonFutureYrs)>0) {ccdfData_MD<-ccdfData_MD %>% rbind(expandPastMiss2)}
 
     #----------------------------------
     # Step 1: Assign copays
@@ -2235,37 +1643,7 @@ function.CCDFcopay<-function(data
 
     temp<-data[data$stateFIPS==25,]
 
-    # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-    # years<-unique(data$ruleYear) # years in data set
-    # yearsinexpdata<- unique(ccdfData_MA$ruleYear) # rule years in benefit data
-    # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-    # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-    # # Create data for the future
-    # maxyearofdata<-max(ccdfData_MA$ruleYear) # collect latest year of benefit data
-    # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-    # if(length(futureYrs)>0){
-    #   # Create data frame with future years
-    #   expand<-expand.grid(stateFIPS=unique(ccdfData_MA$stateFIPS), AKorHI=unique(ccdfData_MA$AKorHI), famsize=unique(ccdfData_MA$famsize), Year=futureYrs)
-    #   # Collect latest benefit data there is and merge w/data frame
-    #   expand2<-ccdfData_MA[ccdfData_MA$ruleYear==maxyearofdata, ]
-    #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-    # }
-    # # Create data for past and gap years (missing data) - not the future
-    # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-    # if(length(nonFutureYrs)>0){
-    #   #Create data frame with past years and year for which we are missing benefit data
-    #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_MA$stateFIPS), AKorHI=unique(ccdfData_MA$AKorHI), famsize=unique(ccdfData_MA$famsize), Year=nonFutureYrs)
-    #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-    #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_MA, by=c("stateFIPS", "famsize", "AKorHI"))
-    #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-    #   expandPastMiss2<-expandPastMiss2%>%
-    #     group_by(Year)%>%
-    #     filter(yeardiff<0)%>%
-    #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-    # }  # Attach copied future, historical, and missing benefit data
-    # if(length(futureYrs)>0) {ccdfData_MA<-ccdfData_MA %>% rbind(expand)}
-    # if(length(nonFutureYrs)>0) {ccdfData_MA<-ccdfData_MA %>% rbind(expandPastMiss2)}
-    #
+   
     #----------------------------------
     # Step 1: Assign copays
     #----------------------------------
@@ -2355,35 +1733,7 @@ function.CCDFcopay<-function(data
 
     temp<-data[data$stateFIPS==26,]
 
-    # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-    # years<-unique(data$ruleYear) # years in data set
-    # yearsinexpdata<- unique(ccdfData_MI$ruleYear) # rule years in benefit data
-    # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-    # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-    # # Create data for the future
-    # maxyearofdata<-max(ccdfData_MI$ruleYear) # collect latest year of benefit data
-    # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-    # if(length(futureYrs)>0){
-    #   # Create data frame with future years
-    #   expand<-expand.grid(stateFIPS=unique(ccdfData_MI$stateFIPS), AKorHI=unique(ccdfData_MI$AKorHI), famsize=unique(ccdfData_MI$famsize), Year=futureYrs)
-    #   # Collect latest benefit data there is and merge w/data frame
-    #   expand2<-ccdfData_MI[ccdfData_MI$ruleYear==maxyearofdata, ]
-    #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-    # }
-    # # Create data for past and gap years (missing data) - not the future
-    # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-    # if(length(nonFutureYrs)>0){
-    #   #Create data frame with past years and year for which we are missing benefit data
-    #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_MI$stateFIPS), AKorHI=unique(ccdfData_MI$AKorHI), famsize=unique(ccdfData_MI$famsize), Year=nonFutureYrs)
-    #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-    #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-    #   expandPastMiss2<-expandPastMiss2%>%
-    #     group_by(Year)%>%
-    #     filter(yeardiff<0)%>%
-    #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-    # }  # Attach copied future, historical, and missing benefit data
-    # if(length(futureYrs)>0) {ccdfData_MI<-ccdfData_MI %>% rbind(expand)}
-    # if(length(nonFutureYrs)>0) {ccdfData_MI<-ccdfData_MI %>% rbind(expandPastMiss2)}
+   
     #
     #----------------------------------
     # Step 1: Assign copays
@@ -2441,37 +1791,7 @@ function.CCDFcopay<-function(data
 
     temp<-data[data$stateFIPS==27,]
 
-    # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-    # years<-unique(data$ruleYear) # years in data set
-    # yearsinexpdata<- unique(ccdfData_MN$ruleYear) # rule years in benefit data
-    # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-    # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-    # # Create data for the future
-    # maxyearofdata<-max(ccdfData_MN$ruleYear) # collect latest year of benefit data
-    # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-    # if(length(futureYrs)>0){
-    #   # Create data frame with future years
-    #   expand<-expand.grid(stateFIPS=unique(ccdfData_MN$stateFIPS), AKorHI=unique(ccdfData_MN$AKorHI), famsize=unique(ccdfData_MN$famsize), Year=futureYrs)
-    #   # Collect latest benefit data there is and merge w/data frame
-    #   expand2<-ccdfData_MN[ccdfData_MN$ruleYear==maxyearofdata, ]
-    #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-    # }
-    # # Create data for past and gap years (missing data) - not the future
-    # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-    # if(length(nonFutureYrs)>0){
-    #   #Create data frame with past years and year for which we are missing benefit data
-    #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_MN$stateFIPS), AKorHI=unique(ccdfData_MN$AKorHI), famsize=unique(ccdfData_MN$famsize), Year=nonFutureYrs)
-    #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-    #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_MN, by=c("stateFIPS", "AKorHI", "famsize"))
-    #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-    #   expandPastMiss2<-expandPastMiss2%>%
-    #     group_by(Year)%>%
-    #     filter(yeardiff<0)%>%
-    #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-    # }  # Attach copied future, historical, and missing benefit data
-    # if(length(futureYrs)>0) {ccdfData_MN<-ccdfData_MN %>% rbind(expand)}
-    # if(length(nonFutureYrs)>0) {ccdfData_MN<-ccdfData_MN %>% rbind(expandPastMiss2)}
-    #
+   
     #----------------------------------
     # Step 1: Assign copays
     #----------------------------------
@@ -2753,36 +2073,7 @@ function.CCDFcopay<-function(data
 
     temp<-data[data$stateFIPS==30,]
 
-    # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-    # years<-unique(data$ruleYear) # years in data set
-    # yearsinexpdata<- unique(ccdfData_MT$ruleYear) # rule years in benefit data
-    # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-    # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-    # # Create data for the future
-    # maxyearofdata<-max(ccdfData_MT$ruleYear) # collect latest year of benefit data
-    # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-    # if(length(futureYrs)>0){
-    #   # Create data frame with future years
-    #   expand<-expand.grid(stateFIPS=unique(ccdfData_MT$stateFIPS), AKorHI=unique(ccdfData_MT$AKorHI), famsize=unique(ccdfData_MT$famsize), Year=futureYrs)
-    #   # Collect latest benefit data there is and merge w/data frame
-    #   expand2<-ccdfData_MT[ccdfData_MT$ruleYear==maxyearofdata, ]
-    #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-    # }
-    # # Create data for past and gap years (missing data) - not the future
-    # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-    # if(length(nonFutureYrs)>0){
-    #   #Create data frame with past years and year for which we are missing benefit data
-    #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_MT$stateFIPS), AKorHI=unique(ccdfData_MT$AKorHI), famsize=unique(ccdfData_MT$famsize), Year=nonFutureYrs)
-    #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-    #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-    #   expandPastMiss2<-expandPastMiss2%>%
-    #     group_by(Year)%>%
-    #     filter(yeardiff<0)%>%
-    #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-    # }  # Attach copied future, historical, and missing benefit data
-    # if(length(futureYrs)>0) {ccdfData_MT<-ccdfData_MT %>% rbind(expand)}
-    # if(length(nonFutureYrs)>0) {ccdfData_MT<-ccdfData_MT %>% rbind(expandPastMiss2)}
-    #
+   
     #----------------------------------
     # Step 1: Assign copays
     #----------------------------------
@@ -2855,37 +2146,7 @@ function.CCDFcopay<-function(data
 
     temp <- data[data$stateFIPS==31,]
 
-    # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-    # years<-unique(data$ruleYear) # years in data set
-    # yearsinexpdata<- unique(ccdfData_NE$ruleYear) # rule years in benefit data
-    # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-    # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-    # # Create data for the future
-    # maxyearofdata<-max(ccdfData_NE$ruleYear) # collect latest year of benefit data
-    # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-    # if(length(futureYrs)>0){
-    #   # Create data frame with future years
-    #   expand<-expand.grid(stateFIPS=unique(ccdfData_NE$stateFIPS), AKorHI=unique(ccdfData_NE$AKorHI), famsize=unique(ccdfData_NE$famsize), Year=futureYrs)
-    #   # Collect latest benefit data there is and merge w/data frame
-    #   expand2<-ccdfData_NE[ccdfData_NE$ruleYear==maxyearofdata, ]
-    #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-    # }
-    # # Create data for past and gap years (missing data) - not the future
-    # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-    # if(length(nonFutureYrs)>0){
-    #   #Create data frame with past years and year for which we are missing benefit data
-    #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_NE$stateFIPS), AKorHI=unique(ccdfData_NE$AKorHI), famsize=unique(ccdfData_NE$famsize), Year=nonFutureYrs)
-    #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-    #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_NE, by=c("stateFIPS", "AKorHI", "famsize"))
-    #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-    #   expandPastMiss2<-expandPastMiss2%>%
-    #     group_by(Year)%>%
-    #     filter(yeardiff<0)%>%
-    #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-    # }  # Attach copied future, historical, and missing benefit data
-    # if(length(futureYrs)>0) {ccdfData_NE<-ccdfData_NE %>% rbind(expand)}
-    # if(length(nonFutureYrs)>0) {ccdfData_NE<-ccdfData_NE %>% rbind(expandPastMiss2)}
-    #
+  
     #----------------------------------
     # Step 1: Assign copays
     #----------------------------------
@@ -2933,55 +2194,7 @@ function.CCDFcopay<-function(data
 
     temp <- data[data$stateFIPS==32,]
 
-    ### DOUBLE CHECK THAT THE CCDFDATA_NV DATASET IN THE GLOBAL ENVIRONMENT HAS THESE CORRECT
-    # ccdfData_NV$stateFIPS <- 32
-    #  ccdfData_NV$AssetTest <- 1000000
-    #  ccdfData_NV$IncomeDisregard <- 0
-
-    #### SAME GOES FOR PROVIDERCOST_NV
-    #  providercost_NV$stateFIPS <- 32
-
-
-    # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-    # years<-unique(data$ruleYear) # years in data set
-    # yearsinexpdata<- unique(providercost_NV$ruleYear) # rule years in benefit data
-    # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-    # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-    # # Create data for the future
-    # maxyearofdata<-max(providercost_NV$ruleYear) # collect latest year of benefit data
-    # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-    # if(length(futureYrs)>0){
-    #   # Create data frame with future years
-    #   expand<-expand.grid(stateFIPS=unique(providercost_NV$stateFIPS), countyortownName=unique(providercost_NV$countyortownName), Year=futureYrs)
-    #   # Collect latest benefit data there is and merge w/data frame
-    #   expand2<-providercost_NV[providercost_NV$ruleYear==maxyearofdata, ]
-    #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "countyortownName")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-    # }
-    # # Create data for past and gap years (missing data) - not the future
-    # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-    # if(length(nonFutureYrs)>0){
-    #   #Create data frame with past years and year for which we are missing benefit data
-    #   expandPastMiss<-expand.grid(stateFIPS=unique(providercost_NV$stateFIPS), countyortownName=unique(providercost_NV$countyortownName), Year=nonFutureYrs)
-    #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-    #   expandPastMiss2<-left_join(expandPastMiss, providercost_NV, by=c("stateFIPS", "countyortownName"))
-    #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-    #   expandPastMiss2<-expandPastMiss2%>%
-    #     group_by(Year)%>%
-    #     filter(yeardiff<0)%>%
-    #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-    # }  # Attach copied future, historical, and missing benefit data
-    # if(length(futureYrs)>0) {providercost_NV<-providercost_NV %>% rbind(expand)}
-    # if(length(nonFutureYrs)>0) {providercost_NV<-providercost_NV %>% rbind(expandPastMiss2)}
-    #
-    #  if(ruleYear > 2022){
-    #   temp$ruleYear <- 2022
-    #   }
-    #temp<-left_join(temp, providercost_NV, by=c("stateFIPS", "countyortownName", "ruleYear")) # EI: ruleYear is not working here !!
-    #  providercost_NV$ruleYear<-providercost_NV$yearofdata
-
-
-
-
+  
     temp<-left_join(temp, providercost_NV, by=c("stateFIPS", "countyortownName", "ruleYear","stateName","stateAbbrev","AKorHI"))
 
     # Determine Expense based on Age of Children
@@ -3183,41 +2396,7 @@ function.CCDFcopay<-function(data
     #----------------------------------
     # Step 1: Assign copays
     #----------------------------------
-    # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-    # years<-unique(data$ruleYear) # years in data set
-    # yearsinexpdata<- unique(ccdfData_NV$ruleYear) # rule years in benefit data
-    # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-    # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-    # # Create data for the future
-    # maxyearofdata<-max(ccdfData_NV$ruleYear) # collect latest year of benefit data
-    # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-    # if(length(futureYrs)>0){
-    #   # Create data frame with future years
-    #   expand<-expand.grid(stateFIPS=unique(ccdfData_NV$stateFIPS), famsize=unique(ccdfData_NV$famsize), countyortownName=unique(ccdfData_NV$countyortownName), Year=futureYrs)
-    #   # Collect latest benefit data there is and merge w/data frame
-    #   expand2<-ccdfData_NV[ccdfData_NV$ruleYear==maxyearofdata, ]
-    #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "famsize", "countyortownName")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-    # }
-    # # Create data for past and gap years (missing data) - not the future
-    # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-    # if(length(nonFutureYrs)>0){
-    #   #Create data frame with past years and year for which we are missing benefit data
-    #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_NV$stateFIPS), famsize=unique(ccdfData_NV$famsize), countyortownName=unique(ccdfData_NV$countyortownName), Year=nonFutureYrs)
-    #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-    #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_NV, by=c("stateFIPS","famsize", "countyortownName"))
-    #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-    #   expandPastMiss2<-expandPastMiss2%>%
-    #     group_by(Year)%>%
-    #     mutate(minyeardiff = min(yeardiff))
-    #   expandPastMiss2<-expandPastMiss2 %>%
-    #     filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-    # }  # Attach copied future, historical, and missing benefit data
-    # if(length(futureYrs)>0) {ccdfData_NV<-ccdfData_NV %>% rbind(expand)}
-    # if(length(nonFutureYrs)>0) {ccdfData_NV<-ccdfData_NV %>% rbind(expandPastMiss2)}
-    #
-    #   if(ruleYear > 2022){
-    #     temp$ruleYear <- 2022
-    #    }
+    
 
     temp<-left_join(temp, ccdfData_NV, by=c("stateFIPS","stateName", "famsize", "countyortownName", "AKorHI", "ruleYear"))
 
@@ -3278,37 +2457,7 @@ function.CCDFcopay<-function(data
 
     temp<-data[data$stateFIPS==35,]
 
-    # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-    # years<-unique(data$ruleYear) # years in data set
-    # yearsinexpdata<- unique(ccdfData_NM$ruleYear) # rule years in benefit data
-    # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-    # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-    # # Create data for the future
-    # maxyearofdata<-max(ccdfData_NM$ruleYear) # collect latest year of benefit data
-    # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-    # if(length(futureYrs)>0){
-    #   # Create data frame with future years
-    #   expand<-expand.grid(stateFIPS=unique(ccdfData_NM$stateFIPS), AKorHI=unique(ccdfData_NM$AKorHI), famsize=unique(ccdfData_NM$famsize), Year=futureYrs)
-    #   # Collect latest benefit data there is and merge w/data frame
-    #   expand2<-ccdfData_NM[ccdfData_NM$ruleYear==maxyearofdata, ]
-    #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-    # }
-    # # Create data for past and gap years (missing data) - not the future
-    # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-    # if(length(nonFutureYrs)>0){
-    #   #Create data frame with past years and year for which we are missing benefit data
-    #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_NM$stateFIPS), AKorHI=unique(ccdfData_NM$AKorHI), famsize=unique(ccdfData_NM$famsize), Year=nonFutureYrs)
-    #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-    #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_NM, by=c("stateFIPS", "AKorHI", "famsize"))
-    #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-    #   expandPastMiss2<-expandPastMiss2%>%
-    #     group_by(Year)%>%
-    #     filter(yeardiff<0)%>%
-    #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-    # }  # Attach copied future, historical, and missing benefit data
-    # if(length(futureYrs)>0) {ccdfData_NM<-ccdfData_NM %>% rbind(expand)}
-    # if(length(nonFutureYrs)>0) {ccdfData_NM<-ccdfData_NM %>% rbind(expandPastMiss2)}
-    #
+    
     #----------------------------------
     # Step 1: Assign copays
     #----------------------------------
@@ -3652,36 +2801,7 @@ function.CCDFcopay<-function(data
 
     temp <- data[data$stateFIPS==33,]
 
-    # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-    # years<-unique(data$ruleYear) # years in data set
-    # yearsinexpdata<- unique(ccdfData_NH$ruleYear) # rule years in benefit data
-    # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-    # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-    # # Create data for the future
-    # maxyearofdata<-max(ccdfData_NH$ruleYear) # collect latest year of benefit data
-    # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-    # if(length(futureYrs)>0){
-    #   # Create data frame with future years
-    #   expand<-expand.grid(stateFIPS=unique(ccdfData_NH$stateFIPS), AKorHI=unique(ccdfData_NH$AKorHI), famsize=unique(ccdfData_NH$famsize), Year=futureYrs)
-    #   # Collect latest benefit data there is and merge w/data frame
-    #   expand2<-ccdfData_NH[ccdfData_NH$ruleYear==maxyearofdata, ]
-    #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-    # }
-    # # Create data for past and gap years (missing data) - not the future
-    # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-    # if(length(nonFutureYrs)>0){
-    #   #Create data frame with past years and year for which we are missing benefit data
-    #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_NH$stateFIPS), AKorHI=unique(ccdfData_NH$AKorHI), famsize=unique(ccdfData_NH$famsize), Year=nonFutureYrs)
-    #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-    #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_NH, by=c("stateFIPS", "AKorHI", "famsize"))
-    #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-    #   expandPastMiss2<-expandPastMiss2%>%
-    #     group_by(Year)%>%
-    #     filter(yeardiff<0)%>%
-    #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-    # }  # Attach copied future, historical, and missing benefit data
-    # if(length(futureYrs)>0) {ccdfData_NH<-ccdfData_NH %>% rbind(expand)}
-    # if(length(nonFutureYrs)>0) {ccdfData_NH<-ccdfData_NH %>% rbind(expandPastMiss2)}
+ 
     #----------------------------------
     # Step 1: Assign copays
     #----------------------------------
@@ -3749,36 +2869,7 @@ function.CCDFcopay<-function(data
 
     temp$numkidsInCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
 
-    # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-    # years<-unique(data$ruleYear) # years in data set
-    # yearsinexpdata<- unique(ccdfData_NJ$ruleYear) # rule years in benefit data
-    # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-    # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-    # # Create data for the future
-    # maxyearofdata<-max(ccdfData_NJ$ruleYear) # collect latest year of benefit data
-    # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-    # if(length(futureYrs)>0){
-    #   # Create data frame with future years
-    #   expand<-expand.grid(stateFIPS=unique(ccdfData_NJ$stateFIPS), AKorHI=unique(ccdfData_NJ$AKorHI), famsize=unique(ccdfData_NJ$famsize), numkidsInCare=unique(ccdfData_NJ$numkidsInCare), Year=futureYrs)
-    #   # Collect latest benefit data there is and merge w/data frame
-    #   expand2<-ccdfData_NJ[ccdfData_NJ$ruleYear==maxyearofdata, ]
-    #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-    # }
-    # # Create data for past and gap years (missing data) - not the future
-    # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-    # if(length(nonFutureYrs)>0){
-    #   #Create data frame with past years and year for which we are missing benefit data
-    #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_NJ$stateFIPS), AKorHI=unique(ccdfData_NJ$AKorHI), famsize=unique(ccdfData_NJ$famsize), numkidsInCare=unique(ccdfData_NJ$numkidsInCare), Year=nonFutureYrs)
-    #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-    #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_NJ, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare"))
-    #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-    #   expandPastMiss2<-expandPastMiss2%>%
-    #     group_by(Year)%>%
-    #     filter(yeardiff<0)%>%
-    #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-    # }  # Attach copied future, historical, and missing benefit data
-    # if(length(futureYrs)>0) {ccdfData_NJ<-ccdfData_NJ %>% rbind(expand)}
-    # if(length(nonFutureYrs)>0) {ccdfData_NJ<-ccdfData_NJ %>% rbind(expandPastMiss2)}
+    
     #----------------------------------
     # Step 1: Assign copays
     #----------------------------------
@@ -3866,36 +2957,7 @@ function.CCDFcopay<-function(data
 
     temp<-data[data$stateFIPS==37,]
 
-    # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-    # years<-unique(data$ruleYear) # years in data set
-    # yearsinexpdata<- unique(ccdfData_NC$ruleYear) # rule years in benefit data
-    # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-    # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-    # # Create data for the future
-    # maxyearofdata<-max(ccdfData_NC$ruleYear) # collect latest year of benefit data
-    # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-    # if(length(futureYrs)>0){
-    #   # Create data frame with future years
-    #   expand<-expand.grid(stateFIPS=unique(ccdfData_NC$stateFIPS), AKorHI=unique(ccdfData_NC$AKorHI), famsize=unique(ccdfData_NC$famsize), Year=futureYrs)
-    #   # Collect latest benefit data there is and merge w/data frame
-    #   expand2<-ccdfData_NC[ccdfData_NC$ruleYear==maxyearofdata, ]
-    #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-    # }
-    # # Create data for past and gap years (missing data) - not the future
-    # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-    # if(length(nonFutureYrs)>0){
-    #   #Create data frame with past years and year for which we are missing benefit data
-    #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_NC$stateFIPS), AKorHI=unique(ccdfData_NC$AKorHI), famsize=unique(ccdfData_NC$famsize), Year=nonFutureYrs)
-    #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-    #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_NC, by=c("stateFIPS", "AKorHI", "famsize"))
-    #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-    #   expandPastMiss2<-expandPastMiss2%>%
-    #     group_by(Year)%>%
-    #     filter(yeardiff<0)%>%
-    #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-    # }  # Attach copied future, historical, and missing benefit data
-    # if(length(futureYrs)>0) {ccdfData_NC<-ccdfData_NC %>% rbind(expand)}
-    # if(length(nonFutureYrs)>0) {ccdfData_NC<-ccdfData_NC %>% rbind(expandPastMiss2)}
+   
     #----------------------------------
     # Step 1: Assign copays
     #----------------------------------
@@ -3943,36 +3005,7 @@ function.CCDFcopay<-function(data
 
     temp <- data[data$stateFIPS==38,]
 
-    # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-    # years<-unique(data$ruleYear) # years in data set
-    # yearsinexpdata<- unique(ccdfData_ND$ruleYear) # rule years in benefit data
-    # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-    # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-    # # Create data for the future
-    # maxyearofdata<-max(ccdfData_ND$ruleYear) # collect latest year of benefit data
-    # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-    # if(length(futureYrs)>0){
-    #   # Create data frame with future years
-    #   expand<-expand.grid(stateFIPS=unique(ccdfData_ND$stateFIPS), AKorHI=unique(ccdfData_ND$AKorHI), famsize=unique(ccdfData_ND$famsize), Year=futureYrs)
-    #   # Collect latest benefit data there is and merge w/data frame
-    #   expand2<-ccdfData_ND[ccdfData_ND$ruleYear==maxyearofdata, ]
-    #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-    # }
-    # # Create data for past and gap years (missing data) - not the future
-    # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-    # if(length(nonFutureYrs)>0){
-    #   #Create data frame with past years and year for which we are missing benefit data
-    #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_ND$stateFIPS), AKorHI=unique(ccdfData_ND$AKorHI), famsize=unique(ccdfData_ND$famsize), Year=nonFutureYrs)
-    #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-    #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_ND, by=c("stateFIPS", "AKorHI", "famsize"))
-    #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-    #   expandPastMiss2<-expandPastMiss2%>%
-    #     group_by(Year)%>%
-    #     filter(yeardiff<0)%>%
-    #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-    # }  # Attach copied future, historical, and missing benefit data
-    # if(length(futureYrs)>0) {ccdfData_ND<-ccdfData_ND %>% rbind(expand)}
-    # if(length(nonFutureYrs)>0) {ccdfData_ND<-ccdfData_ND %>% rbind(expandPastMiss2)}
+  
     #----------------------------------
     # Step 1: Assign copays
     #----------------------------------
@@ -4028,37 +3061,7 @@ function.CCDFcopay<-function(data
     ccdfData_NY$stateFIPS <- 36
     temp<-data[data$stateFIPS==36,]
 
-    # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-    # years<-unique(data$ruleYear) # years in data set
-    # yearsinexpdata<- unique(ccdfData_NY$ruleYear) # rule years in benefit data
-    # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-    # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-    # # Create data for the future
-    # maxyearofdata<-max(ccdfData_NY$ruleYear) # collect latest year of benefit data
-    # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-    # if(length(futureYrs)>0){
-    #   # Create data frame with future years
-    #   expand<-expand.grid(stateFIPS=unique(ccdfData_NY$stateFIPS), AKorHI=unique(ccdfData_NY$AKorHI), famsize=unique(ccdfData_NY$famsize), countyortownName=unique(ccdfData_NY$countyortownName), Year=futureYrs)
-    #   # Collect latest benefit data there is and merge w/data frame
-    #   expand2<-ccdfData_NY[ccdfData_NY$ruleYear==maxyearofdata, ]
-    #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize", "countyortownName")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-    # }
-    # # Create data for past and gap years (missing data) - not the future
-    # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-    # if(length(nonFutureYrs)>0){
-    #   #Create data frame with past years and year for which we are missing benefit data
-    #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_NY$stateFIPS), AKorHI=unique(ccdfData_NY$AKorHI), famsize=unique(ccdfData_NY$famsize), countyortownName=unique(ccdfData_NY$countyortownName), Year=nonFutureYrs)
-    #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-    #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_NY, by=c("stateFIPS", "AKorHI", "famsize", "countyortownName"))
-    #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-    #   expandPastMiss2<-expandPastMiss2%>%
-    #     group_by(Year)%>%
-    #     filter(yeardiff<0)%>%
-    #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-    # }  # Attach copied future, historical, and missing benefit data
-    # if(length(futureYrs)>0) {ccdfData_NY<-ccdfData_NY %>% rbind(expand)}
-    # if(length(nonFutureYrs)>0) {ccdfData_NY<-ccdfData_NY %>% rbind(expandPastMiss2)}
-    #
+    
     #----------------------------------
     # Step 1: Assign copays
     #----------------------------------
@@ -4118,36 +3121,7 @@ function.CCDFcopay<-function(data
 
     temp<-data[data$stateFIPS==39,]
 
-    # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-    # years<-unique(data$ruleYear) # years in data set
-    # yearsinexpdata<- unique(ccdfData_OH$ruleYear) # rule years in benefit data
-    # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-    # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-    # # Create data for the future
-    # maxyearofdata<-max(ccdfData_OH$ruleYear) # collect latest year of benefit data
-    # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-    # if(length(futureYrs)>0){
-    #   # Create data frame with future years
-    #   expand<-expand.grid(stateFIPS=unique(ccdfData_OH$stateFIPS), AKorHI=unique(ccdfData_OH$AKorHI), famsize=unique(ccdfData_OH$famsize), Year=futureYrs)
-    #   # Collect latest benefit data there is and merge w/data frame
-    #   expand2<-ccdfData_OH[ccdfData_OH$ruleYear==maxyearofdata, ]
-    #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-    # }
-    # # Create data for past and gap years (missing data) - not the future
-    # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-    # if(length(nonFutureYrs)>0){
-    #   #Create data frame with past years and year for which we are missing benefit data
-    #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_OH$stateFIPS), AKorHI=unique(ccdfData_OH$AKorHI), famsize=unique(ccdfData_OH$famsize), Year=nonFutureYrs)
-    #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-    #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_OH, by=c("stateFIPS", "AKorHI", "famsize"))
-    #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-    #   expandPastMiss2<-expandPastMiss2%>%
-    #     group_by(Year)%>%
-    #     filter(yeardiff<0)%>%
-    #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-    # }  # Attach copied future, historical, and missing benefit data
-    # if(length(futureYrs)>0) {ccdfData_OH<-ccdfData_OH %>% rbind(expand)}
-    # if(length(nonFutureYrs)>0) {ccdfData_OH<-ccdfData_OH %>% rbind(expandPastMiss2)}
+  
     #----------------------------------
     # Step 1: Assign copays
     #----------------------------------
@@ -4252,36 +3226,7 @@ function.CCDFcopay<-function(data
 
     temp<-data[data$stateFIPS==40,]
 
-    # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-    # years<-unique(data$ruleYear) # years in data set
-    # yearsinexpdata<- unique(ccdfData_OK$ruleYear) # rule years in benefit data
-    # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-    # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-    # # Create data for the future
-    # maxyearofdata<-max(ccdfData_OK$ruleYear) # collect latest year of benefit data
-    # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-    # if(length(futureYrs)>0){
-    #   # Create data frame with future years
-    #   expand<-expand.grid(stateFIPS=unique(ccdfData_OK$stateFIPS), AKorHI=unique(ccdfData_OK$AKorHI), famsize=unique(ccdfData_OK$famsize), Year=futureYrs)
-    #   # Collect latest benefit data there is and merge w/data frame
-    #   expand2<-ccdfData_OK[ccdfData_OK$ruleYear==maxyearofdata, ]
-    #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-    # }
-    # # Create data for past and gap years (missing data) - not the future
-    # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-    # if(length(nonFutureYrs)>0){
-    #   #Create data frame with past years and year for which we are missing benefit data
-    #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_OK$stateFIPS), AKorHI=unique(ccdfData_OK$AKorHI), famsize=unique(ccdfData_OK$famsize), Year=nonFutureYrs)
-    #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-    #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_OK, by=c("stateFIPS", "AKorHI", "famsize"))
-    #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-    #   expandPastMiss2<-expandPastMiss2%>%
-    #     group_by(Year)%>%
-    #     filter(yeardiff<0)%>%
-    #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-    # }  # Attach copied future, historical, and missing benefit data
-    # if(length(futureYrs)>0) {ccdfData_OK<-ccdfData_OK %>% rbind(expand)}
-    # if(length(nonFutureYrs)>0) {ccdfData_OK<-ccdfData_OK %>% rbind(expandPastMiss2)}
+   
     #----------------------------------
     # Step 1: Assign copays
     #----------------------------------
@@ -4340,37 +3285,7 @@ function.CCDFcopay<-function(data
 
     temp <- data[data$stateFIPS==41,]
 
-    # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-    # years<-unique(data$ruleYear) # years in data set
-    # yearsinexpdata<- unique(ccdfData_OR$ruleYear) # rule years in benefit data
-    # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-    # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-    # # Create data for the future
-    # maxyearofdata<-max(ccdfData_OR$ruleYear) # collect latest year of benefit data
-    # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-    # if(length(futureYrs)>0){
-    #   # Create data frame with future years
-    #   expand<-expand.grid(stateFIPS=unique(ccdfData_OR$stateFIPS), AKorHI=unique(ccdfData_OR$AKorHI), famsize=unique(ccdfData_OR$famsize), Year=futureYrs)
-    #   # Collect latest benefit data there is and merge w/data frame
-    #   expand2<-ccdfData_OR[ccdfData_OR$ruleYear==maxyearofdata, ]
-    #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-    # }
-    # # Create data for past and gap years (missing data) - not the future
-    # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-    # if(length(nonFutureYrs)>0){
-    #   #Create data frame with past years and year for which we are missing benefit data
-    #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_OR$stateFIPS), AKorHI=unique(ccdfData_OR$AKorHI), famsize=unique(ccdfData_OR$famsize), Year=nonFutureYrs)
-    #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-    #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_OR, by=c("stateFIPS", "AKorHI", "famsize"))
-    #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-    #   expandPastMiss2<-expandPastMiss2%>%
-    #     group_by(Year)%>%
-    #     filter(yeardiff<0)%>%
-    #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-    # }  # Attach copied future, historical, and missing benefit data
-    # if(length(futureYrs)>0) {ccdfData_OR<-ccdfData_OR %>% rbind(expand)}
-    # if(length(nonFutureYrs)>0) {ccdfData_OR<-ccdfData_OR %>% rbind(expandPastMiss2)}
-    #
+   
     #----------------------------------
     # Step 1: Assign copays
     #----------------------------------
@@ -4420,37 +3335,7 @@ function.CCDFcopay<-function(data
 
     temp <- data[data$stateFIPS==42,]
 
-    # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-    # years<-unique(data$ruleYear) # years in data set
-    # yearsinexpdata<- unique(ccdfData_PA$ruleYear) # rule years in benefit data
-    # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-    # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-    # # Create data for the future
-    # maxyearofdata<-max(ccdfData_PA$ruleYear) # collect latest year of benefit data
-    # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-    # if(length(futureYrs)>0){
-    #   # Create data frame with future years
-    #   expand<-expand.grid(stateFIPS=unique(ccdfData_PA$stateFIPS), AKorHI=unique(ccdfData_PA$AKorHI), famsize=unique(ccdfData_PA$famsize), Year=futureYrs)
-    #   # Collect latest benefit data there is and merge w/data frame
-    #   expand2<-ccdfData_PA[ccdfData_PA$ruleYear==maxyearofdata, ]
-    #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-    # }
-    # # Create data for past and gap years (missing data) - not the future
-    # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-    # if(length(nonFutureYrs)>0){
-    #   #Create data frame with past years and year for which we are missing benefit data
-    #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_PA$stateFIPS), AKorHI=unique(ccdfData_PA$AKorHI), famsize=unique(ccdfData_PA$famsize), Year=nonFutureYrs)
-    #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-    #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_PA, by=c("stateFIPS", "AKorHI", "famsize"))
-    #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-    #   expandPastMiss2<-expandPastMiss2%>%
-    #     group_by(Year)%>%
-    #     filter(yeardiff<0)%>%
-    #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-    # }  # Attach copied future, historical, and missing benefit data
-    # if(length(futureYrs)>0) {ccdfData_PA<-ccdfData_PA %>% rbind(expand)}
-    # if(length(nonFutureYrs)>0) {ccdfData_PA<-ccdfData_PA %>% rbind(expandPastMiss2)}
-    #
+   
     #----------------------------------
     # Step 1: Assign copays
     # #----------------------------------
@@ -4560,37 +3445,7 @@ function.CCDFcopay<-function(data
 
     temp <- data[data$stateFIPS==44,]
 
-    # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-    # years<-unique(data$ruleYear) # years in data set
-    # yearsinexpdata<- unique(ccdfData_RI$ruleYear) # rule years in benefit data
-    # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-    # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-    # # Create data for the future
-    # maxyearofdata<-max(ccdfData_RI$ruleYear) # collect latest year of benefit data
-    # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-    # if(length(futureYrs)>0){
-    #   # Create data frame with future years
-    #   expand<-expand.grid(stateFIPS=unique(ccdfData_RI$stateFIPS), AKorHI=unique(ccdfData_RI$AKorHI), famsize=unique(ccdfData_RI$famsize), Year=futureYrs)
-    #   # Collect latest benefit data there is and merge w/data frame
-    #   expand2<-ccdfData_RI[ccdfData_RI$ruleYear==maxyearofdata, ]
-    #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-    # }
-    # # Create data for past and gap years (missing data) - not the future
-    # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-    # if(length(nonFutureYrs)>0){
-    #   #Create data frame with past years and year for which we are missing benefit data
-    #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_RI$stateFIPS), AKorHI=unique(ccdfData_RI$AKorHI), famsize=unique(ccdfData_RI$famsize), Year=nonFutureYrs)
-    #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-    #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_RI, by=c("stateFIPS", "AKorHI", "famsize"))
-    #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-    #   expandPastMiss2<-expandPastMiss2%>%
-    #     group_by(Year)%>%
-    #     filter(yeardiff<0)%>%
-    #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-    # }  # Attach copied future, historical, and missing benefit data
-    # if(length(futureYrs)>0) {ccdfData_RI<-ccdfData_RI %>% rbind(expand)}
-    # if(length(nonFutureYrs)>0) {ccdfData_RI<-ccdfData_RI %>% rbind(expandPastMiss2)}
-    #
+   
     #----------------------------------
     # Step 1: Assign copays
     #----------------------------------
@@ -4642,36 +3497,6 @@ function.CCDFcopay<-function(data
 
     temp<-data[data$stateFIPS==45,]
 
-    # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-    # years<-unique(data$ruleYear) # years in data set
-    # yearsinexpdata<- unique(ccdfData_SC$ruleYear) # rule years in benefit data
-    # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-    # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-    # # Create data for the future
-    # maxyearofdata<-max(ccdfData_SC$ruleYear) # collect latest year of benefit data
-    # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-    # if(length(futureYrs)>0){
-    #   # Create data frame with future years
-    #   expand<-expand.grid(stateFIPS=unique(ccdfData_SC$stateFIPS), AKorHI=unique(ccdfData_SC$AKorHI), famsize=unique(ccdfData_SC$famsize), Year=futureYrs)
-    #   # Collect latest benefit data there is and merge w/data frame
-    #   expand2<-ccdfData_SC[ccdfData_SC$ruleYear==maxyearofdata, ]
-    #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-    # }
-    # # Create data for past and gap years (missing data) - not the future
-    # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-    # if(length(nonFutureYrs)>0){
-    #   #Create data frame with past years and year for which we are missing benefit data
-    #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_SC$stateFIPS), AKorHI=unique(ccdfData_SC$AKorHI), famsize=unique(ccdfData_SC$famsize), Year=nonFutureYrs)
-    #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-    #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_SC, by=c("stateFIPS", "AKorHI", "famsize"))
-    #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-    #   expandPastMiss2<-expandPastMiss2%>%
-    #     group_by(Year)%>%
-    #     filter(yeardiff<0)%>%
-    #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-    # }  # Attach copied future, historical, and missing benefit data
-    # if(length(futureYrs)>0) {ccdfData_SC<-ccdfData_SC %>% rbind(expand)}
-    # if(length(nonFutureYrs)>0) {ccdfData_SC<-ccdfData_SC %>% rbind(expandPastMiss2)}
     #
     #----------------------------------
     # Step 1: Assign copays
@@ -4726,37 +3551,7 @@ function.CCDFcopay<-function(data
 
     temp<-data[data$stateFIPS==46,]
 
-    # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-    # years<-unique(data$ruleYear) # years in data set
-    # yearsinexpdata<- unique(ccdfData_SD$ruleYear) # rule years in benefit data
-    # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-    # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-    # # Create data for the future
-    # maxyearofdata<-max(ccdfData_SD$ruleYear) # collect latest year of benefit data
-    # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-    # if(length(futureYrs)>0){
-    #   # Create data frame with future years
-    #   expand<-expand.grid(stateFIPS=unique(ccdfData_SD$stateFIPS), AKorHI=unique(ccdfData_SD$AKorHI), famsize=unique(ccdfData_SD$famsize), Year=futureYrs)
-    #   # Collect latest benefit data there is and merge w/data frame
-    #   expand2<-ccdfData_SD[ccdfData_SD$ruleYear==maxyearofdata, ]
-    #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-    # }
-    # # Create data for past and gap years (missing data) - not the future
-    # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-    # if(length(nonFutureYrs)>0){
-    #   #Create data frame with past years and year for which we are missing benefit data
-    #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_SD$stateFIPS), AKorHI=unique(ccdfData_SD$AKorHI), famsize=unique(ccdfData_SD$famsize), Year=nonFutureYrs)
-    #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-    #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_SD, by=c("stateFIPS", "AKorHI", "famsize"))
-    #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-    #   expandPastMiss2<-expandPastMiss2%>%
-    #     group_by(Year)%>%
-    #     filter(yeardiff<0)%>%
-    #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-    # }  # Attach copied future, historical, and missing benefit data
-    # if(length(futureYrs)>0) {ccdfData_SD<-ccdfData_SD %>% rbind(expand)}
-    # if(length(nonFutureYrs)>0) {ccdfData_SD<-ccdfData_SD %>% rbind(expandPastMiss2)}
-    #
+   
     #----------------------------------
     # Step 1: Assign copays
     #----------------------------------
@@ -4822,41 +3617,10 @@ function.CCDFcopay<-function(data
     ccdfData_TN$stateFIPS <- 47
 
     temp<-data[data$stateFIPS==47,]
-    #  temp$numkidsInCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
-    #temp$numkidsInCare<-temp$numkidsincare0to4
+   
     temp$numkidsInCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
 
-    # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-    # years<-unique(data$ruleYear) # years in data set
-    # yearsinexpdata<- unique(ccdfData_TN$ruleYear) # rule years in benefit data
-    # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-    # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-    # # Create data for the future
-    # maxyearofdata<-max(ccdfData_TN$ruleYear) # collect latest year of benefit data
-    # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-    # if(length(futureYrs)>0){
-    #   # Create data frame with future years
-    #   expand<-expand.grid(stateFIPS=unique(ccdfData_TN$stateFIPS), AKorHI=unique(ccdfData_TN$AKorHI), famsize=unique(ccdfData_TN$famsize), numkidsInCare=unique(ccdfData_TN$numkidsInCare), Year=futureYrs)
-    #   # Collect latest benefit data there is and merge w/data frame
-    #   expand2<-ccdfData_TN[ccdfData_TN$ruleYear==maxyearofdata, ]
-    #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-    # }
-    # # Create data for past and gap years (missing data) - not the future
-    # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-    # if(length(nonFutureYrs)>0){
-    #   #Create data frame with past years and year for which we are missing benefit data
-    #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_TN$stateFIPS), AKorHI=unique(ccdfData_TN$AKorHI), famsize=unique(ccdfData_TN$famsize), numkidsInCare=unique(ccdfData_TN$numkidsInCare), Year=nonFutureYrs)
-    #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-    #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_TN, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare"))
-    #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-    #   expandPastMiss2<-expandPastMiss2%>%
-    #     group_by(Year)%>%
-    #     filter(yeardiff<0)%>%
-    #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-    # }  # Attach copied future, historical, and missing benefit data
-    # if(length(futureYrs)>0) {ccdfData_TN<-ccdfData_TN %>% rbind(expand)}
-    # if(length(nonFutureYrs)>0) {ccdfData_TN<-ccdfData_TN %>% rbind(expandPastMiss2)}
-    #
+   
     #----------------------------------
     # Step 1: Assign copays
     #----------------------------------
@@ -4943,36 +3707,7 @@ function.CCDFcopay<-function(data
   if(48 %in% unique(data$stateFIPS)){
     temp<-data[data$stateFIPS==48,]
 
-    # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-    # years<-unique(data$ruleYear) # years in data set
-    # yearsinexpdata<- unique(ccdfData_TX$ruleYear) # rule years in benefit data
-    # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-    # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-    # # Create data for the future
-    # maxyearofdata<-max(ccdfData_TX$ruleYear) # collect latest year of benefit data
-    # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-    # if(length(futureYrs)>0){
-    #   # Create data frame with future years
-    #   expand<-expand.grid(stateFIPS=unique(ccdfData_TX$stateFIPS), AKorHI=unique(ccdfData_TX$AKorHI), famsize=unique(ccdfData_TX$famsize), Year=futureYrs)
-    #   # Collect latest benefit data there is and merge w/data frame
-    #   expand2<-ccdfData_TX[ccdfData_TX$ruleYear==maxyearofdata, ]
-    #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-    # }
-    # # Create data for past and gap years (missing data) - not the future
-    # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-    # if(length(nonFutureYrs)>0){
-    #   #Create data frame with past years and year for which we are missing benefit data
-    #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_TX$stateFIPS), AKorHI=unique(ccdfData_TX$AKorHI), famsize=unique(ccdfData_TX$famsize), Year=nonFutureYrs)
-    #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-    #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_TX, by=c("stateFIPS", "AKorHI", "famsize"))
-    #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-    #   expandPastMiss2<-expandPastMiss2%>%
-    #     group_by(Year)%>%
-    #     filter(yeardiff<0)%>%
-    #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-    # }  # Attach copied future, historical, and missing benefit data
-    # if(length(futureYrs)>0) {ccdfData_TX<-ccdfData_TX %>% rbind(expand)}
-    # if(length(nonFutureYrs)>0) {ccdfData_TX<-ccdfData_TX %>% rbind(expandPastMiss2)}
+   
     #
     #----------------------------------
     # Step 1: Assign copays
@@ -5065,37 +3800,6 @@ function.CCDFcopay<-function(data
 
     temp$numkidsInCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
 
-    # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-    # years<-unique(data$ruleYear) # years in data set
-    # yearsinexpdata<- unique(ccdfData_UT$ruleYear) # rule years in benefit data
-    # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-    # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-    # # Create data for the future
-    # maxyearofdata<-max(ccdfData_UT$ruleYear) # collect latest year of benefit data
-    # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-    # if(length(futureYrs)>0){
-    #   # Create data frame with future years
-    #   expand<-expand.grid(stateFIPS=unique(ccdfData_UT$stateFIPS), AKorHI=unique(ccdfData_UT$AKorHI), famsize=unique(ccdfData_UT$famsize), numkidsInCare=unique(ccdfData_UT$numkidsInCare), Year=futureYrs)
-    #   # Collect latest benefit data there is and merge w/data frame
-    #   expand2<-ccdfData_UT[ccdfData_UT$ruleYear==maxyearofdata, ]
-    #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-    # }
-    # # Create data for past and gap years (missing data) - not the future
-    # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-    # if(length(nonFutureYrs)>0){
-    #   #Create data frame with past years and year for which we are missing benefit data
-    #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_UT$stateFIPS), AKorHI=unique(ccdfData_UT$AKorHI), famsize=unique(ccdfData_UT$famsize), numkidsInCare=unique(ccdfData_UT$numkidsInCare), Year=nonFutureYrs)
-    #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-    #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_UT, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare"))
-    #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-    #   expandPastMiss2<-expandPastMiss2%>%
-    #     group_by(Year)%>%
-    #     filter(yeardiff<0)%>%
-    #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-    # }  # Attach copied future, historical, and missing benefit data
-    # if(length(futureYrs)>0) {ccdfData_UT<-ccdfData_UT %>% rbind(expand)}
-    # if(length(nonFutureYrs)>0) {ccdfData_UT<-ccdfData_UT %>% rbind(expandPastMiss2)}
-    #
     #----------------------------------
     # Step 1: Assign copays
     #----------------------------------
@@ -5158,41 +3862,7 @@ function.CCDFcopay<-function(data
 
     temp <- data[data$stateFIPS==50,]
 
-    # providercost_VT$stateFIPS <- 50
-    #
-    #if(temp$ruleYear < 2022){
-
-    # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-    # years<-unique(data$ruleYear) # years in data set
-    # yearsinexpdata<- unique(providercost_VT$ruleYear) # rule years in benefit data
-    # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-    # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-    # # Create data for the future
-    # maxyearofdata<-max(providercost_VT$ruleYear) # collect latest year of benefit data
-    # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-    # if(length(futureYrs)>0){
-    #   # Create data frame with future years
-    #   expand<-expand.grid(stateFIPS=unique(providercost_VT$stateFIPS), Year=futureYrs)
-    #   # Collect latest benefit data there is and merge w/data frame
-    #   expand2<-providercost_VT[providercost_VT$ruleYear==maxyearofdata, ]
-    #   expand<-expand%>%left_join(expand2, by=c("stateFIPS")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-    # }
-    # # Create data for past and gap years (missing data) - not the future
-    # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-    # if(length(nonFutureYrs)>0){
-    #   #Create data frame with past years and year for which we are missing benefit data
-    #   expandPastMiss<-expand.grid(stateFIPS=unique(providercost_VT$stateFIPS), Year=nonFutureYrs)
-    #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-    #   expandPastMiss2<-left_join(expandPastMiss, providercost_VT, by=c("stateFIPS"))
-    #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-    #   expandPastMiss2<-expandPastMiss2%>%
-    #     group_by(Year)%>%
-    #     filter(yeardiff<0)%>%
-    #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-    # }  # Attach copied future, historical, and missing benefit data
-    # if(length(futureYrs)>0) {providercost_VT<-providercost_VT %>% rbind(expand)}
-    # if(length(nonFutureYrs)>0) {providercost_VT<-providercost_VT %>% rbind(expandPastMiss2)}
-    #
+  
     #
     temp<-left_join(temp, providercost_VT, by=c("stateFIPS", "ruleYear"))
 
@@ -5411,39 +4081,7 @@ function.CCDFcopay<-function(data
     #----------------------------------
     # Uses most current rules in PRD and imputes them for years in the data set
 
-    #  ccdfData_VT <- ccdfData_VT[ccdfData_VT$ruleYear == 2022,]
-    #  ccdfData_VT$ruleYear <- 2021
-
-    # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-    # years<-unique(data$ruleYear) # years in data set
-    # yearsinexpdata<- unique(ccdfData_VT$ruleYear) # rule years in benefit data
-    # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-    # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-    # # Create data for the future
-    # maxyearofdata<-max(ccdfData_VT$ruleYear) # collect latest year of benefit data
-    # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-    # if(length(futureYrs)>0){
-    #   # Create data frame with future years
-    #   expand<-expand.grid(stateFIPS=unique(ccdfData_VT$stateFIPS), AKorHI=unique(ccdfData_VT$AKorHI), famsize=unique(ccdfData_VT$famsize), Year=futureYrs)
-    #   # Collect latest benefit data there is and merge w/data frame
-    #   expand2<-ccdfData_VT[ccdfData_VT$ruleYear==maxyearofdata, ]
-    #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-    # }
-    # # Create data for past and gap years (missing data) - not the future
-    # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-    # if(length(nonFutureYrs)>0){
-    #   #Create data frame with past years and year for which we are missing benefit data
-    #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_VT$stateFIPS), AKorHI=unique(ccdfData_VT$AKorHI), famsize=unique(ccdfData_VT$famsize), Year=nonFutureYrs)
-    #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-    #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_VT, by=c("stateFIPS", "AKorHI", "famsize"))
-    #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-    #   expandPastMiss2<-expandPastMiss2%>%
-    #     group_by(Year)%>%
-    #     filter(yeardiff<0)%>%
-    #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-    # }  # Attach copied future, historical, and missing benefit data
-    # if(length(futureYrs)>0) {ccdfData_VT<-ccdfData_VT %>% rbind(expand)}
-    # if(length(nonFutureYrs)>0) {ccdfData_VT<-ccdfData_VT %>% rbind(expandPastMiss2)}
+   
     #
     temp<-left_join(temp, ccdfData_VT, by=c("stateFIPS", "famsize", "ruleYear"))
 
@@ -5483,9 +4121,7 @@ function.CCDFcopay<-function(data
 
 
 
-    #
-    # temp$totcopay[temp$ruleYear!=2022]<-rowMins(cbind(temp$annualCost[temp$ruleYear!=2022]*(1-temp$FTcopay[temp$ruleYear!=2022]),temp$netexp.childcare[temp$ruleYear!=2022]))
-
+ 
 
     #----------------------------------
     # Step 2: Calculate total copays
@@ -5527,37 +4163,7 @@ function.CCDFcopay<-function(data
 
     temp<-data[data$stateFIPS==51,]
 
-    # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-    # years<-unique(data$ruleYear) # years in data set
-    # yearsinexpdata<- unique(ccdfData_VA$ruleYear) # rule years in benefit data
-    # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-    # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-    # # Create data for the future
-    # maxyearofdata<-max(ccdfData_VA$ruleYear) # collect latest year of benefit data
-    # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-    # if(length(futureYrs)>0){
-    #   # Create data frame with future years
-    #   expand<-expand.grid(stateFIPS=unique(ccdfData_VA$stateFIPS), AKorHI=unique(ccdfData_VA$AKorHI), famsize=unique(ccdfData_VA$famsize), countyortownName=unique(ccdfData_VA$countyortownName), Year=futureYrs)
-    #   # Collect latest benefit data there is and merge w/data frame
-    #   expand2<-ccdfData_VA[ccdfData_VA$ruleYear==maxyearofdata, ]
-    #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize", "countyortownName")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-    # }
-    # # Create data for past and gap years (missing data) - not the future
-    # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-    # if(length(nonFutureYrs)>0){
-    #   #Create data frame with past years and year for which we are missing benefit data
-    #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_VA$stateFIPS), AKorHI=unique(ccdfData_VA$AKorHI), famsize=unique(ccdfData_VA$famsize), countyortownName=unique(ccdfData_VA$countyortownName), Year=nonFutureYrs)
-    #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-    #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_VA, by=c("stateFIPS", "AKorHI", "famsize", "countyortownName"))
-    #   expandPastMiss2$yeardiff<-abs(expandPastMiss2$ruleYear-expandPastMiss2$Year)
-    #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-    #   expandPastMiss2<-expandPastMiss2%>%
-    #     group_by(Year)%>%
-    #     filter(yeardiff<0)%>%
-    #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-    # }  # Attach copied future, historical, and missing benefit data
-    # if(length(futureYrs)>0) {ccdfData_VA<-ccdfData_VA %>% rbind(expand)}
-    # if(length(nonFutureYrs)>0) {ccdfData_VA<-ccdfData_VA %>% rbind(expandPastMiss2)}
+   
     #----------------------------------
     # Step 1: Assign copays
     #----------------------------------
@@ -5618,37 +4224,7 @@ function.CCDFcopay<-function(data
 
     temp<-data[data$stateFIPS==53,]
 
-    # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-    # years<-unique(data$ruleYear) # years in data set
-    # yearsinexpdata<- unique(ccdfData_WA$ruleYear) # rule years in benefit data
-    # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-    # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-    # # Create data for the future
-    # maxyearofdata<-max(ccdfData_WA$ruleYear) # collect latest year of benefit data
-    # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-    # if(length(futureYrs)>0){
-    #   # Create data frame with future years
-    #   expand<-expand.grid(stateFIPS=unique(ccdfData_WA$stateFIPS), AKorHI=unique(ccdfData_WA$AKorHI), famsize=unique(ccdfData_WA$famsize), Year=futureYrs)
-    #   # Collect latest benefit data there is and merge w/data frame
-    #   expand2<-ccdfData_WA[ccdfData_WA$ruleYear==maxyearofdata, ]
-    #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-    # }
-    # # Create data for past and gap years (missing data) - not the future
-    # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-    # if(length(nonFutureYrs)>0){
-    #   #Create data frame with past years and year for which we are missing benefit data
-    #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_WA$stateFIPS), AKorHI=unique(ccdfData_WA$AKorHI), famsize=unique(ccdfData_WA$famsize), Year=nonFutureYrs)
-    #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-    #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_WA, by=c("stateFIPS", "AKorHI", "famsize"))
-    #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-    #   expandPastMiss2<-expandPastMiss2%>%
-    #     group_by(Year)%>%
-    #     filter(yeardiff<0)%>%
-    #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-    # }  # Attach copied future, historical, and missing benefit data
-    # if(length(futureYrs)>0) {ccdfData_WA<-ccdfData_WA %>% rbind(expand)}
-    # if(length(nonFutureYrs)>0) {ccdfData_WA<-ccdfData_WA %>% rbind(expandPastMiss2)}
-    #
+  
     #----------------------------------
     # Step 1: Assign copays
     #----------------------------------
@@ -5716,36 +4292,7 @@ function.CCDFcopay<-function(data
 
     temp<-data[data$stateFIPS==54,]
 
-    # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-    # years<-unique(data$ruleYear) # years in data set
-    # yearsinexpdata<- unique(ccdfData_WV$ruleYear) # rule years in benefit data
-    # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-    # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-    # # Create data for the future
-    # maxyearofdata<-max(ccdfData_WV$ruleYear) # collect latest year of benefit data
-    # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-    # if(length(futureYrs)>0){
-    #   # Create data frame with future years
-    #   expand<-expand.grid(stateFIPS=unique(ccdfData_WV$stateFIPS), AKorHI=unique(ccdfData_WV$AKorHI), famsize=unique(ccdfData_WV$famsize), Year=futureYrs)
-    #   # Collect latest benefit data there is and merge w/data frame
-    #   expand2<-ccdfData_WV[ccdfData_WV$ruleYear==maxyearofdata, ]
-    #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-    # }
-    # # Create data for past and gap years (missing data) - not the future
-    # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-    # if(length(nonFutureYrs)>0){
-    #   #Create data frame with past years and year for which we are missing benefit data
-    #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_WV$stateFIPS), AKorHI=unique(ccdfData_WV$AKorHI), famsize=unique(ccdfData_WV$famsize), Year=nonFutureYrs)
-    #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-    #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_WV, by=c("stateFIPS", "AKorHI", "famsize"))
-    #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-    #   expandPastMiss2<-expandPastMiss2%>%
-    #     group_by(Year)%>%
-    #     filter(yeardiff<0)%>%
-    #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-    # }  # Attach copied future, historical, and missing benefit data
-    # if(length(futureYrs)>0) {ccdfData_WV<-ccdfData_WV %>% rbind(expand)}
-    # if(length(nonFutureYrs)>0) {ccdfData_WV<-ccdfData_WV %>% rbind(expandPastMiss2)}
+    
     #
     #----------------------------------
     # Step 1: Assign copays
@@ -5815,36 +4362,6 @@ function.CCDFcopay<-function(data
 
     temp<-data[data$stateFIPS==56,]
 
-    # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-    # years<-unique(data$ruleYear) # years in data set
-    # yearsinexpdata<- unique(ccdfData_WY$ruleYear) # rule years in benefit data
-    # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-    # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-    # # Create data for the future
-    # maxyearofdata<-max(ccdfData_WY$ruleYear) # collect latest year of benefit data
-    # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-    # if(length(futureYrs)>0){
-    #   # Create data frame with future years
-    #   expand<-expand.grid(stateFIPS=unique(ccdfData_WY$stateFIPS), AKorHI=unique(ccdfData_WY$AKorHI), famsize=unique(ccdfData_WY$famsize), Year=futureYrs)
-    #   # Collect latest benefit data there is and merge w/data frame
-    #   expand2<-ccdfData_WY[ccdfData_WY$ruleYear==maxyearofdata, ]
-    #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-    # }
-    # # Create data for past and gap years (missing data) - not the future
-    # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-    # if(length(nonFutureYrs)>0){
-    #   #Create data frame with past years and year for which we are missing benefit data
-    #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_WY$stateFIPS), AKorHI=unique(ccdfData_WY$AKorHI), famsize=unique(ccdfData_WY$famsize), Year=nonFutureYrs)
-    #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-    #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_WY, by=c("stateFIPS", "AKorHI", "famsize"))
-    #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-    #   expandPastMiss2<-expandPastMiss2%>%
-    #     group_by(Year)%>%
-    #     filter(yeardiff<0)%>%
-    #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-    # }  # Attach copied future, historical, and missing benefit data
-    # if(length(futureYrs)>0) {ccdfData_WY<-ccdfData_WY %>% rbind(expand)}
-    # if(length(nonFutureYrs)>0) {ccdfData_WY<-ccdfData_WY %>% rbind(expandPastMiss2)}
     #
     #----------------------------------
     # Step 1: Assign copays
@@ -5908,37 +4425,7 @@ function.CCDFcopay<-function(data
 
     temp$numkidsInCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
 
-    # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-    # years<-unique(data$ruleYear) # years in data set
-    # yearsinexpdata<- unique(ccdfData_WI$ruleYear) # rule years in benefit data
-    # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-    # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-    # # Create data for the future
-    # maxyearofdata<-max(ccdfData_WI$ruleYear) # collect latest year of benefit data
-    # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-    # if(length(futureYrs)>0){
-    #   # Create data frame with future years
-    #   expand<-expand.grid(stateFIPS=unique(ccdfData_WI$stateFIPS), AKorHI=unique(ccdfData_WI$AKorHI), famsize=unique(ccdfData_WI$famsize), numkidsInCare=unique(ccdfData_WI$numkidsInCare), Year=futureYrs)
-    #   # Collect latest benefit data there is and merge w/data frame
-    #   expand2<-ccdfData_WI[ccdfData_WI$ruleYear==maxyearofdata, ]
-    #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-    # }
-    # # Create data for past and gap years (missing data) - not the future
-    # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-    # if(length(nonFutureYrs)>0){
-    #   #Create data frame with past years and year for which we are missing benefit data
-    #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_WI$stateFIPS), AKorHI=unique(ccdfData_WI$AKorHI), famsize=unique(ccdfData_WI$famsize), numkidsInCare=unique(ccdfData_WI$numkidsInCare), Year=nonFutureYrs)
-    #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-    #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_WI, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare"))
-    #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-    #   expandPastMiss2<-expandPastMiss2%>%
-    #     group_by(Year)%>%
-    #     filter(yeardiff<0)%>%
-    #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-    # }  # Attach copied future, historical, and missing benefit data
-    # if(length(futureYrs)>0) {ccdfData_WI<-ccdfData_WI %>% rbind(expand)}
-    # if(length(nonFutureYrs)>0) {ccdfData_WI<-ccdfData_WI %>% rbind(expandPastMiss2)}
-    #
+    
     #----------------------------------
     # Step 1: Assign copays
     #----------------------------------
@@ -6127,36 +4614,7 @@ function.CCDFcopay<-function(data
       temp<-data[data$stateFIPS==1,]
       temp$numkidsInCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
 
-      # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-      # years<-unique(data$ruleYear) # years in data set
-      # yearsinexpdata<- unique(ccdfData_AL$ruleYear) # rule years in benefit data
-      # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-      # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-      # # Create data for the future
-      # maxyearofdata<-max(ccdfData_AL$ruleYear) # collect latest year of benefit data
-      # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-      # if(length(futureYrs)>0){
-      #   # Create data frame with future years
-      #   expand<-expand.grid(stateFIPS=unique(ccdfData_AL$stateFIPS), AKorHI=unique(ccdfData_AL$AKorHI), famsize=unique(ccdfData_AL$famsize), numkidsInCare=unique(ccdfData_AL$numkidsInCare), Year=futureYrs)
-      #   # Collect latest benefit data there is and merge w/data frame
-      #   expand2<-ccdfData_AL[ccdfData_AL$ruleYear==maxyearofdata, ]
-      #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-      # }
-      # Create data for past and gap years (missing data) - not the future
-      # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-      # if(length(nonFutureYrs)>0){
-      #   #Create data frame with past years and year for which we are missing benefit data
-      #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_AL$stateFIPS), AKorHI=unique(ccdfData_AL$AKorHI), famsize=unique(ccdfData_AL$famsize), numkidsInCare=unique(ccdfData_AL$numkidsInCare), Year=nonFutureYrs)
-      #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-      #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_AL, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare"))
-      #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-      #   expandPastMiss2<-expandPastMiss2%>%
-      #     group_by(Year)%>%
-      #     filter(yeardiff<0)%>%
-      #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-      # }  # Attach copied future, historical, and missing benefit data
-      # if(length(futureYrs)>0) {ccdfData_AL<-ccdfData_AL %>% rbind(expand)}
-      # if(length(nonFutureYrs)>0) {ccdfData_AL<-ccdfData_AL %>% rbind(expandPastMiss2)}
+     
 
       #----------------------------------
       # Step 1: Assign copays
@@ -6222,37 +4680,6 @@ function.CCDFcopay<-function(data
       ccdfData_AK$stateFIPS <- 2
 
       temp<-data[data$stateFIPS==2,]
-
-      # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-      # years<-unique(data$ruleYear) # years in data set
-      # yearsinexpdata<- unique(ccdfData_AK$ruleYear) # rule years in benefit data
-      # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-      # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-      # # Create data for the future
-      # maxyearofdata<-max(ccdfData_AK$ruleYear) # collect latest year of benefit data
-      # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-      # if(length(futureYrs)>0){
-      #   # Create data frame with future years
-      #   expand<-expand.grid(stateFIPS=unique(ccdfData_AK$stateFIPS), AKorHI=unique(ccdfData_AK$AKorHI), famsize=unique(ccdfData_AK$famsize), Year=futureYrs)
-      #   # Collect latest benefit data there is and merge w/data frame
-      #   expand2<-ccdfData_AK[ccdfData_AK$ruleYear==maxyearofdata, ]
-      #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-      # }
-      # # Create data for past and gap years (missing data) - not the future
-      # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-      # if(length(nonFutureYrs)>0){
-      #   #Create data frame with past years and year for which we are missing benefit data
-      #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_AK$stateFIPS), AKorHI=unique(ccdfData_AK$AKorHI), famsize=unique(ccdfData_AK$famsize), Year=nonFutureYrs)
-      #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-      #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_AK, by=c("stateFIPS", "AKorHI", "famsize"))
-      #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-      #   expandPastMiss2<-expandPastMiss2%>%
-      #     group_by(Year)%>%
-      #     filter(yeardiff<0)%>%
-      #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-      # }  # Attach copied future, historical, and missing benefit data
-      # if(length(futureYrs)>0) {ccdfData_AK<-ccdfData_AK %>% rbind(expand)}
-      # if(length(nonFutureYrs)>0) {ccdfData_AK<-ccdfData_AK %>% rbind(expandPastMiss2)}
 
       #----------------------------------
       # Step 1: Assign copays
@@ -6391,37 +4818,7 @@ function.CCDFcopay<-function(data
 
       temp<-data[data$stateFIPS==4,]
 
-      # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-      # years<-unique(data$ruleYear) # years in data set
-      # yearsinexpdata<- unique(ccdfData_AZ$ruleYear) # rule years in benefit data
-      # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-      # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-      # # Create data for the future
-      # maxyearofdata<-max(ccdfData_AZ$ruleYear) # collect latest year of benefit data
-      # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-      # if(length(futureYrs)>0){
-      #   # Create data frame with future years
-      #   expand<-expand.grid(stateFIPS=unique(ccdfData_AZ$stateFIPS), AKorHI=unique(ccdfData_AZ$AKorHI), famsize=unique(ccdfData_AZ$famsize), Year=futureYrs)
-      #   # Collect latest benefit data there is and merge w/data frame
-      #   expand2<-ccdfData_AZ[ccdfData_AZ$ruleYear==maxyearofdata, ]
-      #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-      # }
-      # # Create data for past and gap years (missing data) - not the future
-      # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-      # if(length(nonFutureYrs)>0){
-      #   #Create data frame with past years and year for which we are missing benefit data
-      #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_AZ$stateFIPS), AKorHI=unique(ccdfData_AZ$AKorHI), famsize=unique(ccdfData_AZ$famsize), Year=nonFutureYrs)
-      #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-      #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_AZ, by=c("stateFIPS", "AKorHI", "famsize"))
-      #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-      #   expandPastMiss2<-expandPastMiss2%>%
-      #     group_by(Year)%>%
-      #     filter(yeardiff<0)%>%
-      #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-      # }  # Attach copied future, historical, and missing benefit data
-      # if(length(futureYrs)>0) {ccdfData_AZ<-ccdfData_AZ %>% rbind(expand)}
-      # if(length(nonFutureYrs)>0) {ccdfData_AZ<-ccdfData_AZ %>% rbind(expandPastMiss2)}
-      #
+     
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
@@ -6481,37 +4878,7 @@ function.CCDFcopay<-function(data
 
       temp<-data[data$stateFIPS==5,]
 
-      # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-      # years<-unique(data$ruleYear) # years in data set
-      # yearsinexpdata<- unique(ccdfData_AR$ruleYear) # rule years in benefit data
-      # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-      # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-      # # Create data for the future
-      # maxyearofdata<-max(ccdfData_AR$ruleYear) # collect latest year of benefit data
-      # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-      # if(length(futureYrs)>0){
-      #   # Create data frame with future years
-      #   expand<-expand.grid(stateFIPS=unique(ccdfData_AR$stateFIPS), AKorHI=unique(ccdfData_AR$AKorHI), famsize=unique(ccdfData_AR$famsize), Year=futureYrs)
-      #   # Collect latest benefit data there is and merge w/data frame
-      #   expand2<-ccdfData_AR[ccdfData_AR$ruleYear==maxyearofdata, ]
-      #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-      # }
-      # # Create data for past and gap years (missing data) - not the future
-      # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-      # if(length(nonFutureYrs)>0){
-      #   #Create data frame with past years and year for which we are missing benefit data
-      #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_AR$stateFIPS), AKorHI=unique(ccdfData_AR$AKorHI), famsize=unique(ccdfData_AR$famsize), Year=nonFutureYrs)
-      #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-      #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_AR, by=c("stateFIPS", "AKorHI", "famsize"))
-      #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-      #   expandPastMiss2<-expandPastMiss2%>%
-      #     group_by(Year)%>%
-      #     filter(yeardiff<0)%>%
-      #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-      # }  # Attach copied future, historical, and missing benefit data
-      # if(length(futureYrs)>0) {ccdfData_AR<-ccdfData_AR %>% rbind(expand)}
-      # if(length(nonFutureYrs)>0) {ccdfData_AR<-ccdfData_AR %>% rbind(expandPastMiss2)}
-      #
+      
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
@@ -6568,37 +4935,7 @@ function.CCDFcopay<-function(data
 
       temp<-data[data$stateFIPS==6,]
 
-      # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-      # years<-unique(data$ruleYear) # years in data set
-      # yearsinexpdata<- unique(ccdfData_CA$ruleYear) # rule years in benefit data
-      # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-      # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-      # # Create data for the future
-      # maxyearofdata<-max(ccdfData_CA$ruleYear) # collect latest year of benefit data
-      # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-      # if(length(futureYrs)>0){
-      #   # Create data frame with future years
-      #   expand<-expand.grid(stateFIPS=unique(ccdfData_CA$stateFIPS), AKorHI=unique(ccdfData_CA$AKorHI), famsize=unique(ccdfData_CA$famsize), Year=futureYrs)
-      #   # Collect latest benefit data there is and merge w/data frame
-      #   expand2<-ccdfData_CA[ccdfData_CA$ruleYear==maxyearofdata, ]
-      #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-      # }
-      # # Create data for past and gap years (missing data) - not the future
-      # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-      # if(length(nonFutureYrs)>0){
-      #   #Create data frame with past years and year for which we are missing benefit data
-      #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_CA$stateFIPS), AKorHI=unique(ccdfData_CA$AKorHI), famsize=unique(ccdfData_CA$famsize), Year=nonFutureYrs)
-      #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-      #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_CA, by=c("stateFIPS", "AKorHI", "famsize"))
-      #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-      #   expandPastMiss2<-expandPastMiss2%>%
-      #     group_by(Year)%>%
-      #     filter(yeardiff<0)%>%
-      #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-      # }  # Attach copied future, historical, and missing benefit data
-      # if(length(futureYrs)>0) {ccdfData_CA<-ccdfData_CA %>% rbind(expand)}
-      # if(length(nonFutureYrs)>0) {ccdfData_CA<-ccdfData_CA %>% rbind(expandPastMiss2)}
-      #
+     
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
@@ -6673,37 +5010,7 @@ function.CCDFcopay<-function(data
 
       temp$numkidsInCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
 
-      # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-      # years<-unique(data$ruleYear) # years in data set
-      # yearsinexpdata<- unique(ccdfData_CO$ruleYear) # rule years in benefit data
-      # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-      # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-      # # Create data for the future
-      # maxyearofdata<-max(ccdfData_CO$ruleYear) # collect latest year of benefit data
-      # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-      # if(length(futureYrs)>0){
-      #   # Create data frame with future years
-      #   expand<-expand.grid(stateFIPS=unique(ccdfData_CO$stateFIPS), AKorHI=unique(ccdfData_CO$AKorHI), famsize=unique(ccdfData_CO$famsize), countyortownName=unique(ccdfData_CO$countyortownName), numkidsInCare=unique(ccdfData_CO$numkidsInCare), Year=futureYrs)
-      #   # Collect latest benefit data there is and merge w/data frame
-      #   expand2<-ccdfData_CO[ccdfData_CO$ruleYear==maxyearofdata, ]
-      #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize","countyortownName", "numkidsInCare")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-      # }
-      # # Create data for past and gap years (missing data) - not the future
-      # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-      # if(length(nonFutureYrs)>0){
-      #   #Create data frame with past years and year for which we are missing benefit data
-      #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_CO$stateFIPS), AKorHI=unique(ccdfData_CO$AKorHI), famsize=unique(ccdfData_CO$famsize), countyortownName=unique(ccdfData_CO$countyortownName), numkidsInCare=unique(ccdfData_CO$numkidsInCare), Year=nonFutureYrs)
-      #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-      #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_CO, by=c("stateFIPS", "AKorHI", "famsize", "countyortownName", "numkidsInCare"))
-      #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-      #   expandPastMiss2<-expandPastMiss2%>%
-      #     group_by(Year)%>%
-      #     filter(yeardiff<0)%>%
-      #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-      # }  # Attach copied future, historical, and missing benefit data
-      # if(length(futureYrs)>0) {ccdfData_CO<-ccdfData_CO %>% rbind(expand)}
-      # if(length(nonFutureYrs)>0) {ccdfData_CO<-ccdfData_CO %>% rbind(expandPastMiss2)}
-      #
+     
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
@@ -6768,37 +5075,7 @@ function.CCDFcopay<-function(data
 
       temp<-data[data$stateFIPS==9,]
 
-      # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-      # years<-unique(data$ruleYear) # years in data set
-      # yearsinexpdata<- unique(ccdfData_CT$ruleYear) # rule years in benefit data
-      # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-      # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-      # # Create data for the future
-      # maxyearofdata<-max(ccdfData_CT$ruleYear) # collect latest year of benefit data
-      # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-      # if(length(futureYrs)>0){
-      #   # Create data frame with future years
-      #   expand<-expand.grid(stateFIPS=unique(ccdfData_CT$stateFIPS), AKorHI=unique(ccdfData_CT$AKorHI), famsize=unique(ccdfData_CT$famsize), Year=futureYrs)
-      #   # Collect latest benefit data there is and merge w/data frame
-      #   expand2<-ccdfData_CT[ccdfData_CT$ruleYear==maxyearofdata, ]
-      #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-      # }
-      # # Create data for past and gap years (missing data) - not the future
-      # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-      # if(length(nonFutureYrs)>0){
-      #   #Create data frame with past years and year for which we are missing benefit data
-      #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_CT$stateFIPS), AKorHI=unique(ccdfData_CT$AKorHI), famsize=unique(ccdfData_CT$famsize), Year=nonFutureYrs)
-      #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-      #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_CT, by=c("stateFIPS", "AKorHI", "famsize"))
-      #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-      #   expandPastMiss2<-expandPastMiss2%>%
-      #     group_by(Year)%>%
-      #     filter(yeardiff<0)%>%
-      #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-      # }  # Attach copied future, historical, and missing benefit data
-      # if(length(futureYrs)>0) {ccdfData_CT<-ccdfData_CT %>% rbind(expand)}
-      # if(length(nonFutureYrs)>0) {ccdfData_CT<-ccdfData_CT %>% rbind(expandPastMiss2)}
-      #
+     
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
@@ -6851,37 +5128,7 @@ function.CCDFcopay<-function(data
 
       temp <- data[data$stateFIPS==10,]
 
-      # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-      # years<-unique(data$ruleYear) # years in data set
-      # yearsinexpdata<- unique(ccdfData_DE$ruleYear) # rule years in benefit data
-      # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-      # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-      # # Create data for the future
-      # maxyearofdata<-max(ccdfData_DE$ruleYear) # collect latest year of benefit data
-      # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-      # if(length(futureYrs)>0){
-      #   # Create data frame with future years
-      #   expand<-expand.grid(stateFIPS=unique(ccdfData_DE$stateFIPS), AKorHI=unique(ccdfData_DE$AKorHI), famsize=unique(ccdfData_DE$famsize), Year=futureYrs)
-      #   # Collect latest benefit data there is and merge w/data frame
-      #   expand2<-ccdfData_DE[ccdfData_DE$ruleYear==maxyearofdata, ]
-      #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)# %>%drop_na()
-      # }
-      # # Create data for past and gap years (missing data) - not the future
-      # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-      # if(length(nonFutureYrs)>0){
-      #   #Create data frame with past years and year for which we are missing benefit data
-      #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_DE$stateFIPS), AKorHI=unique(ccdfData_DE$AKorHI), famsize=unique(ccdfData_DE$famsize), Year=nonFutureYrs)
-      #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-      #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_DE, by=c("stateFIPS", "AKorHI", "famsize"))
-      #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-      #   expandPastMiss2<-expandPastMiss2%>%
-      #     group_by(Year)%>%
-      #     filter(yeardiff<0)%>%
-      #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-      # }  # Attach copied future, historical, and missing benefit data
-      # if(length(futureYrs)>0) {ccdfData_DE<-ccdfData_DE %>% rbind(expand)}
-      # if(length(nonFutureYrs)>0) {ccdfData_DE<-ccdfData_DE %>% rbind(expandPastMiss2)}
-      #
+     
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
@@ -6935,36 +5182,7 @@ function.CCDFcopay<-function(data
 
       temp<-data[data$stateFIPS==11,]
 
-      # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-      # years<-unique(data$ruleYear) # years in data set
-      # yearsinexpdata<- unique(ccdfData_DC$ruleYear) # rule years in benefit data
-      # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-      # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-      # # Create data for the future
-      # maxyearofdata<-max(ccdfData_DC$ruleYear) # collect latest year of benefit data
-      # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-      # if(length(futureYrs)>0){
-      #   # Create data frame with future years
-      #   expand<-expand.grid(stateFIPS=unique(ccdfData_DC$stateFIPS), AKorHI=unique(ccdfData_DC$AKorHI), famsize=unique(ccdfData_DC$famsize), Year=futureYrs)
-      #   # Collect latest benefit data there is and merge w/data frame
-      #   expand2<-ccdfData_DC[ccdfData_DC$ruleYear==maxyearofdata, ]
-      #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-      # }
-      # # Create data for past and gap years (missing data) - not the future
-      # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-      # if(length(nonFutureYrs)>0){
-      #   #Create data frame with past years and year for which we are missing benefit data
-      #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_DC$stateFIPS), AKorHI=unique(ccdfData_DC$AKorHI), famsize=unique(ccdfData_DC$famsize), Year=nonFutureYrs)
-      #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-      #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_DC, by=c("stateFIPS", "AKorHI", "famsize"))
-      #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-      #   expandPastMiss2<-expandPastMiss2%>%
-      #     group_by(Year)%>%
-      #     filter(yeardiff<0)%>%
-      #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-      # }  # Attach copied future, historical, and missing benefit data
-      # if(length(futureYrs)>0) {ccdfData_DC<-ccdfData_DC %>% rbind(expand)}
-      # if(length(nonFutureYrs)>0) {ccdfData_DC<-ccdfData_DC %>% rbind(expandPastMiss2)}
+    
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
@@ -7188,38 +5406,7 @@ function.CCDFcopay<-function(data
       # }
 
       temp<-data[data$stateFIPS==13,]
-      #
-      # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-      # years<-unique(data$ruleYear) # years in data set
-      # yearsinexpdata<- unique(ccdfData_GA$ruleYear) # rule years in benefit data
-      # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-      # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-      # # Create data for the future
-      # maxyearofdata<-max(ccdfData_GA$ruleYear) # collect latest year of benefit data
-      # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-      # if(length(futureYrs)>0){
-      #   # Create data frame with future years
-      #   expand<-expand.grid(stateFIPS=unique(ccdfData_GA$stateFIPS), AKorHI=unique(ccdfData_GA$AKorHI), famsize=unique(ccdfData_GA$famsize), Year=futureYrs)
-      #   # Collect latest benefit data there is and merge w/data frame
-      #   expand2<-ccdfData_GA[ccdfData_GA$ruleYear==maxyearofdata, ]
-      #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-      # }
-      # # Create data for past and gap years (missing data) - not the future
-      # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-      # if(length(nonFutureYrs)>0){
-      #   #Create data frame with past years and year for which we are missing benefit data
-      #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_GA$stateFIPS), AKorHI=unique(ccdfData_GA$AKorHI), famsize=unique(ccdfData_GA$famsize), Year=nonFutureYrs)
-      #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-      #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_GA, by=c("stateFIPS", "AKorHI", "famsize"))
-      #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-      #   expandPastMiss2<-expandPastMiss2%>%
-      #     group_by(Year)%>%
-      #     filter(yeardiff<0)%>%
-      #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-      # }  # Attach copied future, historical, and missing benefit data
-      # if(length(futureYrs)>0) {ccdfData_GA<-ccdfData_GA %>% rbind(expand)}
-      # if(length(nonFutureYrs)>0) {ccdfData_GA<-ccdfData_GA %>% rbind(expandPastMiss2)}
-      #
+     
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
@@ -7345,37 +5532,7 @@ function.CCDFcopay<-function(data
 
       temp$numkidsInCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
 
-      # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-      # years<-unique(data$ruleYear) # years in data set
-      # yearsinexpdata<- unique(ccdfData_IA$ruleYear) # rule years in benefit data
-      # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-      # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-      # # Create data for the future
-      # maxyearofdata<-max(ccdfData_IA$ruleYear) # collect latest year of benefit data
-      # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-      # if(length(futureYrs)>0){
-      #   # Create data frame with future years
-      #   expand<-expand.grid(stateFIPS=unique(ccdfData_IA$stateFIPS), AKorHI=unique(ccdfData_IA$AKorHI), famsize=unique(ccdfData_IA$famsize), numkidsInCare=unique(ccdfData_IA$numkidsInCare), Year=futureYrs)
-      #   # Collect latest benefit data there is and merge w/data frame
-      #   expand2<-ccdfData_IA[ccdfData_IA$ruleYear==maxyearofdata, ]
-      #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-      # }
-      # # Create data for past and gap years (missing data) - not the future
-      # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-      # if(length(nonFutureYrs)>0){
-      #   #Create data frame with past years and year for which we are missing benefit data
-      #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_IA$stateFIPS), AKorHI=unique(ccdfData_IA$AKorHI), famsize=unique(ccdfData_IA$famsize), numkidsInCare=unique(ccdfData_IA$numkidsInCare), Year=nonFutureYrs)
-      #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-      #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_IA, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare"))
-      #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-      #   expandPastMiss2<-expandPastMiss2%>%
-      #     group_by(Year)%>%
-      #     filter(yeardiff<0)%>%
-      #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-      # }  # Attach copied future, historical, and missing benefit data
-      # if(length(futureYrs)>0) {ccdfData_IA<-ccdfData_IA %>% rbind(expand)}
-      # if(length(nonFutureYrs)>0) {ccdfData_IA<-ccdfData_IA %>% rbind(expandPastMiss2)}
-      #
+     
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
@@ -7462,37 +5619,7 @@ function.CCDFcopay<-function(data
 
       temp$numkidsInCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
       #
-      # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-      # years<-unique(data$ruleYear) # years in data set
-      # yearsinexpdata<- unique(ccdfData_ID$ruleYear) # rule years in benefit data
-      # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-      # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-      # # Create data for the future
-      # maxyearofdata<-max(ccdfData_ID$ruleYear) # collect latest year of benefit data
-      # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-      # if(length(futureYrs)>0){
-      #   # Create data frame with future years
-      #   expand<-expand.grid(stateFIPS=unique(ccdfData_ID$stateFIPS), AKorHI=unique(ccdfData_ID$AKorHI), famsize=unique(ccdfData_ID$famsize), numkidsInCare=unique(ccdfData_ID$numkidsInCare), Year=futureYrs)
-      #   # Collect latest benefit data there is and merge w/data frame
-      #   expand2<-ccdfData_ID[ccdfData_ID$ruleYear==maxyearofdata, ]
-      #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-      # }
-      # # Create data for past and gap years (missing data) - not the future
-      # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-      # if(length(nonFutureYrs)>0){
-      #   #Create data frame with past years and year for which we are missing benefit data
-      #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_ID$stateFIPS), AKorHI=unique(ccdfData_ID$AKorHI), famsize=unique(ccdfData_ID$famsize), numkidsInCare=unique(ccdfData_ID$numkidsInCare), Year=nonFutureYrs)
-      #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-      #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_ID, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare"))
-      #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-      #   expandPastMiss2<-expandPastMiss2%>%
-      #     group_by(Year)%>%
-      #     filter(yeardiff<0)%>%
-      #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-      # }  # Attach copied future, historical, and missing benefit data
-      # if(length(futureYrs)>0) {ccdfData_ID<-ccdfData_ID %>% rbind(expand)}
-      # if(length(nonFutureYrs)>0) {ccdfData_ID<-ccdfData_ID %>% rbind(expandPastMiss2)}
-      #
+     
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
@@ -7550,36 +5677,7 @@ function.CCDFcopay<-function(data
 
       temp<-data[data$stateFIPS==17,]
 
-      # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-      # years<-unique(data$ruleYear) # years in data set
-      # yearsinexpdata<- unique(ccdfData_IL$ruleYear) # rule years in benefit data
-      # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-      # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-      # # Create data for the future
-      # maxyearofdata<-max(ccdfData_IL$ruleYear) # collect latest year of benefit data
-      # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-      # if(length(futureYrs)>0){
-      #   # Create data frame with future years
-      #   expand<-expand.grid(stateFIPS=unique(ccdfData_IL$stateFIPS), AKorHI=unique(ccdfData_IL$AKorHI), famsize=unique(ccdfData_IL$famsize), Year=futureYrs)
-      #   # Collect latest benefit data there is and merge w/data frame
-      #   expand2<-ccdfData_IL[ccdfData_IL$ruleYear==maxyearofdata, ]
-      #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-      # }
-      # # Create data for past and gap years (missing data) - not the future
-      # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-      # if(length(nonFutureYrs)>0){
-      #   #Create data frame with past years and year for which we are missing benefit data
-      #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_IL$stateFIPS), AKorHI=unique(ccdfData_IL$AKorHI), famsize=unique(ccdfData_IL$famsize), Year=nonFutureYrs)
-      #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-      #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_IL, by=c("stateFIPS", "AKorHI", "famsize"))
-      #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-      #   expandPastMiss2<-expandPastMiss2%>%
-      #     group_by(Year)%>%
-      #     filter(yeardiff<0)%>%
-      #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-      # }  # Attach copied future, historical, and missing benefit data
-      # if(length(futureYrs)>0) {ccdfData_IL<-ccdfData_IL %>% rbind(expand)}
-      # if(length(nonFutureYrs)>0) {ccdfData_IL<-ccdfData_IL %>% rbind(expandPastMiss2)}
+
       #
       #----------------------------------
       # Step 1: Assign copays
@@ -7676,37 +5774,7 @@ function.CCDFcopay<-function(data
 
       temp<-data[data$stateFIPS==18,]
 
-      # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-      # years<-unique(data$ruleYear) # years in data set
-      # yearsinexpdata<- unique(ccdfData_IN$ruleYear) # rule years in benefit data
-      # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-      # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-      # # Create data for the future
-      # maxyearofdata<-max(ccdfData_IN$ruleYear) # collect latest year of benefit data
-      # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-      # if(length(futureYrs)>0){
-      #   # Create data frame with future years
-      #   expand<-expand.grid(stateFIPS=unique(ccdfData_IN$stateFIPS), AKorHI=unique(ccdfData_IN$AKorHI), famsize=unique(ccdfData_IN$famsize), Year=futureYrs)
-      #   # Collect latest benefit data there is and merge w/data frame
-      #   expand2<-ccdfData_IN[ccdfData_IN$ruleYear==maxyearofdata, ]
-      #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-      # }
-      # # Create data for past and gap years (missing data) - not the future
-      # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-      # if(length(nonFutureYrs)>0){
-      #   #Create data frame with past years and year for which we are missing benefit data
-      #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_IN$stateFIPS), AKorHI=unique(ccdfData_IN$AKorHI), famsize=unique(ccdfData_IN$famsize), Year=nonFutureYrs)
-      #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-      #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_IN, by=c("stateFIPS", "AKorHI", "famsize"))
-      #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-      #   expandPastMiss2<-expandPastMiss2%>%
-      #     group_by(Year)%>%
-      #     filter(yeardiff<0)%>%
-      #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-      # }  # Attach copied future, historical, and missing benefit data
-      # if(length(futureYrs)>0) {ccdfData_IN<-ccdfData_IN %>% rbind(expand)}
-      # if(length(nonFutureYrs)>0) {ccdfData_IN<-ccdfData_IN %>% rbind(expandPastMiss2)}
-      #
+    
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
@@ -7773,37 +5841,7 @@ function.CCDFcopay<-function(data
 
       temp<-data[data$stateFIPS==20,]
 
-      # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-      # years<-unique(data$ruleYear) # years in data set
-      # yearsinexpdata<- unique(ccdfData_KS$ruleYear) # rule years in benefit data
-      # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-      # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-      # # Create data for the future
-      # maxyearofdata<-max(ccdfData_KS$ruleYear) # collect latest year of benefit data
-      # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-      # if(length(futureYrs)>0){
-      #   # Create data frame with future years
-      #   expand<-expand.grid(stateFIPS=unique(ccdfData_KS$stateFIPS), AKorHI=unique(ccdfData_KS$AKorHI), famsize=unique(ccdfData_KS$famsize), Year=futureYrs)
-      #   # Collect latest benefit data there is and merge w/data frame
-      #   expand2<-ccdfData_KS[ccdfData_KS$ruleYear==maxyearofdata, ]
-      #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-      # }
-      # # Create data for past and gap years (missing data) - not the future
-      # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-      # if(length(nonFutureYrs)>0){
-      #   #Create data frame with past years and year for which we are missing benefit data
-      #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_KS$stateFIPS), AKorHI=unique(ccdfData_KS$AKorHI), famsize=unique(ccdfData_KS$famsize), Year=nonFutureYrs)
-      #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-      #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_KS, by=c("stateFIPS", "AKorHI", "famsize"))
-      #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-      #   expandPastMiss2<-expandPastMiss2%>%
-      #     group_by(Year)%>%
-      #     filter(yeardiff<0)%>%
-      #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-      # }  # Attach copied future, historical, and missing benefit data
-      # if(length(futureYrs)>0) {ccdfData_KS<-ccdfData_KS %>% rbind(expand)}
-      # if(length(nonFutureYrs)>0) {ccdfData_KS<-ccdfData_KS %>% rbind(expandPastMiss2)}
-      #
+    
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
@@ -7960,38 +5998,7 @@ function.CCDFcopay<-function(data
 
       temp<-data[data$stateFIPS==22,]
 
-      # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-      # years<-unique(data$ruleYear) # years in data set
-      # yearsinexpdata<- unique(ccdfData_LA$ruleYear) # rule years in benefit data
-      # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-      # yearstouse[is.na(yearstouse)]<-years # keeps years from data set that are not in benefit data set
-      # # Create data for the future
-      # maxyearofdata<-max(ccdfData_LA$ruleYear) # collect latest year of benefit data
-      # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-      # if(length(futureYrs)>0){
-      #   # Create data frame with future years
-      #   expand<-expand.grid(stateFIPS=unique(ccdfData_LA$stateFIPS), AKorHI=unique(ccdfData_LA$AKorHI), famsize=unique(ccdfData_LA$famsize), Year=futureYrs)
-      #   # Collect latest benefit data there is and merge w/data frame
-      #   expand2<-ccdfData_LA[ccdfData_LA$ruleYear==maxyearofdata, ]
-      #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-      # }
-      # # Create data for past and gap years (missing data) - not the future
-      # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-      # if(length(nonFutureYrs)>0){
-      #   #Create data frame with past years and year for which we are missing benefit data
-      #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_LA$stateFIPS), AKorHI=unique(ccdfData_LA$AKorHI), famsize=unique(ccdfData_LA$famsize), Year=nonFutureYrs)
-      #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-      #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_LA, by=c("stateFIPS", "AKorHI", "famsize"))
-      #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-      #   expandPastMiss2<-expandPastMiss2%>%
-      #     group_by(Year)%>%
-      #     filter(yeardiff<0)%>%
-      #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-      # }  # Attach copied future, historical, and missing benefit data
-      # if(length(futureYrs)>0) {ccdfData_LA<-ccdfData_LA %>% rbind(expand)}
-      # if(length(nonFutureYrs)>0) {ccdfData_LA<-ccdfData_LA %>% rbind(expandPastMiss2)}
-      #
-
+     
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
@@ -8055,37 +6062,7 @@ function.CCDFcopay<-function(data
 
       temp<-data[data$stateFIPS==23,]
 
-      # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-      # years<-unique(data$ruleYear) # years in data set
-      # yearsinexpdata<- unique(ccdfData_ME$ruleYear) # rule years in benefit data
-      # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-      # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-      # # Create data for the future
-      # maxyearofdata<-max(ccdfData_ME$ruleYear) # collect latest year of benefit data
-      # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-      # if(length(futureYrs)>0){
-      #   # Create data frame with future years
-      #   expand<-expand.grid(stateFIPS=unique(ccdfData_ME$stateFIPS), AKorHI=unique(ccdfData_ME$AKorHI), famsize=unique(ccdfData_ME$famsize), Year=futureYrs)
-      #   # Collect latest benefit data there is and merge w/data frame
-      #   expand2<-ccdfData_ME[ccdfData_ME$ruleYear==maxyearofdata, ]
-      #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-      # }
-      # # Create data for past and gap years (missing data) - not the future
-      # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-      # if(length(nonFutureYrs)>0){
-      #   #Create data frame with past years and year for which we are missing benefit data
-      #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_ME$stateFIPS), AKorHI=unique(ccdfData_ME$AKorHI), famsize=unique(ccdfData_ME$famsize), Year=nonFutureYrs)
-      #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-      #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_ME, by=c("stateFIPS", "AKorHI", "famsize"))
-      #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-      #   expandPastMiss2<-expandPastMiss2%>%
-      #     group_by(Year)%>%
-      #     filter(yeardiff<0)%>%
-      #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-      # }  # Attach copied future, historical, and missing benefit data
-      # if(length(futureYrs)>0) {ccdfData_ME<-ccdfData_ME %>% rbind(expand)}
-      # if(length(nonFutureYrs)>0) {ccdfData_ME<-ccdfData_ME %>% rbind(expandPastMiss2)}
-      #
+     
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
@@ -8154,37 +6131,7 @@ function.CCDFcopay<-function(data
 
       temp$numkidsInCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
 
-      # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-      years<-unique(data$ruleYear) # years in data set
-      yearsinexpdata<- unique(ccdfData_MD$ruleYear) # rule years in benefit data
-      yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-      yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-      # Create data for the future
-      maxyearofdata<-max(ccdfData_MD$ruleYear) # collect latest year of benefit data
-      futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-      if(length(futureYrs)>0){
-        # Create data frame with future years
-        expand<-expand.grid(stateFIPS=unique(ccdfData_MD$stateFIPS), AKorHI=unique(ccdfData_MD$AKorHI), famsize=unique(ccdfData_MD$famsize), numkidsInCare=unique(ccdfData_MD$numkidsInCare), Year=futureYrs)
-        # Collect latest benefit data there is and merge w/data frame
-        expand2<-ccdfData_MD[ccdfData_MD$ruleYear==maxyearofdata, ]
-        expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-      }
-      # Create data for past and gap years (missing data) - not the future
-      nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-      if(length(nonFutureYrs)>0){
-        #Create data frame with past years and year for which we are missing benefit data
-        expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_MD$stateFIPS), AKorHI=unique(ccdfData_MD$AKorHI), famsize=unique(ccdfData_MD$famsize), numkidsInCare=unique(ccdfData_MD$numkidsInCare), Year=nonFutureYrs)
-        # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-        expandPastMiss2<-left_join(expandPastMiss, ccdfData_MD, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare"))
-        expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-        expandPastMiss2<-expandPastMiss2%>%
-          group_by(Year)%>%
-          filter(yeardiff<0)%>%
-          filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-      }  # Attach copied future, historical, and missing benefit data
-      if(length(futureYrs)>0) {ccdfData_MD<-ccdfData_MD %>% rbind(expand)}
-      if(length(nonFutureYrs)>0) {ccdfData_MD<-ccdfData_MD %>% rbind(expandPastMiss2)}
-
+     
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
@@ -8247,46 +6194,14 @@ function.CCDFcopay<-function(data
 
       temp<-data[data$stateFIPS==25,]
 
-      # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-      # years<-unique(data$ruleYear) # years in data set
-      # yearsinexpdata<- unique(ccdfData_MA$ruleYear) # rule years in benefit data
-      # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-      # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-      # # Create data for the future
-      # maxyearofdata<-max(ccdfData_MA$ruleYear) # collect latest year of benefit data
-      # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-      # if(length(futureYrs)>0){
-      #   # Create data frame with future years
-      #   expand<-expand.grid(stateFIPS=unique(ccdfData_MA$stateFIPS), AKorHI=unique(ccdfData_MA$AKorHI), famsize=unique(ccdfData_MA$famsize), Year=futureYrs)
-      #   # Collect latest benefit data there is and merge w/data frame
-      #   expand2<-ccdfData_MA[ccdfData_MA$ruleYear==maxyearofdata, ]
-      #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-      # }
-      # # Create data for past and gap years (missing data) - not the future
-      # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-      # if(length(nonFutureYrs)>0){
-      #   #Create data frame with past years and year for which we are missing benefit data
-      #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_MA$stateFIPS), AKorHI=unique(ccdfData_MA$AKorHI), famsize=unique(ccdfData_MA$famsize), Year=nonFutureYrs)
-      #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-      #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_MA, by=c("stateFIPS", "famsize", "AKorHI"))
-      #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-      #   expandPastMiss2<-expandPastMiss2%>%
-      #     group_by(Year)%>%
-      #     filter(yeardiff<0)%>%
-      #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-      # }  # Attach copied future, historical, and missing benefit data
-      # if(length(futureYrs)>0) {ccdfData_MA<-ccdfData_MA %>% rbind(expand)}
-      # if(length(nonFutureYrs)>0) {ccdfData_MA<-ccdfData_MA %>% rbind(expandPastMiss2)}
-      #
+      
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
 
       temp<-left_join(temp, ccdfData_MA, by=c("stateFIPS", "AKorHI", "famsize", "ruleYear"))
 
-      # Adjust for the income disregard
-      #  temp$income<-temp$income-12*temp$IncomeDisregard
-
+    
       temp$FTcopay<-NA
 
       temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1Max]<-temp$CopayBin1[temp$income>=0 & temp$income<=temp$Bin1Max]
@@ -8367,36 +6282,7 @@ function.CCDFcopay<-function(data
 
       temp<-data[data$stateFIPS==26,]
 
-      # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-      # years<-unique(data$ruleYear) # years in data set
-      # yearsinexpdata<- unique(ccdfData_MI$ruleYear) # rule years in benefit data
-      # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-      # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-      # # Create data for the future
-      # maxyearofdata<-max(ccdfData_MI$ruleYear) # collect latest year of benefit data
-      # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-      # if(length(futureYrs)>0){
-      #   # Create data frame with future years
-      #   expand<-expand.grid(stateFIPS=unique(ccdfData_MI$stateFIPS), AKorHI=unique(ccdfData_MI$AKorHI), famsize=unique(ccdfData_MI$famsize), Year=futureYrs)
-      #   # Collect latest benefit data there is and merge w/data frame
-      #   expand2<-ccdfData_MI[ccdfData_MI$ruleYear==maxyearofdata, ]
-      #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-      # }
-      # # Create data for past and gap years (missing data) - not the future
-      # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-      # if(length(nonFutureYrs)>0){
-      #   #Create data frame with past years and year for which we are missing benefit data
-      #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_MI$stateFIPS), AKorHI=unique(ccdfData_MI$AKorHI), famsize=unique(ccdfData_MI$famsize), Year=nonFutureYrs)
-      #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-      #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-      #   expandPastMiss2<-expandPastMiss2%>%
-      #     group_by(Year)%>%
-      #     filter(yeardiff<0)%>%
-      #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-      # }  # Attach copied future, historical, and missing benefit data
-      # if(length(futureYrs)>0) {ccdfData_MI<-ccdfData_MI %>% rbind(expand)}
-      # if(length(nonFutureYrs)>0) {ccdfData_MI<-ccdfData_MI %>% rbind(expandPastMiss2)}
-      #
+     
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
@@ -8453,36 +6339,7 @@ function.CCDFcopay<-function(data
 
       temp<-data[data$stateFIPS==27,]
 
-      # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-      # years<-unique(data$ruleYear) # years in data set
-      # yearsinexpdata<- unique(ccdfData_MN$ruleYear) # rule years in benefit data
-      # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-      # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-      # # Create data for the future
-      # maxyearofdata<-max(ccdfData_MN$ruleYear) # collect latest year of benefit data
-      # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-      # if(length(futureYrs)>0){
-      #   # Create data frame with future years
-      #   expand<-expand.grid(stateFIPS=unique(ccdfData_MN$stateFIPS), AKorHI=unique(ccdfData_MN$AKorHI), famsize=unique(ccdfData_MN$famsize), Year=futureYrs)
-      #   # Collect latest benefit data there is and merge w/data frame
-      #   expand2<-ccdfData_MN[ccdfData_MN$ruleYear==maxyearofdata, ]
-      #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-      # }
-      # # Create data for past and gap years (missing data) - not the future
-      # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-      # if(length(nonFutureYrs)>0){
-      #   #Create data frame with past years and year for which we are missing benefit data
-      #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_MN$stateFIPS), AKorHI=unique(ccdfData_MN$AKorHI), famsize=unique(ccdfData_MN$famsize), Year=nonFutureYrs)
-      #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-      #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_MN, by=c("stateFIPS", "AKorHI", "famsize"))
-      #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-      #   expandPastMiss2<-expandPastMiss2%>%
-      #     group_by(Year)%>%
-      #     filter(yeardiff<0)%>%
-      #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-      # }  # Attach copied future, historical, and missing benefit data
-      # if(length(futureYrs)>0) {ccdfData_MN<-ccdfData_MN %>% rbind(expand)}
-      # if(length(nonFutureYrs)>0) {ccdfData_MN<-ccdfData_MN %>% rbind(expandPastMiss2)}
+      <-ccdfData_MN %>% rbind(expandPastMiss2)}
       #
       #----------------------------------
       # Step 1: Assign copays
@@ -8704,37 +6561,6 @@ function.CCDFcopay<-function(data
 
       temp<-data[data$stateFIPS==29,]
 
-      # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-      # years<-unique(data$ruleYear) # years in data set
-      # yearsinexpdata<- unique(ccdfData_MO$ruleYear) # rule years in benefit data
-      # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-      # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-      # # Create data for the future
-      # maxyearofdata<-max(ccdfData_MO$ruleYear) # collect latest year of benefit data
-      # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-      # if(length(futureYrs)>0){
-      #   # Create data frame with future years
-      #   expand<-expand.grid(stateFIPS=unique(ccdfData_MO$stateFIPS), AKorHI=unique(ccdfData_MO$AKorHI), famsize=unique(ccdfData_MO$famsize), Year=futureYrs)
-      #   # Collect latest benefit data there is and merge w/data frame
-      #   expand2<-ccdfData_MO[ccdfData_MO$ruleYear==maxyearofdata, ]
-      #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-      # }
-      # # Create data for past and gap years (missing data) - not the future
-      # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-      # if(length(nonFutureYrs)>0){
-      #   #Create data frame with past years and year for which we are missing benefit data
-      #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_MO$stateFIPS), AKorHI=unique(ccdfData_MO$AKorHI), famsize=unique(ccdfData_MO$famsize), Year=nonFutureYrs)
-      #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-      #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_MO, by=c("stateFIPS", "AKorHI", "famsize"))
-      #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-      #   expandPastMiss2<-expandPastMiss2%>%
-      #     group_by(Year)%>%
-      #     filter(yeardiff<0)%>%
-      #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-      # }  # Attach copied future, historical, and missing benefit data
-      # if(length(futureYrs)>0) {ccdfData_MO<-ccdfData_MO %>% rbind(expand)}
-      # if(length(nonFutureYrs)>0) {ccdfData_MO<-ccdfData_MO %>% rbind(expandPastMiss2)}
-      #
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
@@ -8802,36 +6628,7 @@ function.CCDFcopay<-function(data
 
       temp<-data[data$stateFIPS==30,]
 
-      # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-      # years<-unique(data$ruleYear) # years in data set
-      # yearsinexpdata<- unique(ccdfData_MT$ruleYear) # rule years in benefit data
-      # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-      # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-      # # Create data for the future
-      # maxyearofdata<-max(ccdfData_MT$ruleYear) # collect latest year of benefit data
-      # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-      # if(length(futureYrs)>0){
-      #   # Create data frame with future years
-      #   expand<-expand.grid(stateFIPS=unique(ccdfData_MT$stateFIPS), AKorHI=unique(ccdfData_MT$AKorHI), famsize=unique(ccdfData_MT$famsize), Year=futureYrs)
-      #   # Collect latest benefit data there is and merge w/data frame
-      #   expand2<-ccdfData_MT[ccdfData_MT$ruleYear==maxyearofdata, ]
-      #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-      # }
-      # # Create data for past and gap years (missing data) - not the future
-      # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-      # if(length(nonFutureYrs)>0){
-      #   #Create data frame with past years and year for which we are missing benefit data
-      #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_MT$stateFIPS), AKorHI=unique(ccdfData_MT$AKorHI), famsize=unique(ccdfData_MT$famsize), Year=nonFutureYrs)
-      #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-      #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-      #   expandPastMiss2<-expandPastMiss2%>%
-      #     group_by(Year)%>%
-      #     filter(yeardiff<0)%>%
-      #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-      # }  # Attach copied future, historical, and missing benefit data
-      # if(length(futureYrs)>0) {ccdfData_MT<-ccdfData_MT %>% rbind(expand)}
-      # if(length(nonFutureYrs)>0) {ccdfData_MT<-ccdfData_MT %>% rbind(expandPastMiss2)}
-      #
+      
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
@@ -8904,37 +6701,7 @@ function.CCDFcopay<-function(data
 
       temp <- data[data$stateFIPS==31,]
 
-      # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-      # years<-unique(data$ruleYear) # years in data set
-      # yearsinexpdata<- unique(ccdfData_NE$ruleYear) # rule years in benefit data
-      # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-      # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-      # # Create data for the future
-      # maxyearofdata<-max(ccdfData_NE$ruleYear) # collect latest year of benefit data
-      # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-      # if(length(futureYrs)>0){
-      #   # Create data frame with future years
-      #   expand<-expand.grid(stateFIPS=unique(ccdfData_NE$stateFIPS), AKorHI=unique(ccdfData_NE$AKorHI), famsize=unique(ccdfData_NE$famsize), Year=futureYrs)
-      #   # Collect latest benefit data there is and merge w/data frame
-      #   expand2<-ccdfData_NE[ccdfData_NE$ruleYear==maxyearofdata, ]
-      #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-      # }
-      # # Create data for past and gap years (missing data) - not the future
-      # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-      # if(length(nonFutureYrs)>0){
-      #   #Create data frame with past years and year for which we are missing benefit data
-      #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_NE$stateFIPS), AKorHI=unique(ccdfData_NE$AKorHI), famsize=unique(ccdfData_NE$famsize), Year=nonFutureYrs)
-      #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-      #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_NE, by=c("stateFIPS", "AKorHI", "famsize"))
-      #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-      #   expandPastMiss2<-expandPastMiss2%>%
-      #     group_by(Year)%>%
-      #     filter(yeardiff<0)%>%
-      #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-      # }  # Attach copied future, historical, and missing benefit data
-      # if(length(futureYrs)>0) {ccdfData_NE<-ccdfData_NE %>% rbind(expand)}
-      # if(length(nonFutureYrs)>0) {ccdfData_NE<-ccdfData_NE %>% rbind(expandPastMiss2)}
-      #
+      
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
@@ -8991,43 +6758,7 @@ function.CCDFcopay<-function(data
       #  providercost_NV$stateFIPS <- 32
 
 
-      # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-      # years<-unique(data$ruleYear) # years in data set
-      # yearsinexpdata<- unique(providercost_NV$ruleYear) # rule years in benefit data
-      # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-      # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-      # # Create data for the future
-      # maxyearofdata<-max(providercost_NV$ruleYear) # collect latest year of benefit data
-      # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-      # if(length(futureYrs)>0){
-      #   # Create data frame with future years
-      #   expand<-expand.grid(stateFIPS=unique(providercost_NV$stateFIPS), countyortownName=unique(providercost_NV$countyortownName), Year=futureYrs)
-      #   # Collect latest benefit data there is and merge w/data frame
-      #   expand2<-providercost_NV[providercost_NV$ruleYear==maxyearofdata, ]
-      #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "countyortownName")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-      # }
-      # # Create data for past and gap years (missing data) - not the future
-      # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-      # if(length(nonFutureYrs)>0){
-      #   #Create data frame with past years and year for which we are missing benefit data
-      #   expandPastMiss<-expand.grid(stateFIPS=unique(providercost_NV$stateFIPS), countyortownName=unique(providercost_NV$countyortownName), Year=nonFutureYrs)
-      #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-      #   expandPastMiss2<-left_join(expandPastMiss, providercost_NV, by=c("stateFIPS", "countyortownName"))
-      #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-      #   expandPastMiss2<-expandPastMiss2%>%
-      #     group_by(Year)%>%
-      #     filter(yeardiff<0)%>%
-      #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-      # }  # Attach copied future, historical, and missing benefit data
-      # if(length(futureYrs)>0) {providercost_NV<-providercost_NV %>% rbind(expand)}
-      # if(length(nonFutureYrs)>0) {providercost_NV<-providercost_NV %>% rbind(expandPastMiss2)}
-      #
-      #  if(ruleYear > 2022){
-      #   temp$ruleYear <- 2022
-      #   }
-      #temp<-left_join(temp, providercost_NV, by=c("stateFIPS", "countyortownName", "ruleYear")) # EI: ruleYear is not working here !!
-      #  providercost_NV$ruleYear<-providercost_NV$yearofdata
-
+     
 
 
 
@@ -9232,41 +6963,7 @@ function.CCDFcopay<-function(data
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
-      # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-      # years<-unique(data$ruleYear) # years in data set
-      # yearsinexpdata<- unique(ccdfData_NV$ruleYear) # rule years in benefit data
-      # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-      # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-      # # Create data for the future
-      # maxyearofdata<-max(ccdfData_NV$ruleYear) # collect latest year of benefit data
-      # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-      # if(length(futureYrs)>0){
-      #   # Create data frame with future years
-      #   expand<-expand.grid(stateFIPS=unique(ccdfData_NV$stateFIPS), famsize=unique(ccdfData_NV$famsize), countyortownName=unique(ccdfData_NV$countyortownName), Year=futureYrs)
-      #   # Collect latest benefit data there is and merge w/data frame
-      #   expand2<-ccdfData_NV[ccdfData_NV$ruleYear==maxyearofdata, ]
-      #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "famsize", "countyortownName")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-      # }
-      # # Create data for past and gap years (missing data) - not the future
-      # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-      # if(length(nonFutureYrs)>0){
-      #   #Create data frame with past years and year for which we are missing benefit data
-      #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_NV$stateFIPS), famsize=unique(ccdfData_NV$famsize), countyortownName=unique(ccdfData_NV$countyortownName), Year=nonFutureYrs)
-      #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-      #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_NV, by=c("stateFIPS","famsize", "countyortownName"))
-      #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-      #   expandPastMiss2<-expandPastMiss2%>%
-      #     group_by(Year)%>%
-      #     mutate(minyeardiff = min(yeardiff))
-      #   expandPastMiss2<-expandPastMiss2 %>%
-      #     filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-      # }  # Attach copied future, historical, and missing benefit data
-      # if(length(futureYrs)>0) {ccdfData_NV<-ccdfData_NV %>% rbind(expand)}
-      # if(length(nonFutureYrs)>0) {ccdfData_NV<-ccdfData_NV %>% rbind(expandPastMiss2)}
-      #
-      #   if(ruleYear > 2022){
-      #     temp$ruleYear <- 2022
-      #    }
+      
 
       temp<-left_join(temp, ccdfData_NV, by=c("stateFIPS","stateName", "famsize", "countyortownName", "AKorHI", "ruleYear"))
 
@@ -9327,36 +7024,7 @@ function.CCDFcopay<-function(data
 
       temp<-data[data$stateFIPS==35,]
 
-      # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-      # years<-unique(data$ruleYear) # years in data set
-      # yearsinexpdata<- unique(ccdfData_NM$ruleYear) # rule years in benefit data
-      # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-      # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-      # # Create data for the future
-      # maxyearofdata<-max(ccdfData_NM$ruleYear) # collect latest year of benefit data
-      # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-      # if(length(futureYrs)>0){
-      #   # Create data frame with future years
-      #   expand<-expand.grid(stateFIPS=unique(ccdfData_NM$stateFIPS), AKorHI=unique(ccdfData_NM$AKorHI), famsize=unique(ccdfData_NM$famsize), Year=futureYrs)
-      #   # Collect latest benefit data there is and merge w/data frame
-      #   expand2<-ccdfData_NM[ccdfData_NM$ruleYear==maxyearofdata, ]
-      #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-      # }
-      # # Create data for past and gap years (missing data) - not the future
-      # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-      # if(length(nonFutureYrs)>0){
-      #   #Create data frame with past years and year for which we are missing benefit data
-      #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_NM$stateFIPS), AKorHI=unique(ccdfData_NM$AKorHI), famsize=unique(ccdfData_NM$famsize), Year=nonFutureYrs)
-      #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-      #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_NM, by=c("stateFIPS", "AKorHI", "famsize"))
-      #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-      #   expandPastMiss2<-expandPastMiss2%>%
-      #     group_by(Year)%>%
-      #     filter(yeardiff<0)%>%
-      #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-      # }  # Attach copied future, historical, and missing benefit data
-      # if(length(futureYrs)>0) {ccdfData_NM<-ccdfData_NM %>% rbind(expand)}
-      # if(length(nonFutureYrs)>0) {ccdfData_NM<-ccdfData_NM %>% rbind(expandPastMiss2)}
+    
       #
       #----------------------------------
       # Step 1: Assign copays
@@ -9408,36 +7076,7 @@ function.CCDFcopay<-function(data
 
       temp <- data[data$stateFIPS==33,]
 
-      # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-      # years<-unique(data$ruleYear) # years in data set
-      # yearsinexpdata<- unique(ccdfData_NH$ruleYear) # rule years in benefit data
-      # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-      # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-      # # Create data for the future
-      # maxyearofdata<-max(ccdfData_NH$ruleYear) # collect latest year of benefit data
-      # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-      # if(length(futureYrs)>0){
-      #   # Create data frame with future years
-      #   expand<-expand.grid(stateFIPS=unique(ccdfData_NH$stateFIPS), AKorHI=unique(ccdfData_NH$AKorHI), famsize=unique(ccdfData_NH$famsize), Year=futureYrs)
-      #   # Collect latest benefit data there is and merge w/data frame
-      #   expand2<-ccdfData_NH[ccdfData_NH$ruleYear==maxyearofdata, ]
-      #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-      # }
-      # # Create data for past and gap years (missing data) - not the future
-      # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-      # if(length(nonFutureYrs)>0){
-      #   #Create data frame with past years and year for which we are missing benefit data
-      #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_NH$stateFIPS), AKorHI=unique(ccdfData_NH$AKorHI), famsize=unique(ccdfData_NH$famsize), Year=nonFutureYrs)
-      #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-      #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_NH, by=c("stateFIPS", "AKorHI", "famsize"))
-      #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-      #   expandPastMiss2<-expandPastMiss2%>%
-      #     group_by(Year)%>%
-      #     filter(yeardiff<0)%>%
-      #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-      # }  # Attach copied future, historical, and missing benefit data
-      # if(length(futureYrs)>0) {ccdfData_NH<-ccdfData_NH %>% rbind(expand)}
-      # if(length(nonFutureYrs)>0) {ccdfData_NH<-ccdfData_NH %>% rbind(expandPastMiss2)}
+      
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
@@ -9505,36 +7144,7 @@ function.CCDFcopay<-function(data
 
       temp$numkidsInCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
 
-      # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-      # years<-unique(data$ruleYear) # years in data set
-      # yearsinexpdata<- unique(ccdfData_NJ$ruleYear) # rule years in benefit data
-      # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-      # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-      # # Create data for the future
-      # maxyearofdata<-max(ccdfData_NJ$ruleYear) # collect latest year of benefit data
-      # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-      # if(length(futureYrs)>0){
-      #   # Create data frame with future years
-      #   expand<-expand.grid(stateFIPS=unique(ccdfData_NJ$stateFIPS), AKorHI=unique(ccdfData_NJ$AKorHI), famsize=unique(ccdfData_NJ$famsize), numkidsInCare=unique(ccdfData_NJ$numkidsInCare), Year=futureYrs)
-      #   # Collect latest benefit data there is and merge w/data frame
-      #   expand2<-ccdfData_NJ[ccdfData_NJ$ruleYear==maxyearofdata, ]
-      #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-      # }
-      # # Create data for past and gap years (missing data) - not the future
-      # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-      # if(length(nonFutureYrs)>0){
-      #   #Create data frame with past years and year for which we are missing benefit data
-      #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_NJ$stateFIPS), AKorHI=unique(ccdfData_NJ$AKorHI), famsize=unique(ccdfData_NJ$famsize), numkidsInCare=unique(ccdfData_NJ$numkidsInCare), Year=nonFutureYrs)
-      #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-      #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_NJ, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare"))
-      #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-      #   expandPastMiss2<-expandPastMiss2%>%
-      #     group_by(Year)%>%
-      #     filter(yeardiff<0)%>%
-      #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-      # }  # Attach copied future, historical, and missing benefit data
-      # if(length(futureYrs)>0) {ccdfData_NJ<-ccdfData_NJ %>% rbind(expand)}
-      # if(length(nonFutureYrs)>0) {ccdfData_NJ<-ccdfData_NJ %>% rbind(expandPastMiss2)}
+      
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
@@ -9622,36 +7232,7 @@ function.CCDFcopay<-function(data
 
       temp<-data[data$stateFIPS==37,]
 
-      # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-      # years<-unique(data$ruleYear) # years in data set
-      # yearsinexpdata<- unique(ccdfData_NC$ruleYear) # rule years in benefit data
-      # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-      # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-      # # Create data for the future
-      # maxyearofdata<-max(ccdfData_NC$ruleYear) # collect latest year of benefit data
-      # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-      # if(length(futureYrs)>0){
-      #   # Create data frame with future years
-      #   expand<-expand.grid(stateFIPS=unique(ccdfData_NC$stateFIPS), AKorHI=unique(ccdfData_NC$AKorHI), famsize=unique(ccdfData_NC$famsize), Year=futureYrs)
-      #   # Collect latest benefit data there is and merge w/data frame
-      #   expand2<-ccdfData_NC[ccdfData_NC$ruleYear==maxyearofdata, ]
-      #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-      # }
-      # # Create data for past and gap years (missing data) - not the future
-      # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-      # if(length(nonFutureYrs)>0){
-      #   #Create data frame with past years and year for which we are missing benefit data
-      #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_NC$stateFIPS), AKorHI=unique(ccdfData_NC$AKorHI), famsize=unique(ccdfData_NC$famsize), Year=nonFutureYrs)
-      #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-      #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_NC, by=c("stateFIPS", "AKorHI", "famsize"))
-      #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-      #   expandPastMiss2<-expandPastMiss2%>%
-      #     group_by(Year)%>%
-      #     filter(yeardiff<0)%>%
-      #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-      # }  # Attach copied future, historical, and missing benefit data
-      # if(length(futureYrs)>0) {ccdfData_NC<-ccdfData_NC %>% rbind(expand)}
-      # if(length(nonFutureYrs)>0) {ccdfData_NC<-ccdfData_NC %>% rbind(expandPastMiss2)}
+     
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
@@ -9699,36 +7280,7 @@ function.CCDFcopay<-function(data
 
       temp <- data[data$stateFIPS==38,]
 
-      # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-      # years<-unique(data$ruleYear) # years in data set
-      # yearsinexpdata<- unique(ccdfData_ND$ruleYear) # rule years in benefit data
-      # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-      # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-      # # Create data for the future
-      # maxyearofdata<-max(ccdfData_ND$ruleYear) # collect latest year of benefit data
-      # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-      # if(length(futureYrs)>0){
-      #   # Create data frame with future years
-      #   expand<-expand.grid(stateFIPS=unique(ccdfData_ND$stateFIPS), AKorHI=unique(ccdfData_ND$AKorHI), famsize=unique(ccdfData_ND$famsize), Year=futureYrs)
-      #   # Collect latest benefit data there is and merge w/data frame
-      #   expand2<-ccdfData_ND[ccdfData_ND$ruleYear==maxyearofdata, ]
-      #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-      # }
-      # # Create data for past and gap years (missing data) - not the future
-      # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-      # if(length(nonFutureYrs)>0){
-      #   #Create data frame with past years and year for which we are missing benefit data
-      #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_ND$stateFIPS), AKorHI=unique(ccdfData_ND$AKorHI), famsize=unique(ccdfData_ND$famsize), Year=nonFutureYrs)
-      #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-      #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_ND, by=c("stateFIPS", "AKorHI", "famsize"))
-      #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-      #   expandPastMiss2<-expandPastMiss2%>%
-      #     group_by(Year)%>%
-      #     filter(yeardiff<0)%>%
-      #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-      # }  # Attach copied future, historical, and missing benefit data
-      # if(length(futureYrs)>0) {ccdfData_ND<-ccdfData_ND %>% rbind(expand)}
-      # if(length(nonFutureYrs)>0) {ccdfData_ND<-ccdfData_ND %>% rbind(expandPastMiss2)}
+      
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
@@ -9879,36 +7431,7 @@ function.CCDFcopay<-function(data
 
       temp<-data[data$stateFIPS==39,]
 
-      # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-      # years<-unique(data$ruleYear) # years in data set
-      # yearsinexpdata<- unique(ccdfData_OH$ruleYear) # rule years in benefit data
-      # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-      # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-      # # Create data for the future
-      # maxyearofdata<-max(ccdfData_OH$ruleYear) # collect latest year of benefit data
-      # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-      # if(length(futureYrs)>0){
-      #   # Create data frame with future years
-      #   expand<-expand.grid(stateFIPS=unique(ccdfData_OH$stateFIPS), AKorHI=unique(ccdfData_OH$AKorHI), famsize=unique(ccdfData_OH$famsize), Year=futureYrs)
-      #   # Collect latest benefit data there is and merge w/data frame
-      #   expand2<-ccdfData_OH[ccdfData_OH$ruleYear==maxyearofdata, ]
-      #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-      # }
-      # # Create data for past and gap years (missing data) - not the future
-      # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-      # if(length(nonFutureYrs)>0){
-      #   #Create data frame with past years and year for which we are missing benefit data
-      #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_OH$stateFIPS), AKorHI=unique(ccdfData_OH$AKorHI), famsize=unique(ccdfData_OH$famsize), Year=nonFutureYrs)
-      #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-      #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_OH, by=c("stateFIPS", "AKorHI", "famsize"))
-      #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-      #   expandPastMiss2<-expandPastMiss2%>%
-      #     group_by(Year)%>%
-      #     filter(yeardiff<0)%>%
-      #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-      # }  # Attach copied future, historical, and missing benefit data
-      # if(length(futureYrs)>0) {ccdfData_OH<-ccdfData_OH %>% rbind(expand)}
-      # if(length(nonFutureYrs)>0) {ccdfData_OH<-ccdfData_OH %>% rbind(expandPastMiss2)}
+      
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
@@ -10013,36 +7536,7 @@ function.CCDFcopay<-function(data
 
       temp<-data[data$stateFIPS==40,]
 
-      # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-      # years<-unique(data$ruleYear) # years in data set
-      # yearsinexpdata<- unique(ccdfData_OK$ruleYear) # rule years in benefit data
-      # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-      # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-      # # Create data for the future
-      # maxyearofdata<-max(ccdfData_OK$ruleYear) # collect latest year of benefit data
-      # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-      # if(length(futureYrs)>0){
-      #   # Create data frame with future years
-      #   expand<-expand.grid(stateFIPS=unique(ccdfData_OK$stateFIPS), AKorHI=unique(ccdfData_OK$AKorHI), famsize=unique(ccdfData_OK$famsize), Year=futureYrs)
-      #   # Collect latest benefit data there is and merge w/data frame
-      #   expand2<-ccdfData_OK[ccdfData_OK$ruleYear==maxyearofdata, ]
-      #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-      # }
-      # # Create data for past and gap years (missing data) - not the future
-      # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-      # if(length(nonFutureYrs)>0){
-      #   #Create data frame with past years and year for which we are missing benefit data
-      #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_OK$stateFIPS), AKorHI=unique(ccdfData_OK$AKorHI), famsize=unique(ccdfData_OK$famsize), Year=nonFutureYrs)
-      #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-      #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_OK, by=c("stateFIPS", "AKorHI", "famsize"))
-      #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-      #   expandPastMiss2<-expandPastMiss2%>%
-      #     group_by(Year)%>%
-      #     filter(yeardiff<0)%>%
-      #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-      # }  # Attach copied future, historical, and missing benefit data
-      # if(length(futureYrs)>0) {ccdfData_OK<-ccdfData_OK %>% rbind(expand)}
-      # if(length(nonFutureYrs)>0) {ccdfData_OK<-ccdfData_OK %>% rbind(expandPastMiss2)}
+     
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
@@ -10151,36 +7645,7 @@ function.CCDFcopay<-function(data
 
       temp <- data[data$stateFIPS==42,]
 
-      # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-      # years<-unique(data$ruleYear) # years in data set
-      # yearsinexpdata<- unique(ccdfData_PA$ruleYear) # rule years in benefit data
-      # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-      # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-      # # Create data for the future
-      # maxyearofdata<-max(ccdfData_PA$ruleYear) # collect latest year of benefit data
-      # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-      # if(length(futureYrs)>0){
-      #   # Create data frame with future years
-      #   expand<-expand.grid(stateFIPS=unique(ccdfData_PA$stateFIPS), AKorHI=unique(ccdfData_PA$AKorHI), famsize=unique(ccdfData_PA$famsize), Year=futureYrs)
-      #   # Collect latest benefit data there is and merge w/data frame
-      #   expand2<-ccdfData_PA[ccdfData_PA$ruleYear==maxyearofdata, ]
-      #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-      # }
-      # # Create data for past and gap years (missing data) - not the future
-      # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-      # if(length(nonFutureYrs)>0){
-      #   #Create data frame with past years and year for which we are missing benefit data
-      #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_PA$stateFIPS), AKorHI=unique(ccdfData_PA$AKorHI), famsize=unique(ccdfData_PA$famsize), Year=nonFutureYrs)
-      #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-      #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_PA, by=c("stateFIPS", "AKorHI", "famsize"))
-      #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-      #   expandPastMiss2<-expandPastMiss2%>%
-      #     group_by(Year)%>%
-      #     filter(yeardiff<0)%>%
-      #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-      # }  # Attach copied future, historical, and missing benefit data
-      # if(length(futureYrs)>0) {ccdfData_PA<-ccdfData_PA %>% rbind(expand)}
-      # if(length(nonFutureYrs)>0) {ccdfData_PA<-ccdfData_PA %>% rbind(expandPastMiss2)}
+     
       #
       #----------------------------------
       # Step 1: Assign copays
@@ -10291,37 +7756,7 @@ function.CCDFcopay<-function(data
 
       temp <- data[data$stateFIPS==44,]
 
-      # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-      # years<-unique(data$ruleYear) # years in data set
-      # yearsinexpdata<- unique(ccdfData_RI$ruleYear) # rule years in benefit data
-      # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-      # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-      # # Create data for the future
-      # maxyearofdata<-max(ccdfData_RI$ruleYear) # collect latest year of benefit data
-      # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-      # if(length(futureYrs)>0){
-      #   # Create data frame with future years
-      #   expand<-expand.grid(stateFIPS=unique(ccdfData_RI$stateFIPS), AKorHI=unique(ccdfData_RI$AKorHI), famsize=unique(ccdfData_RI$famsize), Year=futureYrs)
-      #   # Collect latest benefit data there is and merge w/data frame
-      #   expand2<-ccdfData_RI[ccdfData_RI$ruleYear==maxyearofdata, ]
-      #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-      # }
-      # # Create data for past and gap years (missing data) - not the future
-      # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-      # if(length(nonFutureYrs)>0){
-      #   #Create data frame with past years and year for which we are missing benefit data
-      #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_RI$stateFIPS), AKorHI=unique(ccdfData_RI$AKorHI), famsize=unique(ccdfData_RI$famsize), Year=nonFutureYrs)
-      #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-      #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_RI, by=c("stateFIPS", "AKorHI", "famsize"))
-      #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-      #   expandPastMiss2<-expandPastMiss2%>%
-      #     group_by(Year)%>%
-      #     filter(yeardiff<0)%>%
-      #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-      # }  # Attach copied future, historical, and missing benefit data
-      # if(length(futureYrs)>0) {ccdfData_RI<-ccdfData_RI %>% rbind(expand)}
-      # if(length(nonFutureYrs)>0) {ccdfData_RI<-ccdfData_RI %>% rbind(expandPastMiss2)}
-      #
+     
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
@@ -10373,36 +7808,7 @@ function.CCDFcopay<-function(data
 
       temp<-data[data$stateFIPS==45,]
 
-      # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-      # years<-unique(data$ruleYear) # years in data set
-      # yearsinexpdata<- unique(ccdfData_SC$ruleYear) # rule years in benefit data
-      # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-      # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-      # # Create data for the future
-      # maxyearofdata<-max(ccdfData_SC$ruleYear) # collect latest year of benefit data
-      # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-      # if(length(futureYrs)>0){
-      #   # Create data frame with future years
-      #   expand<-expand.grid(stateFIPS=unique(ccdfData_SC$stateFIPS), AKorHI=unique(ccdfData_SC$AKorHI), famsize=unique(ccdfData_SC$famsize), Year=futureYrs)
-      #   # Collect latest benefit data there is and merge w/data frame
-      #   expand2<-ccdfData_SC[ccdfData_SC$ruleYear==maxyearofdata, ]
-      #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-      # }
-      # # Create data for past and gap years (missing data) - not the future
-      # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-      # if(length(nonFutureYrs)>0){
-      #   #Create data frame with past years and year for which we are missing benefit data
-      #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_SC$stateFIPS), AKorHI=unique(ccdfData_SC$AKorHI), famsize=unique(ccdfData_SC$famsize), Year=nonFutureYrs)
-      #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-      #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_SC, by=c("stateFIPS", "AKorHI", "famsize"))
-      #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-      #   expandPastMiss2<-expandPastMiss2%>%
-      #     group_by(Year)%>%
-      #     filter(yeardiff<0)%>%
-      #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-      # }  # Attach copied future, historical, and missing benefit data
-      # if(length(futureYrs)>0) {ccdfData_SC<-ccdfData_SC %>% rbind(expand)}
-      # if(length(nonFutureYrs)>0) {ccdfData_SC<-ccdfData_SC %>% rbind(expandPastMiss2)}
+    
       #
       #----------------------------------
       # Step 1: Assign copays
@@ -10457,37 +7863,7 @@ function.CCDFcopay<-function(data
 
       temp<-data[data$stateFIPS==46,]
 
-      # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-      # years<-unique(data$ruleYear) # years in data set
-      # yearsinexpdata<- unique(ccdfData_SD$ruleYear) # rule years in benefit data
-      # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-      # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-      # # Create data for the future
-      # maxyearofdata<-max(ccdfData_SD$ruleYear) # collect latest year of benefit data
-      # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-      # if(length(futureYrs)>0){
-      #   # Create data frame with future years
-      #   expand<-expand.grid(stateFIPS=unique(ccdfData_SD$stateFIPS), AKorHI=unique(ccdfData_SD$AKorHI), famsize=unique(ccdfData_SD$famsize), Year=futureYrs)
-      #   # Collect latest benefit data there is and merge w/data frame
-      #   expand2<-ccdfData_SD[ccdfData_SD$ruleYear==maxyearofdata, ]
-      #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-      # }
-      # # Create data for past and gap years (missing data) - not the future
-      # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-      # if(length(nonFutureYrs)>0){
-      #   #Create data frame with past years and year for which we are missing benefit data
-      #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_SD$stateFIPS), AKorHI=unique(ccdfData_SD$AKorHI), famsize=unique(ccdfData_SD$famsize), Year=nonFutureYrs)
-      #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-      #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_SD, by=c("stateFIPS", "AKorHI", "famsize"))
-      #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-      #   expandPastMiss2<-expandPastMiss2%>%
-      #     group_by(Year)%>%
-      #     filter(yeardiff<0)%>%
-      #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-      # }  # Attach copied future, historical, and missing benefit data
-      # if(length(futureYrs)>0) {ccdfData_SD<-ccdfData_SD %>% rbind(expand)}
-      # if(length(nonFutureYrs)>0) {ccdfData_SD<-ccdfData_SD %>% rbind(expandPastMiss2)}
-      #
+     
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
@@ -10557,37 +7933,7 @@ function.CCDFcopay<-function(data
       #temp$numkidsInCare<-temp$numkidsincare0to4
       temp$numkidsInCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
 
-      # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-      # years<-unique(data$ruleYear) # years in data set
-      # yearsinexpdata<- unique(ccdfData_TN$ruleYear) # rule years in benefit data
-      # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-      # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-      # # Create data for the future
-      # maxyearofdata<-max(ccdfData_TN$ruleYear) # collect latest year of benefit data
-      # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-      # if(length(futureYrs)>0){
-      #   # Create data frame with future years
-      #   expand<-expand.grid(stateFIPS=unique(ccdfData_TN$stateFIPS), AKorHI=unique(ccdfData_TN$AKorHI), famsize=unique(ccdfData_TN$famsize), numkidsInCare=unique(ccdfData_TN$numkidsInCare), Year=futureYrs)
-      #   # Collect latest benefit data there is and merge w/data frame
-      #   expand2<-ccdfData_TN[ccdfData_TN$ruleYear==maxyearofdata, ]
-      #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-      # }
-      # # Create data for past and gap years (missing data) - not the future
-      # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-      # if(length(nonFutureYrs)>0){
-      #   #Create data frame with past years and year for which we are missing benefit data
-      #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_TN$stateFIPS), AKorHI=unique(ccdfData_TN$AKorHI), famsize=unique(ccdfData_TN$famsize), numkidsInCare=unique(ccdfData_TN$numkidsInCare), Year=nonFutureYrs)
-      #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-      #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_TN, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare"))
-      #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-      #   expandPastMiss2<-expandPastMiss2%>%
-      #     group_by(Year)%>%
-      #     filter(yeardiff<0)%>%
-      #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-      # }  # Attach copied future, historical, and missing benefit data
-      # if(length(futureYrs)>0) {ccdfData_TN<-ccdfData_TN %>% rbind(expand)}
-      # if(length(nonFutureYrs)>0) {ccdfData_TN<-ccdfData_TN %>% rbind(expandPastMiss2)}
-      #
+     
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
@@ -10765,37 +8111,7 @@ function.CCDFcopay<-function(data
 
       temp$numkidsInCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
 
-      # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-      # years<-unique(data$ruleYear) # years in data set
-      # yearsinexpdata<- unique(ccdfData_UT$ruleYear) # rule years in benefit data
-      # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-      # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-      # # Create data for the future
-      # maxyearofdata<-max(ccdfData_UT$ruleYear) # collect latest year of benefit data
-      # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-      # if(length(futureYrs)>0){
-      #   # Create data frame with future years
-      #   expand<-expand.grid(stateFIPS=unique(ccdfData_UT$stateFIPS), AKorHI=unique(ccdfData_UT$AKorHI), famsize=unique(ccdfData_UT$famsize), numkidsInCare=unique(ccdfData_UT$numkidsInCare), Year=futureYrs)
-      #   # Collect latest benefit data there is and merge w/data frame
-      #   expand2<-ccdfData_UT[ccdfData_UT$ruleYear==maxyearofdata, ]
-      #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-      # }
-      # # Create data for past and gap years (missing data) - not the future
-      # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-      # if(length(nonFutureYrs)>0){
-      #   #Create data frame with past years and year for which we are missing benefit data
-      #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_UT$stateFIPS), AKorHI=unique(ccdfData_UT$AKorHI), famsize=unique(ccdfData_UT$famsize), numkidsInCare=unique(ccdfData_UT$numkidsInCare), Year=nonFutureYrs)
-      #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-      #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_UT, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare"))
-      #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-      #   expandPastMiss2<-expandPastMiss2%>%
-      #     group_by(Year)%>%
-      #     filter(yeardiff<0)%>%
-      #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-      # }  # Attach copied future, historical, and missing benefit data
-      # if(length(futureYrs)>0) {ccdfData_UT<-ccdfData_UT %>% rbind(expand)}
-      # if(length(nonFutureYrs)>0) {ccdfData_UT<-ccdfData_UT %>% rbind(expandPastMiss2)}
-      #
+     
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
@@ -10862,38 +8178,7 @@ function.CCDFcopay<-function(data
       #
       #if(temp$ruleYear < 2022){
 
-      # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-      # years<-unique(data$ruleYear) # years in data set
-      # yearsinexpdata<- unique(providercost_VT$ruleYear) # rule years in benefit data
-      # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-      # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-      # # Create data for the future
-      # maxyearofdata<-max(providercost_VT$ruleYear) # collect latest year of benefit data
-      # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-      # if(length(futureYrs)>0){
-      #   # Create data frame with future years
-      #   expand<-expand.grid(stateFIPS=unique(providercost_VT$stateFIPS), Year=futureYrs)
-      #   # Collect latest benefit data there is and merge w/data frame
-      #   expand2<-providercost_VT[providercost_VT$ruleYear==maxyearofdata, ]
-      #   expand<-expand%>%left_join(expand2, by=c("stateFIPS")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-      # }
-      # # Create data for past and gap years (missing data) - not the future
-      # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-      # if(length(nonFutureYrs)>0){
-      #   #Create data frame with past years and year for which we are missing benefit data
-      #   expandPastMiss<-expand.grid(stateFIPS=unique(providercost_VT$stateFIPS), Year=nonFutureYrs)
-      #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-      #   expandPastMiss2<-left_join(expandPastMiss, providercost_VT, by=c("stateFIPS"))
-      #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-      #   expandPastMiss2<-expandPastMiss2%>%
-      #     group_by(Year)%>%
-      #     filter(yeardiff<0)%>%
-      #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-      # }  # Attach copied future, historical, and missing benefit data
-      # if(length(futureYrs)>0) {providercost_VT<-providercost_VT %>% rbind(expand)}
-      # if(length(nonFutureYrs)>0) {providercost_VT<-providercost_VT %>% rbind(expandPastMiss2)}
-      #
-      #
+     
       temp<-left_join(temp, providercost_VT, by=c("stateFIPS", "ruleYear"))
 
       # Determine Expense based on Age of Children
@@ -11109,45 +8394,10 @@ function.CCDFcopay<-function(data
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
-      # Uses most current rules in PRD and imputes them for years in the data set
-
-      #  ccdfData_VT <- ccdfData_VT[ccdfData_VT$ruleYear == 2022,]
-      #  ccdfData_VT$ruleYear <- 2021
-
-      # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-      # years<-unique(data$ruleYear) # years in data set
-      # yearsinexpdata<- unique(ccdfData_VT$ruleYear) # rule years in benefit data
-      # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-      # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-      # # Create data for the future
-      # maxyearofdata<-max(ccdfData_VT$ruleYear) # collect latest year of benefit data
-      # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-      # if(length(futureYrs)>0){
-      #   # Create data frame with future years
-      #   expand<-expand.grid(stateFIPS=unique(ccdfData_VT$stateFIPS), AKorHI=unique(ccdfData_VT$AKorHI), famsize=unique(ccdfData_VT$famsize), Year=futureYrs)
-      #   # Collect latest benefit data there is and merge w/data frame
-      #   expand2<-ccdfData_VT[ccdfData_VT$ruleYear==maxyearofdata, ]
-      #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-      # }
-      # # Create data for past and gap years (missing data) - not the future
-      # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-      # if(length(nonFutureYrs)>0){
-      #   #Create data frame with past years and year for which we are missing benefit data
-      #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_VT$stateFIPS), AKorHI=unique(ccdfData_VT$AKorHI), famsize=unique(ccdfData_VT$famsize), Year=nonFutureYrs)
-      #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-      #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_VT, by=c("stateFIPS", "AKorHI", "famsize"))
-      #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-      #   expandPastMiss2<-expandPastMiss2%>%
-      #     group_by(Year)%>%
-      #     filter(yeardiff<0)%>%
-      #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-      # }  # Attach copied future, historical, and missing benefit data
-      # if(length(futureYrs)>0) {ccdfData_VT<-ccdfData_VT %>% rbind(expand)}
-      # if(length(nonFutureYrs)>0) {ccdfData_VT<-ccdfData_VT %>% rbind(expandPastMiss2)}
-      #
+     
       temp<-left_join(temp, ccdfData_VT, by=c("stateFIPS", "famsize", "ruleYear"))
 
-      # temp$income<-temp$income-12*temp$IncomeDisregard
+     
 
       temp$FTcopay<-NA
 
@@ -11227,37 +8477,7 @@ function.CCDFcopay<-function(data
 
       temp<-data[data$stateFIPS==51,]
 
-      # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-      # years<-unique(data$ruleYear) # years in data set
-      # yearsinexpdata<- unique(ccdfData_VA$ruleYear) # rule years in benefit data
-      # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-      # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-      # # Create data for the future
-      # maxyearofdata<-max(ccdfData_VA$ruleYear) # collect latest year of benefit data
-      # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-      # if(length(futureYrs)>0){
-      #   # Create data frame with future years
-      #   expand<-expand.grid(stateFIPS=unique(ccdfData_VA$stateFIPS), AKorHI=unique(ccdfData_VA$AKorHI), famsize=unique(ccdfData_VA$famsize), countyortownName=unique(ccdfData_VA$countyortownName), Year=futureYrs)
-      #   # Collect latest benefit data there is and merge w/data frame
-      #   expand2<-ccdfData_VA[ccdfData_VA$ruleYear==maxyearofdata, ]
-      #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize", "countyortownName")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-      # }
-      # # Create data for past and gap years (missing data) - not the future
-      # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-      # if(length(nonFutureYrs)>0){
-      #   #Create data frame with past years and year for which we are missing benefit data
-      #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_VA$stateFIPS), AKorHI=unique(ccdfData_VA$AKorHI), famsize=unique(ccdfData_VA$famsize), countyortownName=unique(ccdfData_VA$countyortownName), Year=nonFutureYrs)
-      #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-      #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_VA, by=c("stateFIPS", "AKorHI", "famsize", "countyortownName"))
-      #   expandPastMiss2$yeardiff<-abs(expandPastMiss2$ruleYear-expandPastMiss2$Year)
-      #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-      #   expandPastMiss2<-expandPastMiss2%>%
-      #     group_by(Year)%>%
-      #     filter(yeardiff<0)%>%
-      #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-      # }  # Attach copied future, historical, and missing benefit data
-      # if(length(futureYrs)>0) {ccdfData_VA<-ccdfData_VA %>% rbind(expand)}
-      # if(length(nonFutureYrs)>0) {ccdfData_VA<-ccdfData_VA %>% rbind(expandPastMiss2)}
+    
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
@@ -11318,37 +8538,7 @@ function.CCDFcopay<-function(data
 
       temp<-data[data$stateFIPS==53,]
 
-      # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-      # years<-unique(data$ruleYear) # years in data set
-      # yearsinexpdata<- unique(ccdfData_WA$ruleYear) # rule years in benefit data
-      # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-      # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-      # # Create data for the future
-      # maxyearofdata<-max(ccdfData_WA$ruleYear) # collect latest year of benefit data
-      # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-      # if(length(futureYrs)>0){
-      #   # Create data frame with future years
-      #   expand<-expand.grid(stateFIPS=unique(ccdfData_WA$stateFIPS), AKorHI=unique(ccdfData_WA$AKorHI), famsize=unique(ccdfData_WA$famsize), Year=futureYrs)
-      #   # Collect latest benefit data there is and merge w/data frame
-      #   expand2<-ccdfData_WA[ccdfData_WA$ruleYear==maxyearofdata, ]
-      #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-      # }
-      # # Create data for past and gap years (missing data) - not the future
-      # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-      # if(length(nonFutureYrs)>0){
-      #   #Create data frame with past years and year for which we are missing benefit data
-      #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_WA$stateFIPS), AKorHI=unique(ccdfData_WA$AKorHI), famsize=unique(ccdfData_WA$famsize), Year=nonFutureYrs)
-      #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-      #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_WA, by=c("stateFIPS", "AKorHI", "famsize"))
-      #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-      #   expandPastMiss2<-expandPastMiss2%>%
-      #     group_by(Year)%>%
-      #     filter(yeardiff<0)%>%
-      #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-      # }  # Attach copied future, historical, and missing benefit data
-      # if(length(futureYrs)>0) {ccdfData_WA<-ccdfData_WA %>% rbind(expand)}
-      # if(length(nonFutureYrs)>0) {ccdfData_WA<-ccdfData_WA %>% rbind(expandPastMiss2)}
-      #
+    
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
@@ -11416,37 +8606,7 @@ function.CCDFcopay<-function(data
 
       temp<-data[data$stateFIPS==54,]
 
-      # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-      # years<-unique(data$ruleYear) # years in data set
-      # yearsinexpdata<- unique(ccdfData_WV$ruleYear) # rule years in benefit data
-      # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-      # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-      # # Create data for the future
-      # maxyearofdata<-max(ccdfData_WV$ruleYear) # collect latest year of benefit data
-      # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-      # if(length(futureYrs)>0){
-      #   # Create data frame with future years
-      #   expand<-expand.grid(stateFIPS=unique(ccdfData_WV$stateFIPS), AKorHI=unique(ccdfData_WV$AKorHI), famsize=unique(ccdfData_WV$famsize), Year=futureYrs)
-      #   # Collect latest benefit data there is and merge w/data frame
-      #   expand2<-ccdfData_WV[ccdfData_WV$ruleYear==maxyearofdata, ]
-      #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-      # }
-      # # Create data for past and gap years (missing data) - not the future
-      # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-      # if(length(nonFutureYrs)>0){
-      #   #Create data frame with past years and year for which we are missing benefit data
-      #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_WV$stateFIPS), AKorHI=unique(ccdfData_WV$AKorHI), famsize=unique(ccdfData_WV$famsize), Year=nonFutureYrs)
-      #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-      #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_WV, by=c("stateFIPS", "AKorHI", "famsize"))
-      #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-      #   expandPastMiss2<-expandPastMiss2%>%
-      #     group_by(Year)%>%
-      #     filter(yeardiff<0)%>%
-      #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-      # }  # Attach copied future, historical, and missing benefit data
-      # if(length(futureYrs)>0) {ccdfData_WV<-ccdfData_WV %>% rbind(expand)}
-      # if(length(nonFutureYrs)>0) {ccdfData_WV<-ccdfData_WV %>% rbind(expandPastMiss2)}
-      #
+     
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
@@ -11515,37 +8675,7 @@ function.CCDFcopay<-function(data
 
       temp<-data[data$stateFIPS==56,]
 
-      # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-      # years<-unique(data$ruleYear) # years in data set
-      # yearsinexpdata<- unique(ccdfData_WY$ruleYear) # rule years in benefit data
-      # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-      # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-      # # Create data for the future
-      # maxyearofdata<-max(ccdfData_WY$ruleYear) # collect latest year of benefit data
-      # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-      # if(length(futureYrs)>0){
-      #   # Create data frame with future years
-      #   expand<-expand.grid(stateFIPS=unique(ccdfData_WY$stateFIPS), AKorHI=unique(ccdfData_WY$AKorHI), famsize=unique(ccdfData_WY$famsize), Year=futureYrs)
-      #   # Collect latest benefit data there is and merge w/data frame
-      #   expand2<-ccdfData_WY[ccdfData_WY$ruleYear==maxyearofdata, ]
-      #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-      # }
-      # # Create data for past and gap years (missing data) - not the future
-      # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-      # if(length(nonFutureYrs)>0){
-      #   #Create data frame with past years and year for which we are missing benefit data
-      #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_WY$stateFIPS), AKorHI=unique(ccdfData_WY$AKorHI), famsize=unique(ccdfData_WY$famsize), Year=nonFutureYrs)
-      #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-      #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_WY, by=c("stateFIPS", "AKorHI", "famsize"))
-      #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-      #   expandPastMiss2<-expandPastMiss2%>%
-      #     group_by(Year)%>%
-      #     filter(yeardiff<0)%>%
-      #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-      # }  # Attach copied future, historical, and missing benefit data
-      # if(length(futureYrs)>0) {ccdfData_WY<-ccdfData_WY %>% rbind(expand)}
-      # if(length(nonFutureYrs)>0) {ccdfData_WY<-ccdfData_WY %>% rbind(expandPastMiss2)}
-      #
+     
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
@@ -11608,37 +8738,7 @@ function.CCDFcopay<-function(data
 
       temp$numkidsInCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
 
-      # # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-      # years<-unique(data$ruleYear) # years in data set
-      # yearsinexpdata<- unique(ccdfData_WI$ruleYear) # rule years in benefit data
-      # yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-      # yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-      # # Create data for the future
-      # maxyearofdata<-max(ccdfData_WI$ruleYear) # collect latest year of benefit data
-      # futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-      # if(length(futureYrs)>0){
-      #   # Create data frame with future years
-      #   expand<-expand.grid(stateFIPS=unique(ccdfData_WI$stateFIPS), AKorHI=unique(ccdfData_WI$AKorHI), famsize=unique(ccdfData_WI$famsize), numkidsInCare=unique(ccdfData_WI$numkidsInCare), Year=futureYrs)
-      #   # Collect latest benefit data there is and merge w/data frame
-      #   expand2<-ccdfData_WI[ccdfData_WI$ruleYear==maxyearofdata, ]
-      #   expand<-expand%>%left_join(expand2, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare")) %>% select(-c(ruleYear)) %>% rename("ruleYear"=Year)
-      # }
-      # # Create data for past and gap years (missing data) - not the future
-      # nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-      # if(length(nonFutureYrs)>0){
-      #   #Create data frame with past years and year for which we are missing benefit data
-      #   expandPastMiss<-expand.grid(stateFIPS=unique(ccdfData_WI$stateFIPS), AKorHI=unique(ccdfData_WI$AKorHI), famsize=unique(ccdfData_WI$famsize), numkidsInCare=unique(ccdfData_WI$numkidsInCare), Year=nonFutureYrs)
-      #   # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-      #   expandPastMiss2<-left_join(expandPastMiss, ccdfData_WI, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare"))
-      #   expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-      #   expandPastMiss2<-expandPastMiss2%>%
-      #     group_by(Year)%>%
-      #     filter(yeardiff<0)%>%
-      #     filter(min(abs(yeardiff))==abs(yeardiff))%>% select(-c(yeardiff, ruleYear)) %>% rename("ruleYear"=Year)
-      # }  # Attach copied future, historical, and missing benefit data
-      # if(length(futureYrs)>0) {ccdfData_WI<-ccdfData_WI %>% rbind(expand)}
-      # if(length(nonFutureYrs)>0) {ccdfData_WI<-ccdfData_WI %>% rbind(expandPastMiss2)}
-      #
+     
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
