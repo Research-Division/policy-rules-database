@@ -577,7 +577,8 @@ function.ssiBenefit<-function(data){
 # Supplemental Nutrition Assistance Program (SNAP)----
 
 function.snapBenefit<-function(data){
-    if(min(data$ruleYear)<2025){data$snapValue <- 0}else{
+    #if data is not in PRD populate value.snap as 0 
+    if(unique(data$ruleYear)<min(snapData$ruleYear) | unique(data$ruleYear)>max(snapData$ruleYear)){data$snapValue <- 0}else{
       
     # We have historical rules
     data<-left_join(data, snapData, by=c("ruleYear","stateFIPS", "famsize"))
