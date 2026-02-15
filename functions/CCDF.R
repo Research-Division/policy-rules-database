@@ -10,8 +10,7 @@ function.CCDFcopay<-function(data
   if(min(data$ruleYear)<2025){
     data$value.CCDF <- 0
   }
-
-
+  
   if(min(data$ruleYear)==2025){
 
   ### 2025 Set-up====
@@ -867,7 +866,7 @@ function.CCDFcopay<-function(data
   # Weekly frequency
   # Discount for a second child (UNDER CONSTRUCTION)
   if(13 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-}
+
 
     temp<-data[data$stateFIPS==13,]
   
@@ -911,8 +910,8 @@ function.CCDFcopay<-function(data
     data$childcare.overage[data$stateFIPS==13]<-temp$childcare.overage
     data$totcopay[data$stateFIPS==13]<-temp$totcopay
     data$InitialEligibility[data$stateFIPS==13]<-temp$InitialEligibility.y
-  }
-
+  
+}
 
   # HAWAII ----
 
@@ -4524,8 +4523,9 @@ function.CCDFcopay<-function(data
            incomeeligible_CCDF=case_when(`contelig.ccdf`==TRUE ~1 , Year>firstyearofCCDF ~1, `contelig.ccdf`==FALSE & firstyearofCCDF!=9999 & Year<=firstyearofCCDF ~ incomeeligible_initial_ccdf, TRUE~0),
            value.CCDF=value.CCDF*incomeeligible_CCDF)
 
+  
   }
-
+  
   if(min(data$ruleYear)==2026){
 
     ### 2026 Set-up =====
@@ -6339,7 +6339,7 @@ function.CCDFcopay<-function(data
 
       temp<-data[data$stateFIPS==27,]
 
-      <-ccdfData_MN %>% rbind(expandPastMiss2)}
+    
       #
       #----------------------------------
       # Step 1: Assign copays
@@ -8840,7 +8840,7 @@ function.CCDFcopay<-function(data
   }
 
   return(data$value.CCDF)
-
-} #end function.CCDF
+}
+ #end function.CCDF
 
 

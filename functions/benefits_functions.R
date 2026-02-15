@@ -577,24 +577,8 @@ function.ssiBenefit<-function(data){
 # Supplemental Nutrition Assistance Program (SNAP)----
 
 function.snapBenefit<-function(data){
-  
-  # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-  years<-unique(data$ruleYear) # years in data set
-  yearsinexpdata<- unique(snapData$ruleYear) # rule years in benefit data
-  yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-  yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-  # Create data for the future
-  maxyearofdata<-max(snapData$ruleYear) # collect latest year of benefit data
-  futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-  if(length(futureYrs)>0){
-    # Create data frame with future years
-    expand<-expand.grid(stateFIPS=unique(snapData$stateFIPS), famsize=unique(snapData$famsize), Year=futureYrs)
-    # Collect latest benefit data there is and merge w/data frame
-    expand2<-snapData[snapData$ruleYear==maxyearofdata, ]
-    expand<-expand%>%left_join(expand2, by=c("stateFIPS","famsize")) %>% select(-c(ruleYear)) %>% rename(ruleYear=Year)
-  }# Attach copied future, historical, and missing benefit data
-  if(length(futureYrs)>0) {snapData<-snapData %>% rbind(expand)}
-
+    if(min(data$ruleYear)<2025){data$snapValue <- 0}else{
+      
     # We have historical rules
     data<-left_join(data, snapData, by=c("ruleYear","stateFIPS", "famsize"))
 
@@ -703,7 +687,7 @@ function.snapBenefit<-function(data){
     data$snapValue<-0
     data$snapValue[subset]<-rowMins(cbind(rowMaxs(cbind(12*data$MaxBenefit[subset]-0.3*data$netincome[subset],12*data$MinBenefit[subset]),na.rm = TRUE),12*data$MaxBenefit[subset]),na.rm = TRUE)
 
-    data$snapValue<-round(data$snapValue,0)
+    data$snapValue<-round(data$snapValue,0)}
 
     return(data$snapValue)
 
