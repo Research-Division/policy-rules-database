@@ -12,23 +12,7 @@
 
 function.ssdiBenefit<-function(data){
 
-  # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-  years<-unique(data$ruleYear) # years in data set
-  yearsinexpdata<- unique(ssdiData$ruleYear) # rule years in benefit data
-  yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-  yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-  # Create data for the future
-  maxyearofdata<-max(ssdiData$ruleYear) # collect latest year of benefit data
-  futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-  if(length(futureYrs)>0){
-    # Create data frame with future years
-    expand<-expand.grid(Year=futureYrs)
-    # Collect latest benefit data there is and merge w/data frame
-    expand2<-ssdiData[ssdiData$ruleYear==maxyearofdata, ]
-    expand2$ruleYear<-ifelse(expand2$ruleYear < expand$Year, expand$Year, expand2$ruleYear)
-    expand<-expand%>%left_join(expand2, by=c("Year" = "ruleYear")) %>% rename(ruleYear=Year)
-  }# Attach copied future, historical, and missing benefit data
-  if(length(futureYrs)>0) {ssdiData<-ssdiData %>% rbind(expand)}
+  if(unique(data$ruleYear)<min(ssdiData$ruleYear) | unique(data$ruleYear)>max(ssdiDataData$ruleYear)){data$value.ssdi <- 0}else{
 
   # We have historical rules
   data<-left_join(data, ssdiData, by=c("ruleYear"))
@@ -136,7 +120,7 @@ function.ssdiBenefit<-function(data){
   data$value.ssdi<-data$value.ssdi.mnth*12
 
   data.ssdi<-data %>%
-    select(value.ssdi, portionedAuxAdlt1, portionedAuxAdlt2)
+    select(value.ssdi, portionedAuxAdlt1, portionedAuxAdlt2)}
 
   return(data.ssdi)
 
@@ -147,23 +131,33 @@ function.ssdiBenefit<-function(data){
 
 function.ssiBenefit<-function(data){
 
-  # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-  years<-unique(data$ruleYear) # years in data set
-  yearsinexpdata<- unique(ssiData$ruleYear) # rule years in benefit data
-  yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-  yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-  # Create data for the future
-  maxyearofdata<-max(ssiData$ruleYear) # collect latest year of benefit data
-  futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-  if(length(futureYrs)>0){
-    # Create data frame with future years
-    expand<-expand.grid(married=unique(ssiData$married), Year=futureYrs)
-    # Collect latest benefit data there is and merge w/data frame
-    expand2<-ssiData[ssiData$ruleYear==maxyearofdata, ]
-    expand<-expand%>%left_join(expand2, by=c("married")) %>% select(-c(ruleYear)) %>% rename(ruleYear=Year)
-  }# Attach copied future, historical, and missing benefit data
-  if(length(futureYrs)>0) {ssiData<-ssiData %>% rbind(expand)}
-
+  if(unique(data$ruleYear)<min(ssiData$ruleYear) | unique(data$ruleYear)>max(ssiData$ruleYear)){data.ssi <- data.frame(
+    value.ssi = 0,
+    value.ssiAdlt1 = 0,
+    value.ssiAdlt2 = 0,
+    value.ssiAdlt3 = 0,
+    value.ssiAdlt4 = 0,
+    value.ssiAdlt5 = 0,
+    value.ssiAdlt6 = 0,
+    value.ssiChild1 = 0,
+    value.ssiChild2 = 0,
+    value.ssiChild3 = 0,
+    value.ssiChild4 = 0,
+    value.ssiChild5 = 0,
+    value.ssiChild6 = 0,
+    hadssi1 = 0,
+    hadssi2 = 0,
+    hadssi3 = 0,
+    hadssi4 = 0,
+    hadssi5 = 0,
+    hadssi6 = 0,
+    hadssi7 = 0,
+    hadssi8 = 0,
+    hadssi9 = 0,
+    hadssi10 = 0,
+    hadssi11 = 0,
+    hadssi12 = 0)
+  }else{
   # We have historical rules
   data<-left_join(data, ssiData, by=c("married","ruleYear"))
   data<-left_join(data, select(sspData, -c("ruleYear")), by=c("stateName")) # State Supplement Program only has values for 2022. Not merging by ruleYear
@@ -551,24 +545,8 @@ function.ssiBenefit<-function(data){
   data.ssi<-data%>%
     select(value.ssi,value.ssiAdlt1,value.ssiAdlt2,value.ssiAdlt3,value.ssiAdlt4,value.ssiAdlt5,value.ssiAdlt6
            ,value.ssiChild1,value.ssiChild2,value.ssiChild3,value.ssiChild4,value.ssiChild5,value.ssiChild6
-           ,hadssi1,hadssi2,hadssi3,hadssi4,hadssi5,hadssi6,hadssi7,hadssi8,hadssi9,hadssi10,hadssi11,hadssi12)
+           ,hadssi1,hadssi2,hadssi3,hadssi4,hadssi5,hadssi6,hadssi7,hadssi8,hadssi9,hadssi10,hadssi11,hadssi12)}
 
-  #### TEST SSI OUTPUT ####
-  # outputTest<-function(data){
-  #   returnData<-data %>%
-  #     select(countyortownName, stateAbbrev, income1, income2, income3, income4, income5, income6, income7, agePerson1,agePerson2
-  #            ,agePerson3, agePerson4, agePerson5, agePerson6, agePerson7, disability1, disability2,disability3, disability4
-  #            ,disability5, disability6, disability7, married, assets.cash, assets.car1, assets.car2, assets.car3, income.gift
-  #            ,income.child_support, income.investment,disab.work.exp,included.earned.income, included.unearned.income, remain.disregard,
-  #            eligible.adlt.earnings, ineligible.adlt.earned.income, gross.ineligible.adlt.unearned.income, eligible.adlt.unearned.income, ineligible.adlt.unearned.income,
-  #            remaining.deemable.income, ineligible.adlt.earned.income, included.unearned.income, ssi.deemed.remain, num.parents ,deemable.parents.ssi,
-  #            num.parents.ssi, deemed.income, adlt1.ssi, adlt2.ssi, deemable.unearned.income, allocation.remainder, deemable.earned.income,
-  #            deemed.disregard.remainder, deemed.earned.income, deemed.income.perchild, child.ssi.recd, value.ssi
-  #            )
-  #
-  #   write.csv(returnData,paste0(getwd(),"/WorkForceDevProj/Documentation/Benefits & Expenses Database/programs/Output/SSI_Output_ManyChildrenOneParents.csv"),row.names=FALSE)
-  # }
-  # outputTest(data)
 
   return(data.ssi)
 
@@ -577,7 +555,7 @@ function.ssiBenefit<-function(data){
 # Supplemental Nutrition Assistance Program (SNAP)----
 
 function.snapBenefit<-function(data){
-    #if data is not in PRD populate value.snap as 0 
+    #if data is not in PRD populate benefit as 0 else calculate benefit value
     if(unique(data$ruleYear)<min(snapData$ruleYear) | unique(data$ruleYear)>max(snapData$ruleYear)){data$snapValue <- 0}else{
       
     # We have historical rules
