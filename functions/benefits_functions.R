@@ -130,7 +130,7 @@ function.ssdiBenefit<-function(data){
 # Supplemental Security Income Program (SSI)----
 
 function.ssiBenefit<-function(data){
-
+  #if data is not in PRD populate benefit as 0 else calculate benefit value
   if(unique(data$ruleYear)<min(ssiData$ruleYear) | unique(data$ruleYear)>max(ssiData$ruleYear)){data.ssi <- data.frame(
     value.ssi = 0,
     value.ssiAdlt1 = 0,
@@ -677,22 +677,7 @@ function.snapBenefit<-function(data){
 
 function.wicBenefit<-function(data){
 
-  # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-  years<-unique(data$ruleYear) # years in data set
-  yearsinexpdata<- unique(wicData$ruleYear) # rule years in benefit data
-  yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-  yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-  # Create data for the future
-  maxyearofdata<-max(wicData$ruleYear) # collect latest year of benefit data
-  futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-  if(length(futureYrs)>0){
-    # Create data frame with future years
-    expand<-expand.grid(AKorHI=unique(wicData$AKorHI), famsize=unique(wicData$famsize), Year=futureYrs)
-    # Collect latest benefit data there is and merge w/data frame
-    expand2<-wicData[wicData$ruleYear==maxyearofdata, ]
-    expand<-expand%>%left_join(expand2, by=c("AKorHI","famsize")) %>% select(-c(ruleYear)) %>% rename(ruleYear=Year)
-  }# Attach copied future, historical, and missing benefit data
-  if(length(futureYrs)>0) {wicData<-wicData %>% rbind(expand)}
+  if(unique(data$ruleYear)<min(wicData$ruleYear) | unique(data$ruleYear)>max(wicData$ruleYear)){data$value.WIC <- 0} else{
 
   # We have historical rules
   data<-left_join(data, wicData, by=c("famsize", "AKorHI", "ruleYear"))
@@ -726,7 +711,7 @@ function.wicBenefit<-function(data){
 
   # Step 5: Calculate WIC value
   data$value.WIC<- data$exp.wic
-  data$value.WIC[data$income.eligible==FALSE]<-0
+  data$value.WIC[data$income.eligible==FALSE]<-0}
 
   return(data$value.WIC)
 
