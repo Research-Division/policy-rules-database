@@ -1676,7 +1676,7 @@ function.stateinctax<-function(data
   
   # Force future ruleYears to use 2025 rules
   if ("ruleYear" %in% colnames(data)) {
-    data$ruleYear[data$ruleYear > 2025] <- 2025
+    data$ruleYear[data$ruleYear > 2026] <- 2026
   }
 
   data<-data %>%
@@ -1685,6 +1685,219 @@ function.stateinctax<-function(data
            , fedtaxcredits = any_of(fedtaxcreditsvar))
 
   data<-left_join(data, stateinctaxData, by=c("ruleYear", "stateFIPS", "stateName", "FilingStatus"))
+  
+  # 2026 ----
+  # Tax foundation data footnote: c)
+  if(2026 %in% unique(data$ruleYear) & "AL" %in% unique(data$stateAbbrev)){
+    
+    # Condition for standard deduction phase out
+    subset0 <- data$income.base > data$AL_PhaseOutThreshold1 & data$stateAbbrev=="AL" & data$ruleYear==2026
+    
+    # Apply phase out if condition is met, phase out not to fall below minimum
+    data$Standard[subset0] <- rowMaxs(cbind(data$Standard[subset0] - (data$income.base[subset0] - data$AL_PhaseOutThreshold1[subset0])*data$AL_PhaseOut1[subset0], 0), na.rm=TRUE)
+    
+    # Conditions for reducing Dependent Exemption
+    subset1 <- data$income.base > data$AL_DepExReductionThreshold1 & data$stateAbbrev=="AL" & data$ruleYear==2026
+    
+    data$DependentExemption[subset1] <- data$AL_ReducedDependentExemption1[subset1]
+    
+    subset2 <- data$income.base > data$AL_DepExReductionThreshold2 & data$stateAbbrev=="AL" & data$ruleYear==2026
+    
+    data$DependentExemption[subset2] <- data$AL_ReducedDependentExemption2[subset2]
+  }
+  
+  # f)
+  if(2026 %in% unique(data$ruleYear) & "AZ" %in% unique(data$stateAbbrev)){
+    
+    # Dependet credit depends on kids
+    numkidsunder17 <- rowSums(cbind(data$agePerson1, data$agePerson2,data$agePerson3,data$agePerson4,data$agePerson5,data$agePerson6,data$agePerson7,data$agePerson8,data$agePerson9,data$agePerson10,data$agePerson11,data$agePerson12) < data$AZ_FullCreditAgeLimit, na.rm=TRUE)
+    numkidsover17 <- rowSums(cbind(data$agePerson1, data$agePerson2,data$agePerson3,data$agePerson4,data$agePerson5,data$agePerson6,data$agePerson7,data$agePerson8,data$agePerson9,data$agePerson10,data$agePerson11,data$agePerson12) >= data$AZ_FullCreditAgeLimit & cbind(data$agePerson1, data$agePerson2,data$agePerson3,data$agePerson4,data$agePerson5,data$agePerson6,data$agePerson7,data$agePerson8,data$agePerson9,data$agePerson10,data$agePerson11,data$agePerson12) < data$AZ_ReducedCreditAgeLimit, na.rm=TRUE)
+    
+    subset0 <- data$stateAbbrev=="AZ" & data$ruleYear==2026
+    
+    # Adjust the Dependent Exemption to find the amount per child with the appropriate credit applied based on age
+    data$DependentExemption[subset0] <- (numkidsunder17[subset0]*data$DependentExemption[subset0] + numkidsover17[subset0]*data$AZ_ReducedCredit[subset0])/data$numkids[subset0]
+    
+  }
+  
+  # g & ll)
+  if(2026 %in% unique(data$ruleYear) & "AR" %in% unique(data$stateAbbrev)){
+    
+    subset0 <- data$income.base < data$AR_Threshold1 & data$stateAbbrev=="AR" & data$ruleYear==2026
+    
+    data <- data %>%
+      # tax brackets change when individual income is below limit. There are no special tax brackets for being married and under threshold limit.
+      mutate(IncomeBin1Max = case_when(subset0==TRUE & FilingStatus %in% c(1,3,4) ~ AR_IncomeBin1MaxNew
+                                       ,subset0==FALSE | FilingStatus %in% c(2) ~ IncomeBin1Max)
+             ,IncomeBin2Max = case_when(subset0==TRUE & FilingStatus %in% c(1,3,4)  ~ AR_IncomeBin2MaxNew
+                                        ,subset0==FALSE | FilingStatus %in% c(2) ~ IncomeBin2Max)
+             ,IncomeBin3Max = case_when(subset0==TRUE & FilingStatus %in% c(1,3,4) ~ AR_IncomeBin3MaxNew
+                                        ,subset0==FALSE | FilingStatus %in% c(2) ~ IncomeBin3Max)
+             ,IncomeBin4Max = case_when(subset0==TRUE & FilingStatus %in% c(1,3,4) ~ AR_IncomeBin4MaxNew
+                                        ,subset0==FALSE | FilingStatus %in% c(2) ~ IncomeBin4Max)
+             ,IncomeBin5Max = case_when(subset0==TRUE & FilingStatus %in% c(1,3,4) ~ AR_IncomeBin5MaxNew
+                                        ,subset0==FALSE | FilingStatus %in% c(2) ~ IncomeBin5Max)
+             ,IncomeBin6Max = case_when(subset0==TRUE & FilingStatus %in% c(1,3,4) ~ AR_IncomeBin6MaxNew
+                                        ,subset0==FALSE | FilingStatus %in% c(2) ~ IncomeBin6Max)
+             
+             #tax rates when individual income is below limit
+             ,TaxRate1 = case_when(subset0==TRUE & FilingStatus %in% c(1,3,4) ~ AR_TaxRate1New
+                                   ,subset0==FALSE | FilingStatus %in% c(2) ~ TaxRate1)
+             ,TaxRate2 = case_when(subset0==TRUE & FilingStatus %in% c(1,3,4) ~ AR_TaxRate2New
+                                   ,subset0==FALSE | FilingStatus %in% c(2) ~ TaxRate2)
+             ,TaxRate3 = case_when(subset0==TRUE & FilingStatus %in% c(1,3,4) ~ AR_TaxRate3New
+                                   ,subset0==FALSE | FilingStatus %in% c(2) ~ TaxRate3)
+             ,TaxRate4 = case_when(subset0==TRUE & FilingStatus %in% c(1,3,4) ~ AR_TaxRate4New
+                                   ,subset0==FALSE | FilingStatus %in% c(2) ~ TaxRate4)
+             ,TaxRate5 = case_when(subset0==TRUE & FilingStatus %in% c(1,3,4) ~ AR_TaxRate5New
+                                   ,subset0==FALSE | FilingStatus %in% c(2) ~ TaxRate5))
+    
+    # oo) # Reduce amount of tax due by deducting bracket adjustment - essentially works as a tax credit so add to Personal Exemption which also works as a credit in AR
+    subset1 <- (data$income.base >= data$AR_Threshold1) & (data$income.base < data$AR_Threshold2) & data$FilingStatus %in% c(1,3,4) & data$stateAbbrev=="AR"
+    subset1[is.na(subset1)] <- FALSE
+    data$PersonalExemption[subset1] <- data$PersonalExemption[subset1] + data$AR_BracketAdjustment[subset1] - (data$income.base[subset1] - data$AR_Threshold1[subset1])*data$AR_Phaseout1[subset1]
+    
+    
+  }
+  
+  # k)
+  if(2026 %in% unique(data$ruleYear) & ("CA" %in% unique(data$stateAbbrev))){
+    
+    # Condition for standard deduction phase out
+    subset0 <- data$income.base > data$CA_ExemptionThreshold1 & data$stateAbbrev=="CA" & data$ruleYear==2026
+    
+    # Apply phase out if condition is met, same phaseouts applied to both personal & dependent
+    data$PersonalExemption[subset0] <- rowMaxs(cbind(data$PersonalExemption[subset0] - (data$income.base[subset0] - data$CA_ExemptionThreshold1[subset0])*data$CA_ExemptPhaseout1[subset0], 0), na.rm=TRUE)
+    
+    data$DependentExemption[subset0] <- rowMaxs(cbind(data$DependentExemption[subset0] - (data$income.base[subset0] - data$CA_ExemptionThreshold1[subset0])*data$CA_ExemptPhaseout1[subset0], 0), na.rm=TRUE)
+    
+  }
+  
+  # r. (footnote p also pertains to CT. This is done within the income tax calculation below)
+  if(2026 %in% unique(data$ruleYear) & "CT" %in% unique(data$stateAbbrev)){
+    
+    # Condition for standard deduction phase out
+    subset0 <- data$income.base > data$CT_ExemptThreshold1 & data$stateAbbrev=="CT" & data$ruleYear==2026
+    
+    # Apply phase out if condition is met
+    data$PersonalExemption[subset0] <- rowMaxs(cbind(data$PersonalExemption[subset0] - (data$income.base[subset0] - data$CT_ExemptThreshold1[subset0])*data$CT_ExemptPhaseout1[subset0], 0), na.rm = TRUE)
+    
+  }
+  # v)
+  if(2026 %in% unique(data$ruleYear) & "IL" %in% unique(data$stateAbbrev)){
+    
+    # Exemptions go to $0 at threshold
+    data$PersonalExemption[data$income.base > data$IL_ExemptThreshold1 & data$stateAbbrev=="IL"] <- 0
+    data$DependentExemption[data$income.base > data$IL_ExemptThreshold1 & data$stateAbbrev=="IL"] <- 0
+    
+  }
+  
+  # z & aa)
+  if(2026 %in% unique(data$ruleYear) & "MD" %in% unique(data$stateAbbrev)){
+    
+    # Standard deduction is a percentage of AGI with caps and minimums
+    percentofAGI <- data$MD_PercentofAGI*data$income.base
+    
+    # Choose which Standard Deduction to use
+    data$Standard <- case_when(percentofAGI <= data$MD_StandardMinimum & data$stateAbbrev=="MD" ~ data$MD_StandardMinimum
+                               
+                               # Standard Deduction presented in the stateinctaxData is the maximum amount
+                               ,percentofAGI > data$Standard & data$stateAbbrev=="MD" ~ data$Standard
+                               
+                               ,TRUE ~ data$Standard)
+    
+    # Condition for standard deduction phase out
+    subset0 <- data$income.base > data$MD_ExemptThreshold1 & data$stateAbbrev=="MD" & data$ruleYear==2026
+    
+    # Apply phase outs if conditions are met
+    data$PersonalExemption[subset0] <- rowMaxs(cbind(data$PersonalExemption[subset0] - (data$income.base[subset0] - data$MD_ExemptThreshold1[subset0])*data$MD_ExemptPhaseout1[subset0], 0), na.rm=TRUE)
+    
+    data$DependentExemption[subset0] <- rowMaxs(cbind(data$DependentExemption[subset0] - (data$income.base[subset0] - data$MD_ExemptThreshold1[subset0])*data$MD_ExemptPhaseout1[subset0], 0), na.rm=TRUE)
+    
+  }
+  
+  # cc)
+  if(2026 %in% unique(data$ruleYear) & "MN" %in% unique(data$stateAbbrev)){
+    
+    # Amount to reduce Standard Deduction: either a percentage of AGI or a percentage of the Standard Deduction
+    subset0 <- data$income.base > data$MN_StandDeductThreshold & data$stateAbbrev=="MN" & data$ruleYear==2026
+    
+    reductionAmount <- rowMins(cbind(data$MN_PercentofAGI[subset0]*data$income.base[subset0], data$MN_PercentofStandDeduct[subset0]*data$Standard[subset0]), na.rm = TRUE)
+    
+    data$Standard[subset0] <- rowMaxs(cbind(data$Standard[subset0] - reductionAmount[subset0], 0),na.rm=TRUE)
+  }
+  
+  # ee)
+  if(2026 %in% unique(data$ruleYear) & "OH" %in% unique(data$stateAbbrev)){
+    
+    # Adjust Personal & Dependent Exemptions depending on income thresholds
+    data$PersonalExemption <- case_when(data$income.base > data$OH_Threshold2 & data$stateAbbrev=="OH" & data$ruleYear==2026 ~ data$OH_Exemption2
+                                        ,data$income.base > data$OH_Threshold1 & data$income.base <= data$OH_Threshold2 & data$stateAbbrev=="OH" & data$ruleYear==2026  ~ data$OH_Exemption1
+                                        ,data$income.base <= data$OH_Threshold1 & data$stateAbbrev=="OH" & data$ruleYear==2026 ~ data$PersonalExemption
+                                        ,TRUE ~ data$PersonalExemption)
+    
+    data$DependentExemption <- case_when(data$income.base > data$OH_Threshold2 & data$stateAbbrev=="OH" & data$ruleYear==2026 ~ data$OH_Exemption2
+                                         ,data$income.base > data$OH_Threshold1 & data$income.base <= data$OH_Threshold2 & data$stateAbbrev=="OH" & data$ruleYear==2026~ data$OH_Exemption1
+                                         ,data$income.base <= data$OH_Threshold1 & data$stateAbbrev=="OH" & data$ruleYear==2026~ data$DependentExemption
+                                         , TRUE ~ data$DependentExemption)
+  }
+  
+  # ff)
+  if(2026 %in% unique(data$ruleYear) & "OR" %in% unique(data$stateAbbrev)){
+    
+    # Exemptions are $0 above the threshold
+    data$PersonalExemption[data$income.base > data$OR_Threshold1 & data$stateAbbrev=="OR"] <- 0
+    data$DependentExemption[data$income.base > data$OR_Threshold1 & data$stateAbbrev=="OR"] <- 0
+    
+  }
+  
+  # gg)
+  if(2026 %in% unique(data$ruleYear) & "RI" %in% unique(data$stateAbbrev)){
+    
+    # Condition for standard deduction phase out
+    subset0 <- data$income.base > data$RI_Threshold1 & data$stateAbbrev=="RI" & data$ruleYear==2026
+    
+    # Apply phase out if condition is met
+    data$PersonalExemption[subset0] <- rowMaxs(cbind((data$PersonalExemption[subset0] - (data$income.base[subset0] - data$RI_Threshold1[subset0])*data$RI_Phaseout1[subset0]), 0), na.rm=TRUE)
+    
+    data$Standard[data$income.base > data$RI_Threshold2 & data$stateAbbrev=="RI"] <- 0
+    data$PersonalExemption[data$income.base > data$RI_Threshold2 & data$stateAbbrev=="RI"] <- 0
+    data$DependentExemption[data$income.base > data$RI_Threshold2 & data$stateAbbrev=="RI"] <- 0
+  }
+  
+  # hh)
+  if(2026 %in% unique(data$ruleYear) & "UT" %in% unique(data$stateAbbrev)){
+    
+    # Condition for standard deduction phase out
+    subset0 <- data$income.base > data$UT_Threshold1 & data$stateAbbrev=="UT" & data$ruleYear==2026
+    
+    # Apply phase outs if conditions are met
+    data$PersonalExemption[subset0] <- rowMaxs(cbind(data$PersonalExemption[subset0] - (data$income.base[subset0] - data$UT_Threshold1[subset0])*data$UT_Phaseout[subset0], 0), na.rm=TRUE)
+    
+  }
+  
+  # ii) VT: calculated at the end of the function
+  
+  # jj)
+  if(2026 %in% unique(data$ruleYear) & "WI" %in% unique(data$stateAbbrev)){
+    
+    # Condition for standard deduction phase out
+    subset0 <- data$income.base > data$WI_Threshold1 & data$stateAbbrev=="WI" & data$ruleYear==2026
+    
+    # Apply phase outs if conditions are met
+    data$Standard[subset0] <- rowMaxs(cbind(data$Standard[subset0] - (data$income.base[subset0] - data$WI_Threshold1[subset0])*data$WI_Phaseout[subset0], 0), na.rm=TRUE)
+    
+  }
+  
+  # kk)
+  if(2026 %in% unique(data$ruleYear) & "NM" %in% unique(data$stateAbbrev)){
+    
+    subset0 <- data$stateAbbrev=="NM" & data$ruleYear==2026
+    
+    # Adjust Dependent Exemption to find appropriate amount per child - NM provides exemption for all but one child
+    data$DependentExemption[subset0] <- (data$DependentExemption[subset0]*data$numkids[subset0]-1)/data$numkids[subset0]
+    
+  }
 
   # 2025 ----
   # Tax foundation data footnote: c)
@@ -1751,11 +1964,12 @@ function.stateinctax<-function(data
                                    ,subset0==FALSE | FilingStatus %in% c(2) ~ TaxRate4)
              ,TaxRate5 = case_when(subset0==TRUE & FilingStatus %in% c(1,3,4) ~ AR_TaxRate5New
                                    ,subset0==FALSE | FilingStatus %in% c(2) ~ TaxRate5))
-
-    # ll) # Reduce amount of tax due by deducting bracket adjustment - essentially works as a tax credit so add to Personal Exemption which also works as a credit in AR
+    
+    # oo) # Reduce amount of tax due by deducting bracket adjustment - essentially works as a tax credit so add to Personal Exemption which also works as a credit in AR
     subset1 <- (data$income.base >= data$AR_Threshold1) & (data$income.base < data$AR_Threshold2) & data$FilingStatus %in% c(1,3,4) & data$stateAbbrev=="AR"
     subset1[is.na(subset1)] <- FALSE
     data$PersonalExemption[subset1] <- data$PersonalExemption[subset1] + data$AR_BracketAdjustment[subset1] - (data$income.base[subset1] - data$AR_Threshold1[subset1])*data$AR_Phaseout1[subset1]
+    
 
   }
 
