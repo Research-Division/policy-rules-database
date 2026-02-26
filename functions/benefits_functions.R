@@ -2596,18 +2596,147 @@ function.stateeitc <- function(data, incomevar,
 
   # Override ruleYear for both data and full_data so they match during assignment
   if ("ruleYear" %in% colnames(data)) {
-    data$ruleYear[data$ruleYear > 2024] <- 2024
-    full_data$ruleYear[full_data$ruleYear > 2024] <- 2024
+    data$ruleYear[data$ruleYear > 2025] <- 2025
+    full_data$ruleYear[full_data$ruleYear > 2025] <- 2025
   }
 
   # ================================
   # Beginning of rule year separations
   # ================================
+  
+  if (2025 %in% unique(full_data$ruleYear)) {
+    
+    data <- full_data[full_data$ruleYear == 2025, ]
+    data$row_id_for_return <- full_data$row_id_for_return[full_data$ruleYear == 2025]
+    
+    rules <- stateeitcData %>% filter(ruleYear == 2025)
+    
+    # Rename variables for internal use
+    data <- data %>%
+      rename(
+        income.base = any_of(incomevar),
+        federaleitc = any_of(federaleitcvar),
+        stateincometax = any_of(stateincometaxvar)
+      )
+    
+    # Attach benefit rule parameters
+    data <- left_join(data, rules, by = c("stateFIPS", "numkids"))
+    
+    # Default: percent of federal times federal EITC
+    data$value.stateeitc <- data$PercentOfFederal * data$federaleitc
+    
+    # ====== SPECIAL STATE RULES ======
+    
+    # Delaware: choose refundable 4.5% if it wipes out liability; otherwise lesser of 20% or tax owed
+    if (10 %in% unique(data$stateFIPS)) {
+      temp <- data[data$stateFIPS == 10, ]
+      
+      eitc_4_5 <- temp$PercentOfFederal_DE_refundable * temp$federaleitc
+      eitc_20 <- temp$PercentOfFederal * temp$federaleitc
+      
+      # Apply rule:
+      # If 4.5% >= tax liability, use 4.5% (refundable)
+      # Else, use min(20% EITC, tax liability)
+      temp$value.stateeitc <- ifelse(
+        eitc_4_5 >= temp$stateincometax,
+        eitc_4_5,
+        pmin(eitc_20, temp$stateincometax, na.rm = TRUE)
+      )
+      
+      data$value.stateeitc[data$stateFIPS == 10] <- temp$value.stateeitc
+    }
+    
+    
+    # Oregon: boost to 12% of federal EITC if any child is under age 3
+    if (41 %in% unique(data$stateFIPS)) {
+      temp <- data[data$stateFIPS == 41, ]
+      
+      # Identify columns related to children's ages
+      age_cols <- grep("^agePerson", colnames(temp), value = TRUE)
+      
+      # Check rowwise if any agePerson is under 3
+      has_under3 <- apply(temp[, age_cols], 1, function(row) any(row < 3, na.rm = TRUE))
+      
+      # Override PercentOfFederal if eligible
+      temp$PercentOfFederal[has_under3] <- temp$PercentOfFederal_OR_under3[has_under3]
+      
+      # Recalculate value
+      temp$value.stateeitc <- temp$PercentOfFederal * temp$federaleitc
+      
+      data$value.stateeitc[data$stateFIPS == 41] <- temp$value.stateeitc
+    }
+    
+    
+    
+    # Washington: flat dollar amount (already stored in ValueBin1)
+    if (53 %in% unique(data$stateFIPS)) {
+      data$value.stateeitc[data$stateFIPS == 53] <- data$ValueBin1[data$stateFIPS == 53]
+    }
+    
+    # ====== California======================
+    if (6 %in% unique(data$stateFIPS)) {
+      temp <- data[data$stateFIPS == 6, ]
+      
+      # Find all income and value bin columns
+      income_bin_cols <- grep("^IncomeBin\\d+Max$", names(temp), value = TRUE)
+      value_bin_cols <- gsub("IncomeBin(\\d+)Max", "ValueBin\\1", income_bin_cols)
+      
+      if (length(income_bin_cols) > 0) {
+        # Turn into matrices
+        income_thresholds <- temp[, income_bin_cols]
+        values_matrix <- temp[, value_bin_cols]
+        
+        # Repeat income.base across columns for comparison
+        income_base_matrix <- matrix(rep(temp$income.base, length(income_bin_cols)),
+                                     ncol = length(income_bin_cols))
+        
+        # Logical matrix: income.base <= each IncomeBinXMax
+        meets_threshold <- income_base_matrix <= data.matrix(income_thresholds)
+        
+        # Find first column (bin) where condition is TRUE
+        first_bin <- apply(meets_threshold, 1, function(row) match(TRUE, row))
+        
+        # Extract ValueBinX based on first_bin index
+        temp$value.stateeitc <- mapply(function(row_idx, bin_idx) {
+          if (!is.na(bin_idx)) values_matrix[row_idx, bin_idx] else 0
+        }, row_idx = seq_len(nrow(temp)), bin_idx = first_bin)
+      } else {
+        temp$value.stateeitc <- 0  # Fallback if bin columns not found
+      }
+      
+      # Replace into full data
+      data$value.stateeitc[data$stateFIPS == 6] <- temp$value.stateeitc
+    }
+    
+    # ====== Minnesota =========================
+    if (27 %in% unique(data$stateFIPS)) {
+      temp <- data[data$stateFIPS == 27, ]
+      
+      # Minnesota: 4% of first $9,480 of earned income
+      temp$value.stateeitc <- pmin(temp$income.base, 9480) * temp$PercentOfFederal
+      
+      data$value.stateeitc[data$stateFIPS == 27] <- temp$value.stateeitc
+    }
+    
+    data$value.stateeitc <- as.numeric(data$value.stateeitc)
+    
+    # Final refundability enforcement for all states (except those handled in special rules)
+    nonrefundable <- data$Refundable == "No" & !(data$stateFIPS %in% c(10))  # exclude DE which handles refundability itself
+    data$value.stateeitc[which(nonrefundable)] <- pmin(
+      data$value.stateeitc[which(nonrefundable)],
+      data$stateincometax[which(nonrefundable)],
+      na.rm = TRUE
+    )
+    
+    full_data$value.stateeitc[data$row_id_for_return] <- data$value.stateeitc
+    
+  } # end of rule year 2025 ======
 
-  if (2024 %in% unique(data$ruleYear)) {
+  if (2024 %in% unique(full_data$ruleYear)) {
 
-    data <- data[data$ruleYear == 2024, ]
-    data$row_id_for_return <- seq_len(nrow(data))
+    data <- full_data[full_data$ruleYear == 2024, ]
+    data$row_id_for_return <- full_data$row_id_for_return[full_data$ruleYear == 2024]
+    rules <- stateeitcData %>% filter(ruleYear == 2024)
 
   # Rename variables for internal use
   data <- data %>%
@@ -2618,7 +2747,7 @@ function.stateeitc <- function(data, incomevar,
     )
 
   # Attach benefit rule parameters
-  data <- left_join(data, stateeitcData, by = c("stateFIPS", "numkids"))
+  data <- left_join(data, rules, by = c("stateFIPS", "numkids"))
 
   # Default: percent of federal times federal EITC
   data$value.stateeitc <- data$PercentOfFederal * data$federaleitc
@@ -2725,15 +2854,14 @@ function.stateeitc <- function(data, incomevar,
     data$stateincometax[which(nonrefundable)],
     na.rm = TRUE
   )
+  
+  full_data$value.stateeitc[data$row_id_for_return] <- data$value.stateeitc
 
-  }
+  } # end of rule year 2024 ======
 
   # ===============================
   # Return Final Credit Values
   # ===============================
-
-  # Assign calculated values to correct rows using row_id_for_return
-  full_data$value.stateeitc[data$row_id_for_return] <- data$value.stateeitc
 
   # Restore original order before returning
   full_data <- full_data %>% arrange(row_id_for_return)
