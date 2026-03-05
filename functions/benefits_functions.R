@@ -1752,10 +1752,30 @@ function.stateinctax<-function(data
              ,TaxRate5 = case_when(subset0==TRUE & FilingStatus %in% c(1,3,4) ~ AR_TaxRate5New
                                    ,subset0==FALSE | FilingStatus %in% c(2) ~ TaxRate5))
     
-    # Reduce amount of tax due by deducting bracket adjustment - essentially works as a tax credit so add to Personal Exemption which also works as a credit in AR
-    subset1 <- (data$income.base >= data$AR_Threshold1) & (data$income.base < data$AR_Threshold2) & data$FilingStatus %in% c(1,3,4) & data$stateAbbrev=="AR"
+    # oo) # Reduce amount of tax due by deducting bracket adjustment - essentially works as a tax credit so add to Personal Exemption which also works as a credit in AR
+    subset1 <- (data$income.base >= data$AR_Threshold1) &
+      (data$income.base <  data$AR_Threshold2) &
+      data$FilingStatus %in% c(1,3,4) &
+      data$stateAbbrev == "AR" &
+      data$ruleYear == 2026
+    
     subset1[is.na(subset1)] <- FALSE
-    data$PersonalExemption[subset1] <- data$PersonalExemption[subset1] + data$AR_BracketAdjustment[subset1] - (data$income.base[subset1] - data$AR_Threshold1[subset1])*data$AR_Phaseout1[subset1]
+    
+    if (any(subset1)) {
+      
+      adj <- data$AR_BracketAdjustment[subset1]
+      ph  <- data$AR_Phaseout1[subset1]
+      th1 <- data$AR_Threshold1[subset1]
+      pe  <- data$PersonalExemption[subset1]
+      
+      adj[is.na(adj)] <- 0
+      ph[is.na(ph)]   <- 0
+      th1[is.na(th1)] <- 0
+      pe[is.na(pe)]   <- 0
+      
+      data$PersonalExemption[subset1] <-
+        pe + adj - (data$income.base[subset1] - th1) * ph
+    }
     
   }
   
@@ -1964,10 +1984,30 @@ function.stateinctax<-function(data
              ,TaxRate5 = case_when(subset0==TRUE & FilingStatus %in% c(1,3,4) ~ AR_TaxRate5New
                                    ,subset0==FALSE | FilingStatus %in% c(2) ~ TaxRate5))
     
-    # Reduce amount of tax due by deducting bracket adjustment - essentially works as a tax credit so add to Personal Exemption which also works as a credit in AR
-    subset1 <- (data$income.base >= data$AR_Threshold1) & (data$income.base < data$AR_Threshold2) & data$FilingStatus %in% c(1,3,4) & data$stateAbbrev=="AR"
+    # oo) # Reduce amount of tax due by deducting bracket adjustment - essentially works as a tax credit so add to Personal Exemption which also works as a credit in AR
+    subset1 <- (data$income.base >= data$AR_Threshold1) &
+      (data$income.base <  data$AR_Threshold2) &
+      data$FilingStatus %in% c(1,3,4) &
+      data$stateAbbrev == "AR" &
+      data$ruleYear == 2025
+    
     subset1[is.na(subset1)] <- FALSE
-    data$PersonalExemption[subset1] <- data$PersonalExemption[subset1] + data$AR_BracketAdjustment[subset1] - (data$income.base[subset1] - data$AR_Threshold1[subset1])*data$AR_Phaseout1[subset1]
+    
+    if (any(subset1)) {
+      
+      adj <- data$AR_BracketAdjustment[subset1]
+      ph  <- data$AR_Phaseout1[subset1]
+      th1 <- data$AR_Threshold1[subset1]
+      pe  <- data$PersonalExemption[subset1]
+      
+      adj[is.na(adj)] <- 0
+      ph[is.na(ph)]   <- 0
+      th1[is.na(th1)] <- 0
+      pe[is.na(pe)]   <- 0
+      
+      data$PersonalExemption[subset1] <-
+        pe + adj - (data$income.base[subset1] - th1) * ph
+    }
 
   }
 
@@ -2178,10 +2218,29 @@ function.stateinctax<-function(data
                                    ,subset0==FALSE | FilingStatus %in% c(2) ~ TaxRate5))
 
     # oo) # Reduce amount of tax due by deducting bracket adjustment - essentially works as a tax credit so add to Personal Exemption which also works as a credit in AR
-    subset1 <- (data$income.base >= data$AR_Threshold1) & (data$income.base < data$AR_Threshold2) & data$FilingStatus %in% c(1,3,4) & data$stateAbbrev=="AR"
+    subset1 <- (data$income.base >= data$AR_Threshold1) &
+      (data$income.base <  data$AR_Threshold2) &
+      data$FilingStatus %in% c(1,3,4) &
+      data$stateAbbrev == "AR" &
+      data$ruleYear == 2024
+    
     subset1[is.na(subset1)] <- FALSE
-    data$PersonalExemption[subset1] <- data$PersonalExemption[subset1] + data$AR_BracketAdjustment[subset1] - (data$income.base[subset1] - data$AR_Threshold1[subset1])*data$AR_Phaseout1[subset1]
-
+    
+    if (any(subset1)) {
+      
+      adj <- data$AR_BracketAdjustment[subset1]
+      ph  <- data$AR_Phaseout1[subset1]
+      th1 <- data$AR_Threshold1[subset1]
+      pe  <- data$PersonalExemption[subset1]
+      
+      adj[is.na(adj)] <- 0
+      ph[is.na(ph)]   <- 0
+      th1[is.na(th1)] <- 0
+      pe[is.na(pe)]   <- 0
+      
+      data$PersonalExemption[subset1] <-
+        pe + adj - (data$income.base[subset1] - th1) * ph
+    }
   }
 
   # l)
@@ -2381,8 +2440,8 @@ function.stateinctax<-function(data
   data$taxableincome.bin12<-rowMaxs(cbind((data$income.base-data$IncomeBin12Max)-rowMaxs(cbind(data$income.base-data$IncomeBin13Max,0)),0))
 
   # initalize
-  data$AdditionalTaxTotal <- NA
-  if("CT" %in% unique(data$stateAbbr) & 2025 %in% unique(data$ruleYear)){
+  data$AdditionalTaxTotal <- 0
+  if("CT" %in% unique(data$stateAbbrev) & 2025 %in% unique(data$ruleYear)){
     subset0 <- data$income.base > data$CT_TaxThreshold1 & data$ruleYear==2025 & data$stateAbbrev=="CT"
 
     # Amount by which the taxable income is reduced from lower tax bracket and applied to higher tax bracket
@@ -2416,7 +2475,7 @@ function.stateinctax<-function(data
 
   }
 
-  if("CT" %in% unique(data$stateAbbr) & 2024 %in% unique(data$ruleYear)){
+  if("CT" %in% unique(data$stateAbbrev) & 2024 %in% unique(data$ruleYear)){
     subset0 <- (data$income.base > data$CT_TaxThreshold1) & data$ruleYear==2024 & data$stateAbbrev=="CT"
 
     # Amount by which the taxable income is reduced from lower tax bracket and applied to higher tax bracket
