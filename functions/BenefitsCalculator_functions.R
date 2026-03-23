@@ -1338,6 +1338,7 @@ BenefitsCalculator.Healthcare<-function(data, APPLY_HEALTHCARE=FALSE, APPLY_MEDI
                ,exp.healthcare.medicaid.adult.person11 = NA_real_
                ,exp.healthcare.medicaid.adult.person12 = NA_real_)
 
+      data[data$medicaid_adult_takeup==0,]<-temp
 
       # Is take-up variable specified?
       if(is.null(data$medicaid_child_takeup)){
