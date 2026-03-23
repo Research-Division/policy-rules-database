@@ -257,7 +257,7 @@ function.transpExp.ALICE<-function(data){
 # Tech Expenses ----
 
 function.techExp.ALICE<-function(data){
-
+  
   # Add the most recent expenses to the current year if we do not have most up-to-date expenses
   years<-unique(data$Year) # years in data set
   yearsinexpdata<- unique(exp.techData.ALICE$yearofdata) # years in exp data
@@ -268,18 +268,18 @@ function.techExp.ALICE<-function(data){
   futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest expense year
   if(length(futureYrs)>0){
     # Create data frame with future years
-    expand<-expand.grid(numadults=unique(exp.techData.ALICE$numadults), Year=futureYrs)
+    expand<-expand.grid(numadults=unique(exp.techData.ALICE$numadults), Year=futureYrs,stateAbbrev = unique(exp.techData.ALICE$stateAbbrev))
     # Collect latest expense data there is and merge w/data frame
     expand2<-exp.techData.ALICE[exp.techData.ALICE$yearofdata==maxyearofdata, ]
-    expand<-expand%>%left_join(expand2, by=c("numadults"))%>%drop_na()
+    expand<-expand%>%left_join(expand2, by=c("numadults","stateAbbrev"))%>%drop_na()
   }
   # Create data for past and gap years (missing data) - not the future
   nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
   if(length(nonFutureYrs)>0){
     #Create data frame with past years and year for which we are missing expense data
-    expandPastMiss<-expand.grid(numadults=unique(exp.techData.ALICE$numadults), Year=nonFutureYrs)
+    expandPastMiss<-expand.grid(numadults=unique(exp.techData.ALICE$numadults), Year=nonFutureYrs,stateAbbrev = unique(exp.techData.ALICE$stateAbbrev))
     # Merge on expense data and for each past/missing year, assign expense data that is closest to that year
-    expandPastMiss2<-left_join(expandPastMiss, exp.techData.ALICE, by=c("numadults"))
+    expandPastMiss2<-left_join(expandPastMiss, exp.techData.ALICE, by=c("numadults","stateAbbrev"))
     expandPastMiss2$yeardiff<-expandPastMiss2$yearofdata-expandPastMiss2$Year
     expandPastMiss2<-expandPastMiss2%>%
       group_by(Year)%>%
@@ -291,16 +291,17 @@ function.techExp.ALICE<-function(data){
   if(length(futureYrs)>0) { exp.techData.ALICE<-exp.techData.ALICE%>%rbind(expand) }
   if(length(nonFutureYrs)>0) { exp.techData.ALICE<-exp.techData.ALICE%>%rbind(expandPastMiss2) } 
   
-  data<-left_join(data, exp.techData.ALICE, by=c("numadults", "Year"))
- 
+  data<-left_join(data, exp.techData.ALICE, by=c("numadults", "Year","stateAbbrev"),relationship = "many-to-many")|>
+    mutate(expense.tech = expense.smartphone + expense.broadband)
+  
   #formula for survival
   if(budget.ALICE=="survival"|budget.ALICE=="survivalforcliff"){
-    data$expense.tech<-(data$expense.smartphone + data$expense.broadband)
+    #data$expense.tech<-(data$expense.smartphone + data$expense.broadband)
   }
   
   #formula for stability
   if(budget.ALICE=="stability"){
-    data$expense.tech<-(data$expense.smartphone + data$expense.broadband)
+    #data$expense.tech<-(data$expense.smartphone + data$expense.broadband)
   }
   
   #inflation adjust
