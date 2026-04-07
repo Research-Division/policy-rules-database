@@ -782,7 +782,7 @@ function.healthcareExp.ALICE<-function(data
   # For PRD, famsize may change depending on medicaid status as mentioned above
   data<-data%>%
     rename(famsizeToUse = any_of(famsizevar))
-  
+
   # Add the most recent expenses to the current year if we do not have most up-to-date expenses
   years<-unique(data$Year) # years in data set
   yearsinexpdata<- unique(exp.healthcareData.ALICE$yearofdata) # years in exp data
@@ -840,8 +840,17 @@ function.healthcareExp.ALICE<-function(data
     #out of pocket
     mutate(oop.notmedicare=annualOOP_survival) %>% 
     mutate(oop.medicare=annualOOP_partB) %>% 
-    mutate(oop.add_for_elderlyordisabled=annualOOP.chronicconditions)
-  
+    mutate(oop.add_for_elderlyordisabled=annualOOP.chronicconditions,
+           #Variables needed for function.aca,
+           premium.healthcare.individual = Single_employee,
+           premium.healthcare.byfamsize = case_when(
+           famsizeToUse == 2 ~ Plusone_employee,
+           famsizeToUse >=3 ~ Family_employee
+           ))
+
+
+    
+    
   
   if(budget.ALICE=="survival" | budget.ALICE=="survivalforcliff"){
     data<-data %>% 
@@ -913,7 +922,9 @@ function.healthcareExp.ALICE<-function(data
     
   }
   returnData<-data %>% 
-    select(ALICE.expense.healthcare.family,exp.healthcare.employer,premium.employer,premium.medicare,oop.notmedicare,oop.medicare,oop.add_for_elderlyordisabled,oop.health.family.ALICE) 
+    select(ALICE.expense.healthcare.family,exp.healthcare.employer,premium.employer,premium.medicare,oop.notmedicare,oop.medicare,oop.add_for_elderlyordisabled,oop.health.family.ALICE, 
+           premium.healthcare.individual, premium.healthcare.byfamsize,yearofdata)|>
+    rename(yearofdata_healthcare_exp = yearofdata)
   
   # remove yearofdata from main dataset before merging the next expense
   data<-data%>%select(-yearofdata)

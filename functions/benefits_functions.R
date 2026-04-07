@@ -1439,11 +1439,11 @@ function.aca<-function(data){
     if(length(futureYrs)>0) {acaData<-acaData %>% rbind(expand)}
 
     data<-left_join(data, acaData, by=c("ruleYear", "famsize", "AKorHI"))
-    data<-left_join(data,employerHealthcareData, by=c("stateFIPS", "famsize")) # Merge empl healthcare to obtain costs of the individual plan
-
+  
+    
     # Inflate/deflate
-    data$premium.healthcare.individual<-12*data$premium.healthcare.individual*(1+parameters.defaults$inflationrate[1])^(data$ruleYear-data$yearofdata)
-
+    data$premium.healthcare.individual<-data$premium.healthcare.individual*(1+parameters.defaults$inflationrate[1])^(data$ruleYear-data$yearofdata_healthcare_exp)
+ 
     data$premium.aca<-NA_real_
 
     data_preACA<-data[data$ruleYear<2014,]
