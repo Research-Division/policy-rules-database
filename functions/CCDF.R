@@ -1376,7 +1376,7 @@ function.CCDFcopay<-function(data
     #----------------------------------``
     # Step 1: Assign copays
     #----------------------------------
-    temp<-left_join(temp, ccdfData_KY, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize", "numkidsinCare"))
+    temp<-left_join(temp, ccdfData_KY, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize"))
 
     # Adjust for the income disregard
     temp$income<-temp$income-12*temp$IncomeDisregard
@@ -8814,7 +8814,7 @@ function.CCDFcopay<-function(data
       data$totcopay[data$stateFIPS==55]<-temp$totcopay
       data$InitialEligibility[data$stateFIPS==55]<-temp$InitialEligibility.y
     }
-
+ 
     # Final Calculation ----
     data$totcopay<-as.numeric(data$totcopay)
 
