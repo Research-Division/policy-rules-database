@@ -4526,7 +4526,8 @@ function.CCDFcopay<-function(data
   
   }
   
-  if(min(data$ruleYear)==2026){
+  #If data is greater than current max(ruleYear) just use max ruleYear -- This will make it so CLIFF tools dont break at the beginning of a new year
+  if(min(data$ruleYear)>=2026){
 
     ### 2026 Set-up =====
     data$income <- data$income+data$income.gift

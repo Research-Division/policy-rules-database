@@ -4787,7 +4787,8 @@ function.tanfBenefit<-function(data){
   ### result ####
   }
   
-  if(max(data$ruleYear)==2026){
+  #If data is greater than current max(ruleYear) just use max ruleYear -- This will make it so CLIFF tools dont break at the beginning of a new year
+  if(max(data$ruleYear)>=2026){
     
     tanfData<-tanfData[tanfData$RuleYear==2026,]
     

@@ -11,8 +11,9 @@
 # Social Security Disability Insurance (SSDI)----
 
 function.ssdiBenefit<-function(data){
-
-  if(unique(data$ruleYear)<min(ssdiData$ruleYear) | unique(data$ruleYear)>max(ssdiDataData$ruleYear)){data$value.ssdi <- 0}else{
+  if((unique(data$ruleYear) > max(ssdiData$ruleYear))){data$ruleYear <- max(ssdiData$ruleYear)}
+  if(!(unique(data$ruleYear)%in%(unique(ssdiData$ruleYear)))){data$value.ssdi <- 0}
+  else if(unique(data$ruleYear) %in% unique(ssdiData$ruleYear)){
 
   # We have historical rules
   data<-left_join(data, ssdiData, by=c("ruleYear"))
@@ -131,7 +132,8 @@ function.ssdiBenefit<-function(data){
 
 function.ssiBenefit<-function(data){
   #if data is not in PRD populate benefit as 0 else calculate benefit value
-  if(unique(data$ruleYear)<min(ssiData$ruleYear) | unique(data$ruleYear)>max(ssiData$ruleYear)){data.ssi <- data.frame(
+  if((unique(data$ruleYear) > max(ssiData$ruleYear))){data$ruleYear <- max(ssiData$ruleYear)}
+  if(!(unique(data$ruleYear)%in%(unique(ssdiData$ruleYear)))){data.ssi <- data.frame(
     value.ssi = 0,
     value.ssiAdlt1 = 0,
     value.ssiAdlt2 = 0,
@@ -157,7 +159,7 @@ function.ssiBenefit<-function(data){
     hadssi10 = 0,
     hadssi11 = 0,
     hadssi12 = 0)
-  }else{
+  }  else if(unique(data$ruleYear) %in% unique(ssdiData$ruleYear)){
   # We have historical rules
   data<-left_join(data, ssiData, by=c("married","ruleYear"))
   data<-left_join(data, select(sspData, -c("ruleYear")), by=c("stateName")) # State Supplement Program only has values for 2022. Not merging by ruleYear
@@ -556,8 +558,10 @@ function.ssiBenefit<-function(data){
 
 function.snapBenefit<-function(data){
     #if data is not in PRD populate benefit as 0 else calculate benefit value
-    if(unique(data$ruleYear)<min(snapData$ruleYear) | unique(data$ruleYear)>max(snapData$ruleYear)){data$snapValue <- 0}else{
-      
+    if((unique(data$ruleYear) > max(snapData$ruleYear))){data$ruleYear <- max(snapData$ruleYear)}
+    if(!(unique(data$ruleYear)%in%(unique(snapData$ruleYear)))){data$snapValue <- 0}
+    else if(unique(data$ruleYear) %in% unique(snapData$ruleYear)){
+     
     # We have historical rules
     data<-left_join(data, snapData, by=c("ruleYear","stateFIPS", "famsize"))
 
@@ -666,8 +670,8 @@ function.snapBenefit<-function(data){
     data$snapValue<-0
     data$snapValue[subset]<-rowMins(cbind(rowMaxs(cbind(12*data$MaxBenefit[subset]-0.3*data$netincome[subset],12*data$MinBenefit[subset]),na.rm = TRUE),12*data$MaxBenefit[subset]),na.rm = TRUE)
 
-    data$snapValue<-round(data$snapValue,0)}
-
+    data$snapValue<-round(data$snapValue,0)
+}
     return(data$snapValue)
 
   }
