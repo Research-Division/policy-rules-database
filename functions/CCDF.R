@@ -3,6 +3,7 @@
 function.CCDFcopay<-function(data
                              , contelig.ccdf = TRUE
 ){
+
   #create CCDF value variable
   data$value.CCDF<-0
 
@@ -5305,8 +5306,8 @@ function.CCDFcopay<-function(data
     if(12 %in% unique(data$stateFIPS)){ # make sure that state is in the list
 
       temp<-data[data$stateFIPS==12,]
-      test <<- temp
-      temp <- test
+      
+   
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
@@ -5972,7 +5973,13 @@ function.CCDFcopay<-function(data
 
       temp$totcopay<-NA
 
-      temp$totcopay<-temp$FTcopay*52*12
+      #temp$totcopay1<-temp$FTcopay*52*12
+      temp$totcopay<-temp$FTcopay*(temp$daysofcareneeded0to4+temp$daysofcareneeded5to12)
+
+      # Set copay to zero if no children
+      temp$totcopay[temp$numkidsincare0to4+temp$numkidsincare5to12==0]<-0
+
+      temp$totcopay[is.na(temp$FTcopay)]<-NA
 
       # Adjust overage depending on whether states allow to charge it
       temp$childcare.overage[temp$OverageOption=="No"]<-0
@@ -6050,8 +6057,7 @@ function.CCDFcopay<-function(data
 
 
     # MAINE ----
-    test <<- data
-    data <- test
+
     # Description:
     # Copay is a percentage of total income
     # Monthly frequency
@@ -6418,8 +6424,7 @@ function.CCDFcopay<-function(data
 
 
     # MISSISSIPPI
-    test <<- data
-    data <- test
+   
     if(28 %in% unique(data$stateFIPS)){ # make sure that state is in the list
 
       ccdfData_MS$stateFIPS <- 28
@@ -8021,7 +8026,7 @@ function.CCDFcopay<-function(data
     # 2nd+ kids in care have reduced price
     if(48 %in% unique(data$stateFIPS)){
       temp<-data[data$stateFIPS==48,]
-      test <<- temp
+ 
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
