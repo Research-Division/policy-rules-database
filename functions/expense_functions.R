@@ -291,19 +291,24 @@ function.techExp.ALICE<-function(data){
   if(length(futureYrs)>0) { exp.techData.ALICE<-exp.techData.ALICE%>%rbind(expand) }
   if(length(nonFutureYrs)>0) { exp.techData.ALICE<-exp.techData.ALICE%>%rbind(expandPastMiss2) } 
   
-  data<-left_join(data, exp.techData.ALICE, by=c("numadults", "Year","stateAbbrev"),relationship = "many-to-many")|>
+
+  # drop columns not needed for merge -- causes the merge to fail if not done 
+  # Columns kept: numadults, year, state Abbrev, expense.smartphone, expense.broadband
+  exp.techData.ALICE <- exp.techData.ALICE[,c(1:4,6,8,10)]
+  
+  data<-left_join(data, exp.techData.ALICE, by=c("numadults", "Year","stateAbbrev"))|>
     mutate(expense.tech = expense.smartphone + expense.broadband)
   
-  #formula for survival
-  if(budget.ALICE=="survival"|budget.ALICE=="survivalforcliff"){
-    #data$expense.tech<-(data$expense.smartphone + data$expense.broadband)
-  }
-  
-  #formula for stability
-  if(budget.ALICE=="stability"){
-    #data$expense.tech<-(data$expense.smartphone + data$expense.broadband)
-  }
-  
+  # #formula for survival
+  # if(budget.ALICE=="survival"|budget.ALICE=="survivalforcliff"){
+  #   #data$expense.tech<-(data$expense.smartphone + data$expense.broadband)
+  # }
+  # 
+  # #formula for stability
+  # if(budget.ALICE=="stability"){
+  #   #data$expense.tech<-(data$expense.smartphone + data$expense.broadband)
+  # }
+  # 
   #inflation adjust
   #alice essentials says tech costs are flat, which means they are decreasing with time in real terms
   if (budget.ALICE=="survival" | budget.ALICE=="stability"){

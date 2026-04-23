@@ -5307,7 +5307,7 @@ function.CCDFcopay<-function(data
 
       temp<-data[data$stateFIPS==12,]
       
-      temp <- test
+   
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
