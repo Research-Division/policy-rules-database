@@ -11,6 +11,8 @@
 # Social Security Disability Insurance (SSDI)----
 
 function.ssdiBenefit<-function(data){
+  # if data is not in PRD populate benefit as 0 else calculate benefit value
+  # if ruleyear is greater than current year default is current year -- this will keep CLIFF tools from breaking
   if((unique(data$ruleYear) > max(ssdiData$ruleYear))){data$ruleYear <- max(ssdiData$ruleYear)}
   if(!(unique(data$ruleYear)%in%(unique(ssdiData$ruleYear)))){data$value.ssdi <- 0}
   else if(unique(data$ruleYear) %in% unique(ssdiData$ruleYear)){
@@ -131,7 +133,8 @@ function.ssdiBenefit<-function(data){
 # Supplemental Security Income Program (SSI)----
 
 function.ssiBenefit<-function(data){
-  #if data is not in PRD populate benefit as 0 else calculate benefit value
+  # if data is not in PRD populate benefit as 0 else calculate benefit value
+  # if ruleyear is greater than current year default is current year -- this will keep CLIFF tools from breaking
   if((unique(data$ruleYear) > max(ssiData$ruleYear))){data$ruleYear <- max(ssiData$ruleYear)}
   if(!(unique(data$ruleYear)%in%(unique(ssdiData$ruleYear)))){data.ssi <- data.frame(
     value.ssi = 0,
@@ -557,7 +560,8 @@ function.ssiBenefit<-function(data){
 # Supplemental Nutrition Assistance Program (SNAP)----
 
 function.snapBenefit<-function(data){
-    #if data is not in PRD populate benefit as 0 else calculate benefit value
+  # if data is not in PRD populate benefit as 0 else calculate benefit value
+  # if ruleyear is greater than current year default is current year -- this will keep CLIFF tools from breaking
     if((unique(data$ruleYear) > max(snapData$ruleYear))){data$ruleYear <- max(snapData$ruleYear)}
     if(!(unique(data$ruleYear)%in%(unique(snapData$ruleYear)))){data$snapValue <- 0}
     else if(unique(data$ruleYear) %in% unique(snapData$ruleYear)){
@@ -681,7 +685,11 @@ function.snapBenefit<-function(data){
 
 function.wicBenefit<-function(data){
 
-  if(unique(data$ruleYear)<min(wicData$ruleYear) | unique(data$ruleYear)>max(wicData$ruleYear)){data$value.WIC <- 0} else{
+  # if data is not in PRD populate benefit as 0 else calculate benefit value
+  # if ruleyear is greater than current year default is current year -- this will keep CLIFF tools from breaking
+  if((unique(data$ruleYear) > max(wicData$ruleYear))){data$ruleYear <- max(wicData$ruleYear)}
+  if(!(unique(data$ruleYear)%in%(unique(wicData$ruleYear)))){data$value.wic <- 0}
+  else if(unique(data$ruleYear) %in% unique(wicData$ruleYear)){
 
   # We have historical rules
   data<-left_join(data, wicData, by=c("famsize", "AKorHI", "ruleYear"))
@@ -726,37 +734,11 @@ function.wicBenefit<-function(data){
 
 function.section8Benefit<-function(data){
 
-  # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-  years<-unique(data$ruleYear) # years in data set
-  yearsinexpdata<- unique(section8Data$ruleYear) # rule years in benefit data
-  yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-  yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-  # Create data for the future
-  maxyearofdata<-max(section8Data$ruleYear) # collect latest year of benefit data
-  futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-  if(length(futureYrs)>0){
-    # Create data frame with future years
-    expand<-expand.grid(stcountyfips2010=as.character(unique(section8Data$stcountyfips2010)), numadults=unique(section8Data$numadults), numkids=unique(section8Data$numkids), Year=futureYrs)
-    # Collect latest benefit data there is and merge w/data frame
-    expand2<-section8Data[section8Data$ruleYear==maxyearofdata, ]
-    expand<-expand%>%left_join(expand2, by=c("stcountyfips2010","numadults", "numkids"))%>%drop_na() %>% select(-c(ruleYear)) %>% rename(ruleYear=Year)
-  }
-  # Create data for past and gap years (missing data) - not the future
-  nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-  if(length(nonFutureYrs)>0){
-    #Create data frame with past years and year for which we are missing benefit data
-    expandPastMiss<-expand.grid(stcountyfips2010=unique(section8Data$stcountyfips2010),numadults=unique(section8Data$numadults), numkids=unique(section8Data$numkids), Year=nonFutureYrs)
-    # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-    expandPastMiss2<-left_join(expandPastMiss, section8Data, by=c("stcountyfips2010", "numadults", "numkids"))
-    expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-    expandPastMiss2<-expandPastMiss2%>%
-      group_by(Year)%>%
-      mutate(minyeardiff = min(yeardiff))
-    expandPastMiss2<-expandPastMiss2 %>%
-      filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename(ruleYear=Year)
-  }  # Attach copied future, historical, and missing benefit data
-  if(length(futureYrs)>0) {section8Data<-section8Data %>% rbind(expand)}
-  if(length(nonFutureYrs)>0) {section8Data<-section8Data %>% rbind(expandPastMiss2)}
+  # if data is not in PRD populate benefit as 0 else calculate benefit value
+  # if ruleyear is greater than current year default is current year -- this will keep CLIFF tools from breaking
+  if((unique(data$ruleYear) > max(section8Data$ruleYear))){data$ruleYear <- max(section8Data$ruleYear)}
+  if(!(unique(data$ruleYear)%in%(unique(section8Data$ruleYear)))){data$section8value <- 0}
+  else if(unique(data$ruleYear) %in% unique(section8Data$ruleYear)){
   # Vars in section8Data are already in the data
   section8Data<-section8Data%>%select(-c("stateName","stateAbbrev","townFIPS","stateFIPS"))
 
@@ -824,7 +806,7 @@ function.section8Benefit<-function(data){
     data$section8value[data$ownorrent!="rent"]<-0
 
     data$section8value<-round(data$section8value,0)
-
+  }
     return(data$section8value)
 
   }
@@ -834,39 +816,11 @@ function.section8Benefit<-function(data){
 
 function.RAPBenefit<-function(data){
 
-  # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-  years<-unique(data$ruleYear) # years in data set
-  yearsinexpdata<- unique(section8Data$ruleYear) # rule years in benefit data
-  yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-  yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-  # Create data for the future
-  maxyearofdata<-max(section8Data$ruleYear) # collect latest year of benefit data
-  futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-  if(length(futureYrs)>0){
-    # Create data frame with future years
-    expand<-expand.grid(countyortownName=as.character(unique(section8Data$countyortownName)), stateAbbrev=unique(section8Data$stateAbbrev), numadults=unique(section8Data$numadults), numkids=unique(section8Data$numkids), Year=futureYrs)
-    # Collect latest benefit data there is and merge w/data frame
-    expand2<-section8Data[section8Data$ruleYear==maxyearofdata, ]
-    # For New England townships, grab the one that matches the data
-    expand2<-expand2%>%filter(countyortownName==unique(data$countyortownName), stateAbbrev==unique(data$stateAbbrev))
-    expand<-expand%>%left_join(expand2, by=c("countyortownName","stateAbbrev", "numadults", "numkids"))%>%drop_na() %>% select(-c(ruleYear)) %>% rename(ruleYear=Year)
-  }
-  # Create data for past and gap years (missing data) - not the future
-  nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-  if(length(nonFutureYrs)>0){
-    #Create data frame with past years and year for which we are missing benefit data
-    expandPastMiss<-expand.grid(countyortownName=unique(section8Data$countyortownName),stateAbbrev=unique(section8Data$stateAbbrev),numadults=unique(section8Data$numadults), numkids=unique(section8Data$numkids), Year=nonFutureYrs)
-    # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-    expandPastMiss2<-left_join(expandPastMiss, section8Data, by=c("countyortownName", "stateAbbrev", "numadults", "numkids"))
-    expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-    expandPastMiss2<-expandPastMiss2%>%
-      group_by(Year)%>%
-      mutate(minyeardiff = min(yeardiff))
-    expandPastMiss2<-expandPastMiss2 %>%
-      filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename(ruleYear=Year)
-  }  # Attach copied future, historical, and missing benefit data
-  if(length(futureYrs)>0) {section8Data<-section8Data %>% rbind(expand)}
-  if(length(nonFutureYrs)>0) {section8Data<-section8Data %>% rbind(expandPastMiss2)}
+  # if data is not in PRD populate benefit as 0 else calculate benefit value
+  # if ruleyear is greater than current year default is current year -- this will keep CLIFF tools from breaking
+  if((unique(data$ruleYear) > max(section8Data$ruleYear))){data$ruleYear <- max(section8Data$ruleYear)}
+  if(!(unique(data$ruleYear)%in%(unique(section8Data$ruleYear)))){data$section8value <- 0}
+  else if(unique(data$ruleYear) %in% unique(section8Data$ruleYear)){
   section8Data<-section8Data%>%select(-c("stateName","countyortownName","stateAbbrev","townFIPS","stateFIPS"))
 
     data$income.countable = data$income
@@ -884,7 +838,7 @@ function.RAPBenefit<-function(data){
     data$section8value[data$ownorrent!="rent"]<-0
 
     data$section8value<-round(data$section8value,0)
-
+  }
     return(data$section8value)
 
   }
@@ -896,37 +850,11 @@ function.FRSPBenefit<-function(data
                                , shareOfRent = 0.3 # User input - varies from 40 to 60%
                                , CareerMapIndicator1){
 
-  # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-  years<-unique(data$ruleYear) # years in data set
-  yearsinexpdata<- unique(section8Data$ruleYear) # rule years in benefit data
-  yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-  yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-  # Create data for the future
-  maxyearofdata<-max(section8Data$ruleYear) # collect latest year of benefit data
-  futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-  if(length(futureYrs)>0){
-    # Create data frame with future years
-    expand<-expand.grid(stcountyfips2010=as.character(unique(section8Data$stcountyfips2010)), numadults=unique(section8Data$numadults), numkids=unique(section8Data$numkids), Year=futureYrs)
-    # Collect latest benefit data there is and merge w/data frame
-    expand2<-section8Data[section8Data$ruleYear==maxyearofdata, ]
-    expand<-expand%>%left_join(expand2, by=c("stcountyfips2010","numadults", "numkids"))%>%drop_na() %>% select(-c(ruleYear)) %>% rename(ruleYear=Year)
-  }
-  # Create data for past and gap years (missing data) - not the future
-  nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-  if(length(nonFutureYrs)>0){
-    #Create data frame with past years and year for which we are missing benefit data
-    expandPastMiss<-expand.grid(stcountyfips2010=unique(section8Data$stcountyfips2010),numadults=unique(section8Data$numadults), numkids=unique(section8Data$numkids), Year=nonFutureYrs)
-    # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-    expandPastMiss2<-left_join(expandPastMiss, section8Data, by=c("stcountyfips2010", "numadults", "numkids"))
-    expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-    expandPastMiss2<-expandPastMiss2%>%
-      group_by(Year)%>%
-      mutate(minyeardiff = min(yeardiff))
-    expandPastMiss2<-expandPastMiss2 %>%
-      filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename(ruleYear=Year)
-  }  # Attach copied future, historical, and missing benefit data
-  if(length(futureYrs)>0) {section8Data<-section8Data %>% rbind(expand)}
-  if(length(nonFutureYrs)>0) {section8Data<-section8Data %>% rbind(expandPastMiss2)}
+  # if data is not in PRD populate benefit as 0 else calculate benefit value
+  # if ruleyear is greater than current year default is current year -- this will keep CLIFF tools from breaking
+  if((unique(data$ruleYear) > max(section8Data$ruleYear))){data$ruleYear <- max(section8Data$ruleYear)}
+  if(!(unique(data$ruleYear)%in%(unique(section8Data$ruleYear)))){data$section8value <- 0}
+  else if(unique(data$ruleYear) %in% unique(section8Data$ruleYear)){
   # Vars in section8Data are already in the data
   section8Data<-section8Data%>%select(-c("stateName","stateAbbrev","townFIPS","stateFIPS"))
 
@@ -964,7 +892,7 @@ function.FRSPBenefit<-function(data
   } else{
     abc <- 0
   }
-
+  }
   return(data$section8value)
 
 }
@@ -1066,37 +994,13 @@ function.headstart<-function(data
     colnames(data)[colnames(data)==ageofPersonvar]<-"ageofchild"
     colnames(data)[colnames(data)==expchildcarevar]<-"exp.child"
 
-    # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-    years<-unique(data$ruleYear) # years in data set
-    yearsinexpdata<- unique(headstartData$ruleYear) # rule years in benefit data
-    yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-    yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-    # Create data for the future
-    maxyearofdata<-max(headstartData$ruleYear) # collect latest year of benefit data
-    futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-    if(length(futureYrs)>0){
-      # Create data frame with future years
-      expand<-expand.grid(famsize=unique(headstartData$famsize), AKorHI=unique(headstartData$AKorHI), Year=futureYrs)
-      # Collect latest benefit data there is and merge w/data frame
-      expand2<-headstartData[headstartData$ruleYear==maxyearofdata, ]
-      expand<-expand%>%left_join(expand2, by=c("famsize", "AKorHI"))%>%drop_na() %>% select(-c(ruleYear)) %>% rename(ruleYear=Year)
-    }
-    # Create data for past and gap years (missing data) - not the future
-    nonFutureYrs<-yearstouse[yearstouse<maxyearofdata]
-    if(length(nonFutureYrs)>0){
-      #Create data frame with past years and year for which we are missing benefit data
-      expandPastMiss<-expand.grid(famsize=unique(headstartData$famsize), AKorHI=unique(headstartData$AKorHI), Year=nonFutureYrs)
-      # Merge on benefit data and for each past/missing year assign benefit data that is closest to that year
-      expandPastMiss2<-left_join(expandPastMiss, headstartData, by=c("famsize", "AKorHI"))
-      expandPastMiss2$yeardiff<-expandPastMiss2$ruleYear-expandPastMiss2$Year
-      expandPastMiss2<-expandPastMiss2%>%
-        group_by(Year)%>%
-        mutate(minyeardiff = min(yeardiff))
-      expandPastMiss2<-expandPastMiss2 %>%
-        filter(yeardiff==minyeardiff) %>% select(-c(yeardiff, minyeardiff, ruleYear)) %>% rename(ruleYear=Year)
-    }  # Attach copied future, historical, and missing benefit data
-    if(length(futureYrs)>0) {headstartData<-headstartData %>% rbind(expand)}
-    if(length(nonFutureYrs)>0) {headstartData<-headstartData %>% rbind(expandPastMiss2)}
+    # if data is not in PRD populate benefit as 0 else calculate benefit value
+    # if ruleyear is greater than current year default is current year -- this will keep CLIFF tools from breaking
+    if((unique(data$ruleYear) > max(headstartData$ruleYear))){data$ruleYear <- max(headstartData$ruleYear)}
+    if(!(unique(data$ruleYear)%in%(unique(headstartData$ruleYear))))
+      {data$value.earlyheadstart <- 0
+      data$value.headstart <- 0} 
+    else if(unique(data$ruleYear) %in% unique(headstartData$ruleYear)){
 
     data<-data %>%
       left_join(headstartData, by=c("ruleYear", "famsize", "AKorHI"))
@@ -1178,7 +1082,7 @@ function.headstart<-function(data
 
       returnData<-data %>%
               select(value.earlyheadstart, value.headstart)
-
+    }
       return(returnData)
   }
 
@@ -1201,22 +1105,11 @@ function.prek<-function(data
            ,value.headstart=any_of(headstartPersonvar)
            ,childcare.exp.person=any_of(childcare.expvar))
 
-  # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-  years<-unique(data$ruleYear) # years in data set
-  yearsinexpdata<- unique(schoolmealData$ruleYear) # rule years in benefit data
-  yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-  yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-  # Create data for the future
-  maxyearofdata<-max(schoolmealData$ruleYear) # collect latest year of benefit data
-  futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-  if(length(futureYrs)>0){
-    # Create data frame with future years
-    expand<-expand.grid(AKorHI=unique(schoolmealData$AKorHI), famsize=unique(schoolmealData$famsize), Year=futureYrs)
-    # Collect latest benefit data there is and merge w/data frame
-    expand2<-schoolmealData[schoolmealData$ruleYear==maxyearofdata, ]
-    expand<-expand%>%left_join(expand2, by=c("AKorHI","famsize")) %>% select(-c(ruleYear)) %>% rename(ruleYear=Year)
-  }# Attach copied future, historical, and missing benefit data
-  if(length(futureYrs)>0) {schoolmealData<-schoolmealData %>% rbind(expand)}
+  # if data is not in PRD populate benefit as 0 else calculate benefit value
+  # if ruleyear is greater than current year default is current year -- this will keep CLIFF tools from breaking
+  if((unique(data$ruleYear) > max(preKData$ruleYear))){data$ruleYear <- max(preKData$ruleYear)}
+  if(!(unique(data$ruleYear)%in%(unique(preKData$ruleYear)))){data$value.preKPerson <- 0} 
+  else if(unique(data$ruleYear) %in% unique(preKData$ruleYear)){
 
   # We have historical rules for school meals
   data<-data %>%
@@ -1298,7 +1191,7 @@ function.prek<-function(data
 
                                       TRUE ~ preKPerson)),
         value.preKPerson= childcare.exp.person*preKPerson)
-
+  }
   return(data$value.preKPerson)
 }
 
@@ -1321,22 +1214,14 @@ function.medicaid<-function(data
     data$ageofperson[data$ageofperson==2 & data$stateFIPS==27]<-0
     data$ageofperson[data$ageofperson==1 & data$stateFIPS==27]<-0
 
-    # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-    years<-unique(data$ruleYear) # years in data set
-    yearsinexpdata<- unique(medicaidData$ruleYear) # rule years in benefit data
-    yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-    yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-    # Create data for the future
-    maxyearofdata<-max(medicaidData$ruleYear) # collect latest year of benefit data
-    futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-    if(length(futureYrs)>0){
-      # Create data frame with future years
-      expand<-expand.grid(stateFIPS=unique(medicaidData$stateFIPS), famsize=unique(medicaidData$famsize), Year=futureYrs)
-      # Collect latest benefit data there is and merge w/data frame
-      expand2<-medicaidData[medicaidData$ruleYear==maxyearofdata, ]
-      expand<-expand%>%left_join(expand2, by=c("stateFIPS","famsize")) %>% select(-c(ruleYear)) %>% rename(ruleYear=Year)
-    }# Attach copied future, historical, and missing benefit data
-    if(length(futureYrs)>0) {medicaidData<-medicaidData %>% rbind(expand)}
+    
+    # if data is not in PRD populate benefit as 0 else calculate benefit value
+    # if ruleyear is greater than current year default is current year -- this will keep CLIFF tools from breaking
+    if((unique(data$ruleYear) > max(medicaidData$ruleYear))){data$ruleYear <- max(medicaidData$ruleYear)}
+    if(!(unique(data$ruleYear)%in%(unique(medicaidData$ruleYear))))
+    {data$premium.medicaid <- 0 
+     data$PremiumType.CHIP <- 0} 
+    else if(unique(data$ruleYear) %in% unique(medicaidData$ruleYear)){
 
 
     # We have historical rules
@@ -1363,7 +1248,7 @@ function.medicaid<-function(data
 
     returnData<-data %>%
       select(premium.medicaid, PremiumType.CHIP)
-
+    }
     return(returnData)
   }
 
@@ -1373,22 +1258,11 @@ function.medicaid<-function(data
 
 function.aca<-function(data){
 
-    # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-    years<-unique(data$ruleYear) # years in data set
-    yearsinexpdata<- unique(acaData$ruleYear) # rule years in benefit data
-    yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-    yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-    # Create data for the future
-    maxyearofdata<-max(acaData$ruleYear) # collect latest year of benefit data
-    futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-    if(length(futureYrs)>0){
-      # Create data frame with future years
-      expand<-expand.grid(famsize=unique(acaData$famsize), AKorHI=unique(acaData$AKorHI), Year=futureYrs)
-      # Collect latest benefit data there is and merge w/data frame
-      expand2<-acaData[acaData$ruleYear==maxyearofdata, ]
-      expand<-expand%>%left_join(expand2, by=c("famsize", "AKorHI")) %>% select(-c(ruleYear)) %>% rename(ruleYear=Year)
-    }# Attach copied future, historical, and missing benefit data
-    if(length(futureYrs)>0) {acaData<-acaData %>% rbind(expand)}
+  # if data is not in PRD populate benefit as 0 else calculate benefit value
+  # if ruleyear is greater than current year default is current year -- this will keep CLIFF tools from breaking
+  if((unique(data$ruleYear) > max(acaData$ruleYear))){data$ruleYear <- max(acaData$ruleYear)}
+  if(!(unique(data$ruleYear)%in%(unique(acaData$ruleYear)))){data$premium.aca <- 0} 
+  else if(unique(data$ruleYear) %in% unique(acaData$ruleYear)){
 
     data<-left_join(data, acaData, by=c("ruleYear", "famsize", "AKorHI"))
   
@@ -1447,7 +1321,7 @@ function.aca<-function(data){
     data[data$ruleYear>=2014,]<-data_postACA
 
     data$premium.aca<-round(data$premium.aca,0)
-
+  }
     return(data$premium.aca)
   }
 
@@ -1457,22 +1331,12 @@ function.aca<-function(data){
 
 function.schoolmeals<-function(data){
 
-  # Add most recent benefit rules we have to the current year if we do not have most up-to-date rules
-  years<-unique(data$ruleYear) # years in data set
-  yearsinexpdata<- unique(schoolmealData$ruleYear) # rule years in benefit data
-  yearstouse<-match(years, yearsinexpdata) # compares list of years in data set to years in benefit data
-  yearstouse<-years[is.na(yearstouse)] # keeps years from data set that are not in benefit data set
-  # Create data for the future
-  maxyearofdata<-max(schoolmealData$ruleYear) # collect latest year of benefit data
-  futureYrs<-yearstouse[yearstouse>maxyearofdata] # Keep years from data set that are larger than latest benefit rule year
-  if(length(futureYrs)>0){
-    # Create data frame with future years
-    expand<-expand.grid(AKorHI=unique(schoolmealData$AKorHI), famsize=unique(schoolmealData$famsize), Year=futureYrs)
-    # Collect latest benefit data there is and merge w/data frame
-    expand2<-schoolmealData[schoolmealData$ruleYear==maxyearofdata, ]
-    expand<-expand%>%left_join(expand2, by=c("AKorHI","famsize")) %>% select(-c(ruleYear)) %>% rename(ruleYear=Year)
-  }# Attach copied future, historical, and missing benefit data
-  if(length(futureYrs)>0) {schoolmealData<-schoolmealData %>% rbind(expand)}
+  # if data is not in PRD populate benefit as 0 else calculate benefit value
+  # if ruleyear is greater than current year default is current year -- this will keep CLIFF tools from breaking
+  if((unique(data$ruleYear) > max(schoolmealData$ruleYear))){data$ruleYear <- max(schoolmealData$ruleYear)}
+  if(!(unique(data$ruleYear)%in%(unique(schoolmealData$ruleYear)))){data$value.schoolmeals <- 0} 
+  else if(unique(data$ruleYear) %in% unique(schoolmealData$ruleYear)){
+    
 
     data<-left_join(data, schoolmealData, by=c("ruleYear", "famsize", "AKorHI"))
 
@@ -1518,7 +1382,7 @@ function.schoolmeals<-function(data){
 
     # NOTE! The value of free school meals depends on the cost assigned to school meals (exp.schoolMeals) which uses the number of kids in school
     # older than 5. numkidsinschool is recalculated after the PreK function bc kids in PreK may be younger than 5.
-
+  }
     return(data$value.schoolmeals)
   }
 
