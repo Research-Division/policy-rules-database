@@ -1392,7 +1392,7 @@ function.medicaid<-function(data
       left_join(medicaidData, by=c("ruleYear", "famsize", "stateFIPS")) %>%
       mutate(incomelimit=case_when(ageofperson==0~ incomelimit.child.Age0,
                                    ageofperson %in% c(1:5)~incomelimit.child.Age1to5,
-                                   ageofperson %in% c(5:18)~incomelimit.child.Age6to18,
+                                   ageofperson %in% c(6:18)~incomelimit.child.Age6to18,
                                    ageofperson >=19 & hasdependent==1 ~ incomelimit.Adult.withDependent
                                    ,ageofperson >=19 & hasdependent==0 ~ incomelimit.Adult.noDependent)) %>%
 
