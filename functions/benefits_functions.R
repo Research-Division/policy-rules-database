@@ -2655,18 +2655,147 @@ function.stateeitc <- function(data, incomevar,
 
   # Override ruleYear for both data and full_data so they match during assignment
   if ("ruleYear" %in% colnames(data)) {
-    data$ruleYear[data$ruleYear > 2024] <- 2024
-    full_data$ruleYear[full_data$ruleYear > 2024] <- 2024
+    data$ruleYear[data$ruleYear > 2025] <- 2025
+    full_data$ruleYear[full_data$ruleYear > 2025] <- 2025
   }
 
   # ================================
   # Beginning of rule year separations
   # ================================
+  
+  if (2025 %in% unique(full_data$ruleYear)) {
+    
+    data <- full_data[full_data$ruleYear == 2025, ]
+    data$row_id_for_return <- full_data$row_id_for_return[full_data$ruleYear == 2025]
+    
+    rules <- stateeitcData %>% filter(ruleYear == 2025)
+    
+    # Rename variables for internal use
+    data <- data %>%
+      rename(
+        income.base = any_of(incomevar),
+        federaleitc = any_of(federaleitcvar),
+        stateincometax = any_of(stateincometaxvar)
+      )
+    
+    # Attach benefit rule parameters
+    data <- left_join(data, rules, by = c("stateFIPS", "numkids"))
+    
+    # Default: percent of federal times federal EITC
+    data$value.stateeitc <- data$PercentOfFederal * data$federaleitc
+    
+    # ====== SPECIAL STATE RULES ======
+    
+    # Delaware: choose refundable 4.5% if it wipes out liability; otherwise lesser of 20% or tax owed
+    if (10 %in% unique(data$stateFIPS)) {
+      temp <- data[data$stateFIPS == 10, ]
+      
+      eitc_4_5 <- temp$PercentOfFederal_DE_refundable * temp$federaleitc
+      eitc_20 <- temp$PercentOfFederal * temp$federaleitc
+      
+      # Apply rule:
+      # If 4.5% >= tax liability, use 4.5% (refundable)
+      # Else, use min(20% EITC, tax liability)
+      temp$value.stateeitc <- ifelse(
+        eitc_4_5 >= temp$stateincometax,
+        eitc_4_5,
+        pmin(eitc_20, temp$stateincometax, na.rm = TRUE)
+      )
+      
+      data$value.stateeitc[data$stateFIPS == 10] <- temp$value.stateeitc
+    }
+    
+    
+    # Oregon: boost to 12% of federal EITC if any child is under age 3
+    if (41 %in% unique(data$stateFIPS)) {
+      temp <- data[data$stateFIPS == 41, ]
+      
+      # Identify columns related to children's ages
+      age_cols <- grep("^agePerson", colnames(temp), value = TRUE)
+      
+      # Check rowwise if any agePerson is under 3
+      has_under3 <- apply(temp[, age_cols], 1, function(row) any(row < 3, na.rm = TRUE))
+      
+      # Override PercentOfFederal if eligible
+      temp$PercentOfFederal[has_under3] <- temp$PercentOfFederal_OR_under3[has_under3]
+      
+      # Recalculate value
+      temp$value.stateeitc <- temp$PercentOfFederal * temp$federaleitc
+      
+      data$value.stateeitc[data$stateFIPS == 41] <- temp$value.stateeitc
+    }
+    
+    
+    
+    # Washington: flat dollar amount (already stored in ValueBin1)
+    if (53 %in% unique(data$stateFIPS)) {
+      data$value.stateeitc[data$stateFIPS == 53] <- data$ValueBin1[data$stateFIPS == 53]
+    }
+    
+    # ====== California======================
+    if (6 %in% unique(data$stateFIPS)) {
+      temp <- data[data$stateFIPS == 6, ]
+      
+      # Find all income and value bin columns
+      income_bin_cols <- grep("^IncomeBin\\d+Max$", names(temp), value = TRUE)
+      value_bin_cols <- gsub("IncomeBin(\\d+)Max", "ValueBin\\1", income_bin_cols)
+      
+      if (length(income_bin_cols) > 0) {
+        # Turn into matrices
+        income_thresholds <- temp[, income_bin_cols]
+        values_matrix <- temp[, value_bin_cols]
+        
+        # Repeat income.base across columns for comparison
+        income_base_matrix <- matrix(rep(temp$income.base, length(income_bin_cols)),
+                                     ncol = length(income_bin_cols))
+        
+        # Logical matrix: income.base <= each IncomeBinXMax
+        meets_threshold <- income_base_matrix <= data.matrix(income_thresholds)
+        
+        # Find first column (bin) where condition is TRUE
+        first_bin <- apply(meets_threshold, 1, function(row) match(TRUE, row))
+        
+        # Extract ValueBinX based on first_bin index
+        temp$value.stateeitc <- mapply(function(row_idx, bin_idx) {
+          if (!is.na(bin_idx)) values_matrix[row_idx, bin_idx] else 0
+        }, row_idx = seq_len(nrow(temp)), bin_idx = first_bin)
+      } else {
+        temp$value.stateeitc <- 0  # Fallback if bin columns not found
+      }
+      
+      # Replace into full data
+      data$value.stateeitc[data$stateFIPS == 6] <- temp$value.stateeitc
+    }
+    
+    # ====== Minnesota =========================
+    if (27 %in% unique(data$stateFIPS)) {
+      temp <- data[data$stateFIPS == 27, ]
+      
+      # Minnesota: 4% of first $9,480 of earned income
+      temp$value.stateeitc <- pmin(temp$income.base, 9480) * temp$PercentOfFederal
+      
+      data$value.stateeitc[data$stateFIPS == 27] <- temp$value.stateeitc
+    }
+    
+    data$value.stateeitc <- as.numeric(data$value.stateeitc)
+    
+    # Final refundability enforcement for all states (except those handled in special rules)
+    nonrefundable <- data$Refundable == "No" & !(data$stateFIPS %in% c(10))  # exclude DE which handles refundability itself
+    data$value.stateeitc[which(nonrefundable)] <- pmin(
+      data$value.stateeitc[which(nonrefundable)],
+      data$stateincometax[which(nonrefundable)],
+      na.rm = TRUE
+    )
+    
+    full_data$value.stateeitc[data$row_id_for_return] <- data$value.stateeitc
+    
+  } # end of rule year 2025 ======
 
-  if (2024 %in% unique(data$ruleYear)) {
+  if (2024 %in% unique(full_data$ruleYear)) {
 
-    data <- data[data$ruleYear == 2024, ]
-    data$row_id_for_return <- seq_len(nrow(data))
+    data <- full_data[full_data$ruleYear == 2024, ]
+    data$row_id_for_return <- full_data$row_id_for_return[full_data$ruleYear == 2024]
+    rules <- stateeitcData %>% filter(ruleYear == 2024)
 
   # Rename variables for internal use
   data <- data %>%
@@ -2677,7 +2806,7 @@ function.stateeitc <- function(data, incomevar,
     )
 
   # Attach benefit rule parameters
-  data <- left_join(data, stateeitcData, by = c("stateFIPS", "numkids"))
+  data <- left_join(data, rules, by = c("stateFIPS", "numkids"))
 
   # Default: percent of federal times federal EITC
   data$value.stateeitc <- data$PercentOfFederal * data$federaleitc
@@ -2784,15 +2913,14 @@ function.stateeitc <- function(data, incomevar,
     data$stateincometax[which(nonrefundable)],
     na.rm = TRUE
   )
+  
+  full_data$value.stateeitc[data$row_id_for_return] <- data$value.stateeitc
 
-  }
+  } # end of rule year 2024 ======
 
   # ===============================
   # Return Final Credit Values
   # ===============================
-
-  # Assign calculated values to correct rows using row_id_for_return
-  full_data$value.stateeitc[data$row_id_for_return] <- data$value.stateeitc
 
   # Restore original order before returning
   full_data <- full_data %>% arrange(row_id_for_return)
@@ -4299,18 +4427,228 @@ function.statectc <- function(data,
 
   # Override ruleYear for both data and full_data so they match during assignment
   if ("ruleYear" %in% colnames(data)) {
-    data$ruleYear[data$ruleYear > 2024] <- 2024
-    full_data$ruleYear[full_data$ruleYear > 2024] <- 2024
+    data$ruleYear[data$ruleYear > 2025] <- 2025
+    full_data$ruleYear[full_data$ruleYear > 2025] <- 2025
   }
 
   # ================================
   # Beginning of rule year separations
   # ================================
+  
+  if (2025 %in% unique(full_data$ruleYear)) {
+    
+    data <- full_data[full_data$ruleYear == 2025, ]
 
-  if (2024 %in% unique(data$ruleYear)) {
+    data$row_id_for_return <- full_data$row_id_for_return[full_data$ruleYear == 2025]
+    
+    rules <- statectcData %>% dplyr::filter(ruleYear == 2025)
+    
+    data <- data %>%
+      rename(
+        income.base = any_of(incomevar),
+        stateincometax = any_of(stateincometaxvar),
+        federalctc = any_of(federalctcvar),
+        stateeitc = any_of(stateeitcvar)
+      )
+    
+    # =======================
+    # Setup Age Eligibility Rules
+    # =======================
+    
+    age_matrix <- data %>% select(starts_with("agePerson")) %>% as.matrix()
+    
+    state_rules <- rules %>%
+      select(stateName, stateFIPS, FilingStatus, AgeofDependentMin, AgeofDependentMax, MaxDependent) %>%
+      distinct()
+    
+    data <- left_join(data, state_rules, by = c("stateFIPS", "FilingStatus"))
+    
+    data$numeligiblekids <- rowSums(
+      (age_matrix >= data$AgeofDependentMin) & (age_matrix <= data$AgeofDependentMax),
+      na.rm = TRUE
+    )
+    
+    data$numeligiblekids <- ifelse(
+      !is.na(data$MaxDependent),
+      pmin(data$numeligiblekids, data$MaxDependent),
+      data$numeligiblekids
+    )
+    
+    
+    data <- data %>% select(-AgeofDependentMin, -AgeofDependentMax, -MaxDependent)
+    
+    # ===============================
+    # Apply Standard Rules (Non-Colorado, incl. Minnesota)
+    # ===============================
+    
+    standard_mask <- data$stateFIPS != 8
+    data_standard <- data[standard_mask, ]
+    
+    data_mn <- data_standard %>% filter(stateFIPS == 27)
+    data_nonmn <- data_standard %>% filter(stateFIPS != 27)
+    
+    data_nonmn <- left_join(data_nonmn, rules %>%
+                              filter(is.na(MNEligibleKids)),
+                            by = c("stateFIPS", "FilingStatus"))
+    
+    data_mn <- left_join(data_mn, rules %>%
+                           filter(stateFIPS == 27),
+                         by = c("stateFIPS", "FilingStatus",
+                                "numeligiblekids" = "MNEligibleKids"))
+    
+    data_standard <- bind_rows(data_nonmn, data_mn)
+    
+    if (nrow(data_standard) > 0) {
+      income_bins <- data_standard[, grep("^IncomeBin\\d+Max$", names(data_standard)), drop = FALSE]
+      value_bins <- data_standard[, grep("^ValueBin\\d+$", names(data_standard)), drop = FALSE]
+      
+      value_bins[is.na(value_bins)] <- 0
+      valid_bins <- data_standard$income.base <= income_bins
+      assigned_bins <- max.col(valid_bins, ties.method = "first")
+      
+      data_standard$value.statectc <- value_bins[cbind(seq_len(nrow(data_standard)), assigned_bins)] * data_standard$numeligiblekids
+      data_standard$value.statectc[is.na(data_standard$value.statectc)] <- 0
+      
+      phaseout_mask <- !is.na(data_standard$PhaseoutRatePer1000) & (data_standard$income.base > data_standard$IncomeBin1Max)
+      if (any(phaseout_mask)) {
+        excess_income <- data_standard$income.base[phaseout_mask] - data_standard$IncomeBin1Max[phaseout_mask]
+        base_credit <- data_standard$ValueBin1[phaseout_mask] * data_standard$numeligiblekids[phaseout_mask]
+        phaseout_amount <- (excess_income / 1000) * data_standard$PhaseoutRatePer1000[phaseout_mask] * base_credit
+        data_standard$value.statectc[phaseout_mask] <- pmax(base_credit - phaseout_amount, 0)
+      }
+      
+      non_refundable <- data_standard$Refundable == "No" & !is.na(data_standard$Refundable)
+      data_standard$value.statectc[non_refundable] <- pmin(data_standard$value.statectc[non_refundable], data_standard$stateincometax[non_refundable])
+    }
+    
+    data <- bind_rows(data_standard, data[!standard_mask, ])
+    
+    # ===============================
+    # Percent of Federal CTC States: OK
+    # ===============================
+    
+    ok_mask <- data$stateFIPS == 40 & data$income.base <= data$IncomeBin1Max
 
-    data <- data[data$ruleYear == 2024, ]
-    data$row_id_for_return <- seq_len(nrow(data))
+    if (any(ok_mask, na.rm = TRUE)) {
+      data$value.statectc[ok_mask] <- data$federalctc[ok_mask] * data$PercentOfFederalBin1[ok_mask]
+    }
+    
+    
+    non_refundable_2 <- data$Refundable == "No" & !is.na(data$Refundable) & (ok_mask)
+    data$value.statectc[non_refundable_2] <- pmin(data$value.statectc[non_refundable_2], data$stateincometax[non_refundable_2])
+    
+    # ===============================
+    # Colorado Special Rules
+    # ===============================
+    
+    data_colorado <- data %>%
+      filter(stateFIPS == 8) %>%
+      left_join(rules %>% filter(stateFIPS == 8), by = c("stateFIPS", "FilingStatus"))
+    
+    names(data_colorado) <- gsub("\\.y$", "", names(data_colorado))
+    
+    if (nrow(data_colorado) > 0) {
+      kid_matrix <- data_colorado %>% select(starts_with("agePerson")) %>% as.matrix()
+      num_kids_0_5 <- rowSums((kid_matrix >= 0 & kid_matrix <= 5), na.rm = TRUE)
+      num_kids_6_16 <- rowSums((kid_matrix >= 6 & kid_matrix <= 16), na.rm = TRUE)
+      
+      income_bins <- data_colorado[, grep("^IncomeBin\\d+Max$", names(data_colorado)), drop = FALSE]
+      value_bins_0_5 <- data_colorado[, grep("^ValueBin\\d+_0_5$", names(data_colorado)), drop = FALSE]
+      value_bins_6_16 <- data_colorado[, grep("^ValueBin\\d+_6_16$", names(data_colorado)), drop = FALSE]
+      
+      value_bins_0_5[is.na(value_bins_0_5)] <- 0
+      value_bins_6_16[is.na(value_bins_6_16)] <- 0
+      
+      valid_bins <- data_colorado$income.base <= income_bins
+      assigned_bins <- max.col(valid_bins, ties.method = "first")
+      
+      val_0_5 <- value_bins_0_5[cbind(seq_len(nrow(data_colorado)), assigned_bins)]
+      val_6_16 <- value_bins_6_16[cbind(seq_len(nrow(data_colorado)), assigned_bins)]
+      
+      total_credit <- val_0_5 * num_kids_0_5 + val_6_16 * num_kids_6_16
+      data$value.statectc[data$stateFIPS == 8] <- total_credit
+      
+      non_refundable <- data_colorado$Refundable == "No" & !is.na(data_colorado$Refundable)
+      data$value.statectc[data$stateFIPS == 8][non_refundable] <- pmin(total_credit[non_refundable], data_colorado$stateincometax[non_refundable])
+      
+    }
+    
+    # Rules for Maine and Colorado special where families with kids above 
+    # Age limit get a larger credit 
+    
+    # =============================
+    # Maine special rules
+    # ============================
+    me_mask <- data$stateFIPS == 23
+    
+    if (any(me_mask, na.rm = TRUE)) {
+      
+      me_kids_0_5  <- rowSums(age_matrix[me_mask, , drop = FALSE] >= 0 & age_matrix[me_mask, , drop = FALSE] <= 5,  na.rm = TRUE)
+      me_kids_6_16 <- rowSums(age_matrix[me_mask, , drop = FALSE] >= 6 & age_matrix[me_mask, , drop = FALSE] <= 16, na.rm = TRUE)
+      
+      me_base_credit <- me_kids_0_5  * data$ValueBin1_0_5[me_mask] +
+        me_kids_6_16 * data$ValueBin1_6_16[me_mask]
+      
+      me_value <- me_base_credit
+      
+      me_phaseout_mask <- !is.na(data$PhaseoutRatePer1000[me_mask]) &
+        (data$income.base[me_mask] > data$IncomeBin1Max[me_mask])
+      
+      if (any(me_phaseout_mask, na.rm = TRUE)) {
+        excess_income <- data$income.base[me_mask][me_phaseout_mask] - data$IncomeBin1Max[me_mask][me_phaseout_mask]
+        phaseout_amt  <- (excess_income / 1000) * data$PhaseoutRatePer1000[me_mask][me_phaseout_mask] * me_base_credit[me_phaseout_mask]
+        me_value[me_phaseout_mask] <- pmax(me_base_credit[me_phaseout_mask] - phaseout_amt, 0)
+      }
+      
+      data$value.statectc[me_mask] <- me_value
+    }
+    
+    # ===============================
+    #  New York Special Rules 
+    # =======================================
+    ny_mask_all <- data$stateFIPS == 36
+    
+    if (any(ny_mask_all, na.rm = TRUE)) {
+      
+      ny_kids_0_3  <- rowSums(age_matrix[ny_mask_all, , drop = FALSE] >= 0 & age_matrix[ny_mask_all, , drop = FALSE] <= 3,  na.rm = TRUE)
+      ny_kids_4_16 <- rowSums(age_matrix[ny_mask_all, , drop = FALSE] >= 4 & age_matrix[ny_mask_all, , drop = FALSE] <= 16, na.rm = TRUE)
+      
+      ny_base_credit <- ny_kids_0_3  * data$ValueBin1_0_3[ny_mask_all] +
+        ny_kids_4_16 * data$ValueBin1_4_16[ny_mask_all]
+      
+      ny_value <- ny_base_credit
+      
+      ny_phaseout_mask <- !is.na(data$PhaseoutRatePer1000[ny_mask_all]) &
+        (data$income.base[ny_mask_all] > data$IncomeBin1Max[ny_mask_all])
+      
+      if (any(ny_phaseout_mask, na.rm = TRUE)) {
+        excess_income <- data$income.base[ny_mask_all][ny_phaseout_mask] - data$IncomeBin1Max[ny_mask_all][ny_phaseout_mask]
+        phaseout_amt  <- (excess_income / 1000) * data$PhaseoutRatePer1000[ny_mask_all][ny_phaseout_mask] * ny_base_credit[ny_phaseout_mask]
+        ny_value[ny_phaseout_mask] <- pmax(ny_base_credit[ny_phaseout_mask] - phaseout_amt, 0)
+      }
+      
+      data$value.statectc[ny_mask_all] <- ny_value
+    }
+    
+    # ===============================
+    # Illinois Special Rules
+    # ===============================
+    
+    il_mask <- data$stateFIPS == 17 & !is.na(data$stateeitc)
+    
+    data$value.statectc[il_mask] <- 0.20 * data$stateeitc[il_mask]
+    
+    full_data$value.statectc[data$row_id_for_return] <- data$value.statectc
+    
+  } # end of 2025 section =====
+
+  if (2024 %in% unique(full_data$ruleYear)) {
+
+    data <- full_data[full_data$ruleYear == 2024, ]
+
+    data$row_id_for_return <- full_data$row_id_for_return[full_data$ruleYear == 2024]
+    
+    rules <- statectcData %>% dplyr::filter(ruleYear == 2024)
 
     data <- data %>%
       rename(
@@ -4323,15 +4661,15 @@ function.statectc <- function(data,
     # =======================
     # Setup Age Eligibility Rules
     # =======================
-
+    
     age_matrix <- data %>% select(starts_with("agePerson")) %>% as.matrix()
 
-    state_rules <- statectcData %>%
+    state_rules <- rules %>%
       select(stateName, stateFIPS, FilingStatus, AgeofDependentMin, AgeofDependentMax, MaxDependent) %>%
       distinct()
 
     data <- left_join(data, state_rules, by = c("stateFIPS", "FilingStatus"))
-
+    
     data$numeligiblekids <- rowSums(
       (age_matrix >= data$AgeofDependentMin) & (age_matrix <= data$AgeofDependentMax),
       na.rm = TRUE
@@ -4356,11 +4694,11 @@ function.statectc <- function(data,
     data_mn <- data_standard %>% filter(stateFIPS == 27)
     data_nonmn <- data_standard %>% filter(stateFIPS != 27)
 
-    data_nonmn <- left_join(data_nonmn, statectcData %>%
+    data_nonmn <- left_join(data_nonmn, rules %>%
                               filter(is.na(MNEligibleKids)),
                             by = c("stateFIPS", "FilingStatus"))
 
-    data_mn <- left_join(data_mn, statectcData %>%
+    data_mn <- left_join(data_mn, rules %>%
                            filter(stateFIPS == 27),
                          by = c("stateFIPS", "FilingStatus",
                                 "numeligiblekids" = "MNEligibleKids"))
@@ -4418,7 +4756,7 @@ function.statectc <- function(data,
 
     data_colorado <- data %>%
       filter(stateFIPS == 8) %>%
-      left_join(statectcData %>% filter(stateFIPS == 8), by = c("stateFIPS", "FilingStatus"))
+      left_join(rules %>% filter(stateFIPS == 8), by = c("stateFIPS", "FilingStatus"))
 
     names(data_colorado) <- gsub("\\.y$", "", names(data_colorado))
 
@@ -4455,15 +4793,14 @@ function.statectc <- function(data,
     il_mask <- data$stateFIPS == 17 & !is.na(data$stateeitc)
 
     data$value.statectc[il_mask] <- 0.20 * data$stateeitc[il_mask]
-
-  } # end of 2024 section
+    
+    full_data$value.statectc[data$row_id_for_return] <- data$value.statectc
+    
+  } # end of 2024 section =====
 
   # ===============================
   # Return Final Credit Values
   # ===============================
-
-  # Assign calculated values to correct rows using row_id_for_return
-  full_data$value.statectc[data$row_id_for_return] <- data$value.statectc
 
   # Restore original order before returning
   full_data <- full_data %>% arrange(row_id_for_return)
@@ -4540,18 +4877,508 @@ function.statecdctc<-function(data
 
   # Override ruleYear for both data and full_data so they match during assignment
   if ("ruleYear" %in% colnames(data)) {
-    data$ruleYear[data$ruleYear > 2024] <- 2024
-    full_data$ruleYear[full_data$ruleYear > 2024] <- 2024
+    data$ruleYear[data$ruleYear > 2025] <- 2025
+    full_data$ruleYear[full_data$ruleYear > 2025] <- 2025
   }
 
   # ================================
   # Beginning of rule year separations
   # ================================
+  
+  if (2025 %in% unique(data$ruleYear)) {
+    
+    data <- full_data[full_data$ruleYear == 2025, ]
+    
+    data$row_id_for_return <- full_data$row_id_for_return[full_data$ruleYear == 2025]
+    
+    rules <- statecdctcData %>% dplyr::filter(ruleYear == 2025)
+    
+    data <- data %>%
+      rename(any_of(c("income.base" = incomevar,
+                      "qualifyingExpenses" = qualifyingexpensesvar,
+                      "stateincometax" = stateincometaxvar,
+                      "federalcdctc" = federalcdctcvar)))
+    
+    # Save and restore original FilingStatus and famsize to avoid merge overwrite
+    filing_status_col <- data$FilingStatus
+    famsize_col <- data$famsize
+    
+    # Use only one row per stateFIPS for the general join (exclude FilingStatus and famsize)
+    statecdctc_general <- rules %>%
+      group_by(stateFIPS) %>%
+      slice(1) %>%
+      ungroup() %>%
+      select(-FilingStatus, -famsize)  # <- avoid duplicate column merge issues
+    
+    data_main <- left_join(data, statecdctc_general, by = "stateFIPS")
+    
+    # Restore original values
+    data_main$FilingStatus <- filing_status_col
+    data_main$famsize <- famsize_col
+    
+    # Calculate number of dependents below each state's MaxDependentAge
+    age_matrix <- data_main[, paste0("agePerson", 1:12)]
+    data_main$NumberOfEligibleDependents <- rowSums(
+      sweep(age_matrix, 1, data_main$MaxDependentAge, FUN = "<=") &
+        sweep(age_matrix, 1, 0, FUN = ">="),
+      na.rm = TRUE
+    )
+    
+    data_main$value.statecdctc <- 0
+    
+    # ====== STANDARD STATES: percent * federalcdctc only ======
+    
+    # Identify bin columns that actually exist in the joined rules (don’t hardcode 1:16)
+    income_bin_cols <- names(data_main)[stringr::str_detect(names(data_main), "^IncomeBin\\d+Max$")]
+    percent_fed_cols <- names(data_main)[stringr::str_detect(names(data_main), "^PercentOfFederalBin\\d+$")]
+    
+    # Sort by bin number
+    income_bin_cols <- income_bin_cols[order(readr::parse_number(income_bin_cols))]
+    percent_fed_cols <- percent_fed_cols[order(readr::parse_number(percent_fed_cols))]
+    
+    nbins <- min(length(income_bin_cols), length(percent_fed_cols))
+    income_bin_cols <- income_bin_cols[seq_len(nbins)]
+    percent_fed_cols <- percent_fed_cols[seq_len(nbins)]
+    
+    # Build row-wise income bin membership
+    income_upper <- as.matrix(data_main[, income_bin_cols, drop = FALSE])
+    income_upper[is.na(income_upper)] <- Inf
+    income_lower <- matrix(-Inf, nrow = nrow(income_upper), ncol = ncol(income_upper))
+    if (ncol(income_upper) > 1) {
+      income_lower[, 2:ncol(income_lower)] <- income_upper[, 1:(ncol(income_upper) - 1)]
+    }
+    
+    income_matrix <- matrix(data_main$income.base, nrow = nrow(data_main), ncol = ncol(income_upper))
+    in_bin_matrix <- income_matrix > income_lower & income_matrix <= income_upper
+    
+    valid_bin <- rowSums(in_bin_matrix, na.rm = TRUE) > 0
+    chosen_bin <- max.col(in_bin_matrix, ties.method = "first")
+    chosen_bin[!valid_bin] <- NA_integer_
+    
+    # Standard states = everything except the special-case states you handle later
+    standard_states <- c(15, 23, 24, 27, 35, 41, 42, 55)  # HI, ME, MD, MN, NM, OR, PA, WI
+    valid_standard_rows <- valid_bin & !(data_main$stateFIPS %in% standard_states)
+    
+    # Pull the percent for the chosen bin and multiply by federal CDCTC
+    pfed_mat <- as.matrix(data_main[, percent_fed_cols, drop = FALSE])
+    pfed_mat[is.na(pfed_mat)] <- 0
+    pct <- rep(0, nrow(data_main))
+    pct[valid_standard_rows] <- pfed_mat[cbind(which(valid_standard_rows), chosen_bin[valid_standard_rows])]
+    
+    data_main$value.statecdctc[valid_standard_rows] <- pct[valid_standard_rows] * data_main$federalcdctc[valid_standard_rows]
+    
+    # Set to zero if no eligible dependents under the maximum dependent age
+    data_main$value.statecdctc[data_main$NumberOfEligibleDependents == 0] <- 0
+    
+    
+    # ====== LOUISIANA & NEBRASKA-SPECIFIC REFUND RULES ======
+    refund_states <- c(22, 31)  # 22 = LA, 31 = NE
+    refund_rows <- which(data_main$stateFIPS %in% refund_states)
+    
+    if (length(refund_rows) > 0) {
+      
+      # Force baseline nonrefundable, then flip to Yes only if income is low enough
+      data_main$Refundable[refund_rows] <- "No"
+      
+      income_threshold <- data_main$IncomeBin1Max[refund_rows]
+      is_low_income <- data_main$income.base[refund_rows] <= income_threshold
+      
+      data_main$Refundable[refund_rows[is_low_income]] <- "Yes"
+    }
+    
+    # ===============================
+    # ====== HAWAII-SPECIFIC RULES ==
+    # ===============================
+    hi_rows <- which(data_main$stateFIPS == 15)
+    if (length(hi_rows) > 0) {
+      
+      hi_data <- data_main[hi_rows, ]
+      
+      # ---- Eligible kids (under MaxDependentAge) ----
+      num_kids <- rowSums(
+        sweep(hi_data[, paste0("agePerson", 1:12)], 1, hi_data$MaxDependentAge, FUN = "<=") &
+          sweep(hi_data[, paste0("agePerson", 1:12)], 1, 0, FUN = ">="),
+        na.rm = TRUE
+      )
+      
+      # ---- Income bin + expense % schedule (HI is % of expenses) ----
+      income_bin_cols <- paste0("IncomeBin", 1:11, "Max")
+      percent_exp_cols <- paste0("PercentOfExpensesBin", 1:11)
+      
+      # Safety: keep only columns that exist
+      income_bin_cols <- income_bin_cols[income_bin_cols %in% names(hi_data)]
+      percent_exp_cols <- percent_exp_cols[percent_exp_cols %in% names(hi_data)]
+      
+      nbins_hi <- min(length(income_bin_cols), length(percent_exp_cols))
+      income_bin_cols <- income_bin_cols[seq_len(nbins_hi)]
+      percent_exp_cols <- percent_exp_cols[seq_len(nbins_hi)]
+      
+      income_upper <- as.matrix(hi_data[, income_bin_cols, drop = FALSE])
+      income_lower <- matrix(-Inf, nrow = nrow(income_upper), ncol = ncol(income_upper))
+      if (ncol(income_upper) > 1) income_lower[, 2:ncol(income_lower)] <- income_upper[, 1:(ncol(income_upper) - 1)]
+      
+      income_matrix <- matrix(hi_data$income.base, nrow = nrow(hi_data), ncol = ncol(income_upper))
+      in_bin <- income_matrix > income_lower & income_matrix <= income_upper
+      valid_bin <- rowSums(in_bin, na.rm = TRUE) > 0
+      chosen_bin_hi <- max.col(in_bin, ties.method = "first")
+      
+      # Percent of expenses for chosen bin
+      pexp_mat <- as.matrix(hi_data[, percent_exp_cols, drop = FALSE])
+      pexp_mat[is.na(pexp_mat)] <- 0
+      
+      pct_exp <- rep(0, length(hi_rows))
+      pct_exp[valid_bin] <- pexp_mat[cbind(which(valid_bin), chosen_bin_hi[valid_bin])]
+      
+      # ---- Base HI credit = % * qualifying expenses ----
+      hi_credit <- pct_exp * hi_data$qualifyingExpenses
+      hi_credit[!valid_bin] <- 0
+      hi_credit[num_kids == 0] <- 0
+      
+      # ---- Apply HI max credit caps by bin + kids ----
+      credit_1child_cols <- paste0("MaxCredit_1child_Bin", 1:7)
+      credit_2child_cols <- paste0("MaxCredit_2child_Bin", 1:7)
+      credit_1child_cols <- credit_1child_cols[credit_1child_cols %in% names(hi_data)]
+      credit_2child_cols <- credit_2child_cols[credit_2child_cols %in% names(hi_data)]
+      
+      # If cap columns exist, cap; otherwise just assign base credit
+      if (length(credit_1child_cols) > 0 && length(credit_2child_cols) > 0) {
+        
+        cap1 <- as.matrix(hi_data[, credit_1child_cols, drop = FALSE])
+        cap2 <- as.matrix(hi_data[, credit_2child_cols, drop = FALSE])
+        
+        # chosen_bin_hi can be 1..11 but caps exist 1..7; treat >7 as no cap (Inf)
+        cap <- rep(Inf, length(hi_rows))
+        
+        one_kid <- (num_kids == 1) & valid_bin & (chosen_bin_hi <= ncol(cap1))
+        two_plus <- (num_kids >= 2) & valid_bin & (chosen_bin_hi <= ncol(cap2))
+        
+        cap[one_kid] <- cap1[cbind(which(one_kid), chosen_bin_hi[one_kid])]
+        cap[two_plus] <- cap2[cbind(which(two_plus), chosen_bin_hi[two_plus])]
+        cap[num_kids == 0] <- 0
+        
+        hi_credit <- pmin(hi_credit, cap, na.rm = TRUE)
+      }
+      
+      # write back
+      data_main$value.statecdctc[hi_rows] <- hi_credit
+    }
+    
+    # ===============================
+    # ===== MAINE-SPECIFIC RULE =====
+    # ===============================
+    me_rows <- which(data_main$stateFIPS == 23)
+    if (length(me_rows) > 0) {
+      # Identify rows that are refundable according to general rule
+      refundable_me <- me_rows[data_main$Refundable[me_rows] == "Yes"]
+      
+      # Cap refundable value at $500
+      data_main$value.statecdctc[refundable_me] <- pmin(
+        data_main$value.statecdctc[refundable_me],
+        500,
+        na.rm = TRUE
+      )
+    }
+    
+    # ===============================
+    # ===== MARYLAND SPECIFIC RULES ==
+    # ===============================
+    md_rows <- which(data_main$stateFIPS == 24)
+    if (length(md_rows) > 0) {
+      md_data <- data_main[md_rows, ]
+      
+      # Merge in MD rules using FilingStatus to get bin thresholds and percent values
+      md_rules <- left_join(
+        md_data[, c("stateFIPS", "FilingStatus")],
+        rules[rules$stateFIPS == 24, ],
+        by = c("stateFIPS", "FilingStatus")
+      )
+      
+      income_bins_md <- 1:44
+      income_bin_cols_md <- paste0("IncomeBin", income_bins_md, "Max")
+      percent_fed_cols_md <- paste0("PercentOfFederalBin", income_bins_md)
+      
+      # Construct income bin bounds
+      income_upper <- as.matrix(md_rules[, income_bin_cols_md])
+      income_lower <- matrix(-Inf, nrow = length(md_rows), ncol = length(income_bins_md))
+      income_lower[, 2:44] <- income_upper[, 1:43]
+      income_matrix <- matrix(md_data$income.base, nrow = length(md_rows), ncol = length(income_bins_md))
+      
+      in_bin <- income_matrix > income_lower & income_matrix <= income_upper
+      valid_bin <- rowSums(in_bin, na.rm = TRUE) > 0
+      chosen_bin <- max.col(in_bin, ties.method = "first")
+      
+      # Credit is simply % of federal CDCTC  (row-wise)
+      pfed_mat <- as.matrix(md_rules[, percent_fed_cols_md])
+      fed_vec  <- md_data$federalcdctc
+      
+      # multiply each row of pfed_mat by the corresponding federal value
+      fed_matrix <- pfed_mat * matrix(fed_vec, nrow = length(fed_vec), ncol = ncol(pfed_mat))
+      
+      credit <- fed_matrix[cbind(seq_len(nrow(md_data)), chosen_bin)]
+      credit[!valid_bin] <- 0
+      
+      # Apply refundable/nonrefundable logic (MD-specific threshold)
+      ref_limit <- md_rules$RefundableIncomeLimit
+      refundable <- valid_bin & !is.na(ref_limit) & (md_data$income.base <= ref_limit)
+      nonrefundable <- valid_bin & !refundable
+      
+      data_main$value.statecdctc[md_rows[refundable]] <- credit[refundable]
+      data_main$value.statecdctc[md_rows[nonrefundable]] <- pmin(
+        credit[nonrefundable],
+        md_data$stateincometax[nonrefundable],
+        na.rm = TRUE
+      )
+    }
+    
+    
+    # ====== MINNESOTA-SPECIFIC RULES ======
+    mn_rows <- which(data_main$stateFIPS == 27)
+    if (length(mn_rows) > 0) {
+      mn_data <- data_main[mn_rows, ]
+      
+      # Count eligible kids under MaxDependentAge
+      kid_matrix <- mn_data[, paste0("agePerson", 1:12)]
+      eligible_kids <- rowSums(
+        sweep(kid_matrix, 1, mn_data$MaxDependentAge[mn_rows], FUN = "<=") &
+          sweep(kid_matrix, 1, 0, FUN = ">="),
+        na.rm = TRUE
+      )
+      
+      max_credit <- ifelse(eligible_kids >= 2, 1200, ifelse(eligible_kids == 1, 600, 0))
+      
+      # Pull variable phaseout rate from data
+      phaseout_rate <- mn_data$PhaseOut
+      phaseout_threshold <- mn_data$IncomeBin1Max
+      excess_income <- pmax(0, mn_data$income.base - phaseout_threshold)
+      credit <- pmax(0, max_credit - phaseout_rate * excess_income)
+      
+      refundable <- mn_data$Refundable[mn_rows] == "Yes" & eligible_kids > 0
+      nonrefundable <- !refundable & eligible_kids > 0
+      
+      data_main$value.statecdctc[mn_rows[refundable]] <- credit[refundable]
+      data_main$value.statecdctc[mn_rows[nonrefundable]] <- pmin(
+        credit[nonrefundable],
+        mn_data$stateincometax[nonrefundable],
+        na.rm = TRUE
+      )
+    }
+    
+    # ====== NEW MEXICO-SPECIFIC RULES ======
+    nm_rows <- which(data_main$stateFIPS == 35)
+    if (length(nm_rows) > 0) {
+      
+      nm_data <- data_main[nm_rows, ]
+      
+      # NM is % of qualifying expenses (per your rules data18: PercentOfExpensesBin1 = 0.4)
+      income_bin_cols <- names(nm_data)[stringr::str_detect(names(nm_data), "^IncomeBin\\d+Max$")]
+      percent_exp_cols <- names(nm_data)[stringr::str_detect(names(nm_data), "^PercentOfExpensesBin\\d+$")]
+      
+      income_bin_cols <- income_bin_cols[order(readr::parse_number(income_bin_cols))]
+      percent_exp_cols <- percent_exp_cols[order(readr::parse_number(percent_exp_cols))]
+      
+      nbins_nm <- min(length(income_bin_cols), length(percent_exp_cols))
+      income_bin_cols <- income_bin_cols[seq_len(nbins_nm)]
+      percent_exp_cols <- percent_exp_cols[seq_len(nbins_nm)]
+      
+      income_upper <- as.matrix(nm_data[, income_bin_cols, drop = FALSE])
+      income_lower <- matrix(-Inf, nrow = nrow(income_upper), ncol = ncol(income_upper))
+      if (ncol(income_upper) > 1) income_lower[, 2:ncol(income_lower)] <- income_upper[, 1:(ncol(income_upper) - 1)]
+      
+      income_matrix <- matrix(nm_data$income.base, nrow = nrow(nm_data), ncol = ncol(income_upper))
+      in_bin <- income_matrix > income_lower & income_matrix <= income_upper
+      
+      valid_bin <- rowSums(in_bin, na.rm = TRUE) > 0
+      chosen_bin_nm <- max.col(in_bin, ties.method = "first")
+      
+      pexp_mat <- as.matrix(nm_data[, percent_exp_cols, drop = FALSE])
+      pexp_mat[is.na(pexp_mat)] <- 0
+      
+      pct <- rep(0, nrow(nm_data))
+      pct[valid_bin] <- pexp_mat[cbind(which(valid_bin), chosen_bin_nm[valid_bin])]
+      
+      nm_credit <- pct * nm_data$qualifyingExpenses
+      nm_credit[!valid_bin] <- 0
+      
+      # zero out if no eligible dependents (consistent with your global rule)
+      nm_credit[nm_data$NumberOfEligibleDependents == 0] <- 0
+      
+      # Apply NM max credit (MaxCredit column exists in your rules)
+      nm_credit <- pmin(nm_credit, nm_data$MaxCredit, na.rm = TRUE)
+      
+      data_main$value.statecdctc[nm_rows] <- nm_credit
+    }
+    
+    # ====== OREGON-SPECIFIC RULES ======
+    or_rows <- which(data_main$stateFIPS == 41)
+    if (length(or_rows) > 0) {
+      or_data <- data_main[or_rows, ]
+      
+      # Join by stateFIPS and famsize to get proper Oregon thresholds
+      or_rules <- left_join(
+        or_data[, c("stateFIPS", "famsize")],
+        rules[rules$stateFIPS == 41, ],
+        by = c("stateFIPS", "famsize")
+      )
+      
+      # Extract youngest eligible dependent age per row
+      age_matrix <- or_data[, paste0("agePerson", 1:12)]
+      eligible_mask <- sweep(age_matrix, 1, or_data$MaxDependentAge, FUN = "<=") &
+        sweep(age_matrix, 1, 0, FUN = ">=")
+      age_masked <- age_matrix
+      age_masked[!eligible_mask] <- NA
+      youngest_age <- apply(age_masked, 1, min, na.rm = TRUE)
+      
+      # Determine which age-based percentage column to use
+      age_band <- dplyr::case_when(
+        youngest_age < 3 ~ "Percent_Under3_Bin",
+        youngest_age < 6 ~ "Percent_3to5_Bin",
+        youngest_age >= 6 ~ "Percent_6to12_Bin",
+        TRUE ~ NA_character_
+      )
+      
+      # Build bin logic using or_rules, not or_data
+      income_bins <- 1:25
+      income_bin_cols <- paste0("IncomeBin", income_bins, "Max")
+      income_bin_cols <- income_bin_cols[income_bin_cols %in% colnames(or_rules)]
+      
+      bin_numbers <- as.integer(gsub("\\D", "", income_bin_cols))
+      income_bin_cols <- income_bin_cols[order(bin_numbers)]
+      income_upper <- as.matrix(or_rules[, income_bin_cols])
+      
+      income_lower <- matrix(-Inf, nrow = nrow(income_upper), ncol = ncol(income_upper))
+      income_lower[, 2:ncol(income_lower)] <- income_upper[, 1:(ncol(income_upper)-1)]
+      
+      num_bins <- length(income_bin_cols)
+      income_matrix <- matrix(or_data$income.base, nrow = nrow(or_data), ncol = num_bins)
+      in_bin_matrix <- income_matrix > income_lower & income_matrix <= income_upper
+      chosen_bin <- max.col(in_bin_matrix, ties.method = "first")
+      sorted_chosen_bin <- bin_numbers[chosen_bin]
+      percent_cols <- paste0(age_band, sorted_chosen_bin)
+      
+      # Match back to correct rules row
+      all_percent_data <- rules[rules$stateFIPS == 41, ]
+      match_rows <- match(paste(or_data$stateFIPS, or_data$famsize),
+                          paste(all_percent_data$stateFIPS, all_percent_data$famsize))
+      
+      # Pull the correct expense percent using the right matched row and column name
+      expense_percents <- mapply(function(i, col) {
+        if (!is.na(i) && !is.na(col)) all_percent_data[[col]][i] else NA_real_
+      }, i = match_rows, col = percent_cols)
+      
+      # Apply percentage to qualifying expenses
+      or_credit <- or_data$qualifyingExpenses * expense_percents
+      
+      # Respect refundability limits if applicable
+      refundable <- or_data$Refundable == "Yes"
+      nonrefundable <- !refundable
+      
+      data_main$value.statecdctc[or_rows[refundable]] <- or_credit[refundable]
+      data_main$value.statecdctc[or_rows[nonrefundable]] <- pmin(
+        or_credit[nonrefundable],
+        or_data$stateincometax[nonrefundable],
+        na.rm = TRUE
+      )
+    }
+    
+    
+    
+    # ====== PENNSYLVANIA-SPECIFIC CAP RULE ======
+    pa_rows <- which(data_main$stateFIPS == 42)
+    if (length(pa_rows) > 0) {
+      num_kids <- data_main$NumberOfEligibleDependents[pa_rows]
+      
+      # Cap: $3,000 for 1 eligible kid, $6,000 for 2 or more
+      cap <- ifelse(num_kids == 1, 3000, 6000)
+      
+      data_main$value.statecdctc[pa_rows] <- data_main$federalcdctc[pa_rows]
+      
+      data_main$value.statecdctc[pa_rows] <- pmin(
+        data_main$value.statecdctc[pa_rows],
+        cap,
+        data_main$federalcdctc[pa_rows],
+        na.rm = TRUE
+      )
+    }
+    
+    # ==============================
+    # ===== WISCONSIN SPECIFIC RULES
+    # ==============================
+    wi_rows <- which(data_main$stateFIPS == 55)
+    if (length(wi_rows) > 0) {
+      
+      wi_data <- data_main[wi_rows, ]
+      
+      # Count eligible dependents under MaxDependentAge
+      wi_age_matrix <- wi_data[, paste0("agePerson", 1:12)]
+      wi_num_eligible <- rowSums(
+        sweep(wi_age_matrix, 1, wi_data$MaxDependentAge, FUN = "<=") &
+          sweep(wi_age_matrix, 1, 0, FUN = ">="),
+        na.rm = TRUE
+      )
+      
+      # If no eligible dependents => 0
+      wi_credit <- rep(0, length(wi_rows))
+      has_dep <- wi_num_eligible > 0
+      
+      if (any(has_dep)) {
+        
+        # Cap qualifying expenses at WI caps
+        wi_cap <- ifelse(wi_num_eligible >= 2, 20000, 10000)
+        wi_capped_exp <- pmin(wi_data$qualifyingExpenses, wi_cap)
+        
+        # Determine income bin using WI IncomeBin#Max columns present
+        wi_income_cols <- names(wi_data)[str_detect(names(wi_data), "^IncomeBin\\d+Max$")]
+        wi_income_cols <- wi_income_cols[order(parse_number(wi_income_cols))]
+        
+        wi_poe_cols <- names(wi_data)[str_detect(names(wi_data), "^PercentOfExpensesBin\\d+$")]
+        wi_poe_cols <- wi_poe_cols[order(parse_number(wi_poe_cols))]
+        
+        wi_upper <- as.matrix(wi_data[, wi_income_cols])
+        wi_lower <- matrix(-Inf, nrow = nrow(wi_upper), ncol = ncol(wi_upper))
+        if (ncol(wi_upper) > 1) wi_lower[, 2:ncol(wi_lower)] <- wi_upper[, 1:(ncol(wi_upper)-1)]
+        
+        wi_income_mat <- matrix(wi_data$income.base, nrow = nrow(wi_data), ncol = ncol(wi_upper))
+        wi_in_bin <- wi_income_mat > wi_lower & wi_income_mat <= wi_upper
+        wi_valid_bin <- rowSums(wi_in_bin, na.rm = TRUE) > 0
+        wi_chosen_bin <- max.col(wi_in_bin, ties.method = "first")
+        
+        wi_percent_mat <- as.matrix(wi_data[, wi_poe_cols])
+        wi_percent <- wi_percent_mat[cbind(seq_len(nrow(wi_data)), wi_chosen_bin)]
+        wi_percent[!wi_valid_bin] <- 0
+        
+        wi_credit <- wi_capped_exp * wi_percent
+        wi_credit[!has_dep] <- 0
+      }
+      
+      
+      data_main$value.statecdctc[is.na(data_main$value.statecdctc)] <- 0
+      # Limit to state income tax for nonrefundable credits
+      nonrefundable <- which(data_main$Refundable == "No")
+      
+      data_main$value.statecdctc[nonrefundable] <- pmin(
+        data_main$value.statecdctc[nonrefundable],
+        data_main$stateincometax[nonrefundable],
+        na.rm = TRUE
+      )
+      
+      # Nonrefundable (cap at state income tax)
+      data_main$value.statecdctc[wi_rows] <- pmin(wi_credit, wi_data$stateincometax, na.rm = TRUE)
+    }
+    
+    # ===============================
+    # Return Final Credit Values
+    # ===============================
+    
+    full_data$value.statecdctc[data_main$row_id_for_return] <- data_main$value.statecdctc
+  } # end of rule year 2025 ====
 
   if (2024 %in% unique(data$ruleYear)) {
 
-    data <- data[data$ruleYear == 2024, ]
-    data$row_id_for_return <- seq_len(nrow(data))
+    data <- full_data[full_data$ruleYear == 2024, ]
+    
+    data$row_id_for_return <- full_data$row_id_for_return[full_data$ruleYear == 2024]
+    
+    rules <- statecdctcData %>% dplyr::filter(ruleYear == 2024)
 
   data <- data %>%
     rename(any_of(c("income.base" = incomevar,
@@ -4564,7 +5391,7 @@ function.statecdctc<-function(data
   famsize_col <- data$famsize
 
   # Use only one row per stateFIPS for the general join (exclude FilingStatus and famsize)
-  statecdctc_general <- statecdctcData %>%
+  statecdctc_general <- rules %>%
     group_by(stateFIPS) %>%
     slice(1) %>%
     ungroup() %>%
@@ -4654,7 +5481,7 @@ function.statecdctc<-function(data
     # Merge in DC-specific rules by FilingStatus
     dc_rules <- left_join(
       dc_data[, c("stateFIPS", "FilingStatus")],
-      statecdctcData[statecdctcData$stateFIPS == 11, ],
+      rules[rules$stateFIPS == 11, ],
       by = c("stateFIPS", "FilingStatus")
     )
 
@@ -4769,7 +5596,7 @@ function.statecdctc<-function(data
     # Merge in MD rules using FilingStatus to get bin thresholds and percent values
     md_rules <- left_join(
       md_data[, c("stateFIPS", "FilingStatus")],
-      statecdctcData[statecdctcData$stateFIPS == 24, ],
+      rules[rules$stateFIPS == 24, ],
       by = c("stateFIPS", "FilingStatus")
     )
 
@@ -4869,7 +5696,7 @@ function.statecdctc<-function(data
     # Use FilingStatus again to re-merge NM-specific values
     nm_data <- left_join(
       data_main[nm_rows, c("stateFIPS", "FilingStatus")],
-      statecdctcData[statecdctcData$stateFIPS == 35, ],
+      rules[rules$stateFIPS == 35, ],
       by = c("stateFIPS", "FilingStatus")
     )
 
@@ -4889,7 +5716,7 @@ function.statecdctc<-function(data
     # Join by stateFIPS and famsize to get proper Oregon thresholds
     or_rules <- left_join(
       or_data[, c("stateFIPS", "famsize")],
-      statecdctcData[statecdctcData$stateFIPS == 41, ],
+      rules[rules$stateFIPS == 41, ],
       by = c("stateFIPS", "famsize")
     )
 
@@ -4928,8 +5755,8 @@ function.statecdctc<-function(data
     sorted_chosen_bin <- bin_numbers[chosen_bin]
     percent_cols <- paste0(age_band, sorted_chosen_bin)
 
-    # Match back to correct statecdctcData row
-    all_percent_data <- statecdctcData[statecdctcData$stateFIPS == 41, ]
+    # Match back to correct rules row
+    all_percent_data <- rules[rules$stateFIPS == 41, ]
     match_rows <- match(paste(or_data$stateFIPS, or_data$famsize),
                         paste(all_percent_data$stateFIPS, all_percent_data$famsize))
 
@@ -4966,16 +5793,17 @@ function.statecdctc<-function(data
     data_main$value.statecdctc[pa_rows] <- pmin(
       data_main$value.statecdctc[pa_rows],
       cap,
+      data_main$federalcdctc[pa_rows],
       na.rm = TRUE
     )
-  }
+  } 
 
   # ===============================
   # Return Final Credit Values
   # ===============================
 
   full_data$value.statecdctc[data_main$row_id_for_return] <- data_main$value.statecdctc
-  }
+  } # end of rule year 2024 ====
 
   full_data <- full_data %>% arrange(row_id_for_return)
   return(round(full_data$value.statecdctc, 0))
