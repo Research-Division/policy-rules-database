@@ -5416,11 +5416,19 @@ function.statecdctc<-function(data
     
     rules <- statecdctcData %>% dplyr::filter(ruleYear == 2024)
 
-  data <- data %>%
-    rename(any_of(c("income.base" = incomevar,
-           "qualifyingExpenses" = qualifyingexpensesvar,
-           "stateincometax" = stateincometaxvar,
-           "federalcdctc" = federalcdctcvar)))
+  rename_map <- c("income.base" = incomevar,
+                  "qualifyingExpenses" = qualifyingexpensesvar,
+                  "stateincometax" = stateincometaxvar,
+                  "federalcdctc" = federalcdctcvar)
+  if (!is.null(federalcdctcline9avar)) {
+    rename_map <- c(rename_map, "federalcdctc.line9a" = federalcdctcline9avar)
+  }
+
+  data <- data %>% rename(any_of(rename_map))
+
+  if (!"federalcdctc.line9a" %in% names(data)) {
+    data$federalcdctc.line9a <- data$federalcdctc
+  }
 
   # Save and restore original FilingStatus and famsize to avoid merge overwrite
   filing_status_col <- data$FilingStatus
@@ -5471,6 +5479,11 @@ function.statecdctc<-function(data
 
   # Select credit from applicable bin
   chosen_bin <- max.col(in_bin_matrix, ties.method = "first")
+  standard_valid_bin <- rowSums(in_bin_matrix, na.rm = TRUE) > 0
+  standard_chosen_bin <- chosen_bin
+  standard_chosen_bin[!standard_valid_bin] <- NA_integer_
+  standard_pfed_mat <- as.matrix(data_main[, percent_fed_cols])
+  standard_pfed_mat[is.na(standard_pfed_mat)] <- 0
 
   # Only assign this to states that use standard logic
   standard_rows <- which(!data_main$stateFIPS %in% c(11, 15, 23, 24, 25, 27, 35, 41, 42))  # all special cases
@@ -5821,18 +5834,40 @@ function.statecdctc<-function(data
   # ====== PENNSYLVANIA-SPECIFIC CAP RULE ======
   pa_rows <- which(data_main$stateFIPS == 42)
   if (length(pa_rows) > 0) {
-    num_kids <- data_main$NumberOfEligibleDependents[pa_rows]
+    pa_data <- data_main[pa_rows, ]
+    num_kids <- pa_data$NumberOfEligibleDependents
+    federal_cdctc <- pa_data$federalcdctc.line9a
+    federal_cdctc[is.na(federal_cdctc)] <- 0
 
-    # Cap: $3,000 for 1 eligible kid, $6,000 for 2 or more
-    cap <- ifelse(num_kids == 1, 3000, 6000)
+    pa_bin <- standard_chosen_bin[pa_rows]
+    pa_valid_bin <- standard_valid_bin[pa_rows] & !is.na(pa_bin)
+    cap <- rep(0, length(pa_rows))
+    pct <- rep(0, length(pa_rows))
+    cap_col <- rep(NA_character_, length(pa_rows))
 
-    data_main$value.statecdctc[pa_rows] <- pmin(
-      data_main$value.statecdctc[pa_rows],
-      cap,
-      data_main$federalcdctc[pa_rows],
-      na.rm = TRUE
+    pct[pa_valid_bin] <- standard_pfed_mat[cbind(pa_rows[pa_valid_bin], pa_bin[pa_valid_bin])]
+
+    one_child <- num_kids == 1 & pa_valid_bin
+    two_plus_children <- num_kids >= 2 & pa_valid_bin
+    cap_col[one_child] <- paste0("MaxCredit_1child_Bin", pa_bin[one_child])
+    cap_col[two_plus_children] <- paste0("MaxCredit_2child_Bin", pa_bin[two_plus_children])
+
+    missing_cap <- !is.na(cap_col) & !(cap_col %in% names(data_main))
+    if (any(missing_cap)) {
+      stop("Pennsylvania CDCTC cap parameters are missing for one or more income bins.")
+    }
+
+    has_cap <- !is.na(cap_col)
+    cap[has_cap] <- mapply(
+      function(row, col) data_main[[col]][row],
+      row = pa_rows[has_cap],
+      col = cap_col[has_cap]
     )
-  } 
+    cap[is.na(cap)] <- 0
+    pct[is.na(pct)] <- 0
+
+    data_main$value.statecdctc[pa_rows] <- pmin(federal_cdctc * pct, cap)
+  }
 
   # ===============================
   # Return Final Credit Values
