@@ -4815,7 +4815,8 @@ function.statectc <- function(data,
 function.fedcdctc<-function(data
                               , incomevar
                               , qualifyingexpensesvar
-                              , totalfederaltaxvar){
+                              , totalfederaltaxvar
+                              , applyfederaltaxlimit = TRUE){
   
   # Force future ruleYears to use 2025 rules
   if ("ruleYear" %in% colnames(data)) {
@@ -4849,8 +4850,10 @@ function.fedcdctc<-function(data
     data$value.fedcdctc[subset2]<-(rowMaxs(cbind((data$MaxCredit[subset2]-data$PhaseOutRate[subset2]*(data$income.base.AGI[subset2]-data$IncomeBin1Max[subset2])),data$MinCredit[subset2])))*rowMins(cbind(rowMins(cbind(data$qualifyingExpenses[subset2],data$MaxExpense[subset2])),data$income.base.AGI[subset2]))
 
     # Adjust if CDCTC is non-refundable
-    subset<-which(data$Refundable=="No")
-    data$value.fedcdctc[subset]<-rowMins(cbind(data$value.fedcdctc[subset],data$totalfederaltax[subset]))
+    if (applyfederaltaxlimit) {
+      subset<-which(data$Refundable=="No")
+      data$value.fedcdctc[subset]<-rowMins(cbind(data$value.fedcdctc[subset],data$totalfederaltax[subset]))
+    }
 
     # Earned Income Test
     subset<-which(data$income.base.earned==0)
@@ -4868,7 +4871,8 @@ function.statecdctc<-function(data
                                 , qualifyingexpensesvar
                                 , incomevar
                                 , stateincometaxvar
-                                , federalcdctcvar){
+                                , federalcdctcvar
+                                , federalcdctcline9avar = NULL){
 
   # Preserve original input order and structure
   full_data <- data
@@ -4893,11 +4897,19 @@ function.statecdctc<-function(data
     
     rules <- statecdctcData %>% dplyr::filter(ruleYear == 2025)
     
-    data <- data %>%
-      rename(any_of(c("income.base" = incomevar,
-                      "qualifyingExpenses" = qualifyingexpensesvar,
-                      "stateincometax" = stateincometaxvar,
-                      "federalcdctc" = federalcdctcvar)))
+    rename_map <- c("income.base" = incomevar,
+                    "qualifyingExpenses" = qualifyingexpensesvar,
+                    "stateincometax" = stateincometaxvar,
+                    "federalcdctc" = federalcdctcvar)
+    if (!is.null(federalcdctcline9avar)) {
+      rename_map <- c(rename_map, "federalcdctc.line9a" = federalcdctcline9avar)
+    }
+
+    data <- data %>% rename(any_of(rename_map))
+
+    if (!"federalcdctc.line9a" %in% names(data)) {
+      data$federalcdctc.line9a <- data$federalcdctc
+    }
     
     # Save and restore original FilingStatus and famsize to avoid merge overwrite
     filing_status_col <- data$FilingStatus
@@ -4962,6 +4974,10 @@ function.statecdctc<-function(data
     # Pull the percent for the chosen bin and multiply by federal CDCTC
     pfed_mat <- as.matrix(data_main[, percent_fed_cols, drop = FALSE])
     pfed_mat[is.na(pfed_mat)] <- 0
+    standard_valid_bin <- valid_bin
+    standard_chosen_bin <- chosen_bin
+    standard_pfed_mat <- pfed_mat
+
     pct <- rep(0, nrow(data_main))
     pct[valid_standard_rows] <- pfed_mat[cbind(which(valid_standard_rows), chosen_bin[valid_standard_rows])]
     
@@ -5287,41 +5303,37 @@ function.statecdctc<-function(data
     if (length(pa_rows) > 0) {
       pa_data <- data_main[pa_rows, ]
       num_kids <- pa_data$NumberOfEligibleDependents
-      federal_cdctc <- pa_data$federalcdctc
+      federal_cdctc <- pa_data$federalcdctc.line9a
       federal_cdctc[is.na(federal_cdctc)] <- 0
 
-      low_income <- pa_data$income.base <= 43000
-      fallback_cap <- ifelse(
-        low_income,
-        ifelse(num_kids == 1, 1050, ifelse(num_kids >= 2, 2100, 0)),
-        ifelse(num_kids == 1, 600, ifelse(num_kids >= 2, 1200, 0))
-      )
+      pa_bin <- standard_chosen_bin[pa_rows]
+      pa_valid_bin <- standard_valid_bin[pa_rows] & !is.na(pa_bin)
+      cap <- rep(0, length(pa_rows))
+      pct <- rep(0, length(pa_rows))
+      cap_col <- rep(NA_character_, length(pa_rows))
 
-      pa_cap_cols <- c(
-        "MaxCredit_1child_Bin1",
-        "MaxCredit_2child_Bin1",
-        "MaxCredit_1child_Bin2",
-        "MaxCredit_2child_Bin2"
-      )
+      pct[pa_valid_bin] <- standard_pfed_mat[cbind(pa_rows[pa_valid_bin], pa_bin[pa_valid_bin])]
 
-      if (all(pa_cap_cols %in% names(pa_data))) {
-        income_bin1_max <- pa_data$IncomeBin1Max
-        income_bin1_max[is.na(income_bin1_max)] <- 43000
-        low_income <- pa_data$income.base <= income_bin1_max
+      one_child <- num_kids == 1 & pa_valid_bin
+      two_plus_children <- num_kids >= 2 & pa_valid_bin
+      cap_col[one_child] <- paste0("MaxCredit_1child_Bin", pa_bin[one_child])
+      cap_col[two_plus_children] <- paste0("MaxCredit_2child_Bin", pa_bin[two_plus_children])
 
-        cap <- ifelse(
-          low_income,
-          ifelse(num_kids == 1, pa_data$MaxCredit_1child_Bin1,
-                 ifelse(num_kids >= 2, pa_data$MaxCredit_2child_Bin1, 0)),
-          ifelse(num_kids == 1, pa_data$MaxCredit_1child_Bin2,
-                 ifelse(num_kids >= 2, pa_data$MaxCredit_2child_Bin2, 0))
-        )
-        cap[is.na(cap)] <- fallback_cap[is.na(cap)]
-      } else {
-        cap <- fallback_cap
+      missing_cap <- !is.na(cap_col) & !(cap_col %in% names(data_main))
+      if (any(missing_cap)) {
+        stop("Pennsylvania CDCTC cap parameters are missing for one or more income bins.")
       }
 
-      data_main$value.statecdctc[pa_rows] <- pmin(federal_cdctc, cap)
+      has_cap <- !is.na(cap_col)
+      cap[has_cap] <- mapply(
+        function(row, col) data_main[[col]][row],
+        row = pa_rows[has_cap],
+        col = cap_col[has_cap]
+      )
+      cap[is.na(cap)] <- 0
+      pct[is.na(pct)] <- 0
+
+      data_main$value.statecdctc[pa_rows] <- pmin(federal_cdctc * pct, cap)
     }
     
     # ==============================
