@@ -5285,19 +5285,43 @@ function.statecdctc<-function(data
     # ====== PENNSYLVANIA-SPECIFIC CAP RULE ======
     pa_rows <- which(data_main$stateFIPS == 42)
     if (length(pa_rows) > 0) {
-      num_kids <- data_main$NumberOfEligibleDependents[pa_rows]
-      
-      # Cap: $3,000 for 1 eligible kid, $6,000 for 2 or more
-      cap <- ifelse(num_kids == 1, 3000, 6000)
-      
-      data_main$value.statecdctc[pa_rows] <- data_main$federalcdctc[pa_rows]
-      
-      data_main$value.statecdctc[pa_rows] <- pmin(
-        data_main$value.statecdctc[pa_rows],
-        cap,
-        data_main$federalcdctc[pa_rows],
-        na.rm = TRUE
+      pa_data <- data_main[pa_rows, ]
+      num_kids <- pa_data$NumberOfEligibleDependents
+      federal_cdctc <- pa_data$federalcdctc
+      federal_cdctc[is.na(federal_cdctc)] <- 0
+
+      low_income <- pa_data$income.base <= 43000
+      fallback_cap <- ifelse(
+        low_income,
+        ifelse(num_kids == 1, 1050, ifelse(num_kids >= 2, 2100, 0)),
+        ifelse(num_kids == 1, 600, ifelse(num_kids >= 2, 1200, 0))
       )
+
+      pa_cap_cols <- c(
+        "MaxCredit_1child_Bin1",
+        "MaxCredit_2child_Bin1",
+        "MaxCredit_1child_Bin2",
+        "MaxCredit_2child_Bin2"
+      )
+
+      if (all(pa_cap_cols %in% names(pa_data))) {
+        income_bin1_max <- pa_data$IncomeBin1Max
+        income_bin1_max[is.na(income_bin1_max)] <- 43000
+        low_income <- pa_data$income.base <= income_bin1_max
+
+        cap <- ifelse(
+          low_income,
+          ifelse(num_kids == 1, pa_data$MaxCredit_1child_Bin1,
+                 ifelse(num_kids >= 2, pa_data$MaxCredit_2child_Bin1, 0)),
+          ifelse(num_kids == 1, pa_data$MaxCredit_1child_Bin2,
+                 ifelse(num_kids >= 2, pa_data$MaxCredit_2child_Bin2, 0))
+        )
+        cap[is.na(cap)] <- fallback_cap[is.na(cap)]
+      } else {
+        cap <- fallback_cap
+      }
+
+      data_main$value.statecdctc[pa_rows] <- pmin(federal_cdctc, cap)
     }
     
     # ==============================
