@@ -1981,6 +1981,7 @@ if(APPLY_CTC==FALSE){
 # CDCTC
 if(APPLY_CDCTC==FALSE){
   data$value.cdctc.fed<-0
+  data$value.cdctc.fed.line9a<-0
 }else if(APPLY_CDCTC==TRUE){
 
   # Federal CDCTC
@@ -1988,6 +1989,12 @@ if(APPLY_CDCTC==FALSE){
                                           , incomevar="income_tm12"
                                           , qualifyingexpensesvar="netexp.childcare"
                                           , totalfederaltaxvar ="tax.federal_tm12")
+
+  data$value.cdctc.fed.line9a<-function.fedcdctc(data
+                                                 , incomevar="income_tm12"
+                                                 , qualifyingexpensesvar="netexp.childcare"
+                                                 , totalfederaltaxvar ="tax.federal_tm12"
+                                                 , applyfederaltaxlimit = FALSE)
 
 }
 
@@ -2069,7 +2076,8 @@ if(APPLY_CDCTC==FALSE){
                                               , incomevar="income_tm12"
                                               , qualifyingexpensesvar="netexp.childcare"
                                               , stateincometaxvar="tax.income.state_tm12"
-                                              , federalcdctcvar = "value.cdctc.fed")
+                                              , federalcdctcvar = "value.cdctc.fed"
+                                              , federalcdctcline9avar = "value.cdctc.fed.line9a")
   data$value.cdctc.state[is.na(data$value.cdctc.state)]<-0
 }
 
