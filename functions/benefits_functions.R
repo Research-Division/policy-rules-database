@@ -1266,6 +1266,12 @@ function.prek<-function(data
   }# Attach copied future, historical, and missing benefit data
   if(length(futureYrs)>0) {schoolmealData<-schoolmealData %>% rbind(expand)}
 
+  
+  # PreK rule year is lagged so if the provided rule year provided is greater than what is in data use the most recent year 
+  if (unique(data$ruleYear)>max(preKData$ruleYear)){
+    preKData$ruleYear[preKData$ruleYear == max(preKData$ruleYear)] <- unique(data$ruleYear)
+  }
+  
   # We have historical rules for school meals
   data<-data %>%
     left_join(preKData, by=c("stateName", "famsize","ruleYear"))  %>%
