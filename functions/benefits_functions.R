@@ -1268,7 +1268,7 @@ function.prek<-function(data
 
   # We have historical rules for school meals
   data<-data %>%
-    left_join(preKData, by=c("stateName", "famsize"))  %>%
+    left_join(preKData, by=c("stateName", "famsize","ruleYear"))  %>%
     left_join(schoolmealData, by=c("ruleYear","AKorHI","famsize")) %>%
     mutate(preKPerson=0) #initiate each person not to be eligible for preK
 
