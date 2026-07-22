@@ -89,7 +89,6 @@ function.CCDFcopay<-function(data
   data$daysofcareneeded0to4[is.na(data$daysofcareneeded0to4)]<-0
   data$daysofcareneeded5to12[is.na(data$daysofcareneeded5to12)]<-0
 
-  test <<- data 
   
   # Alabama ----
 
