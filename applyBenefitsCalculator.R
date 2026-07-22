@@ -13,7 +13,7 @@ current_directory<-getwd()
 ## Load expense parameters ----
 load(paste0(current_directory,"/prd_parameters/expenses.rdata"))
 
-## Load benfits parameters ----
+## Load benefits parameters ----
 load(paste0(current_directory,"/prd_parameters/benefit.parameters.rdata"))
 
 ## Load eligible tables of SMI,FPL / crosswalks ----
@@ -98,7 +98,7 @@ data<-BenefitsCalculator.Healthcare(data, APPLY_HEALTHCARE, APPLY_MEDICAID_ADULT
 data<-BenefitsCalculator.FoodandHousing(data, APPLY_SECTION8, APPLY_SNAP, APPLY_SLP, APPLY_WIC, APPLY_RAP, APPLY_FRSP) # OPTION TO END WITH APPLY_FRSP
 
 # Apply taxes and tax credits block
-data<-BenefitsCalculator.TaxesandTaxCredits(data, APPLY_EITC, APPLY_CTC, APPLY_CDCTC)
+data<-BenefitsCalculator.TaxesandTaxCredits(data, APPLY_EITC, APPLY_CTC, APPLY_CDCTC)  
 
 # Generate Additional Variables
 data<-function.createVars(data)

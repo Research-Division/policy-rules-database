@@ -16,7 +16,7 @@ function.CCDFcopay<-function(data
 
   ### 2025 Set-up====
   data$income <- data$income+data$income.gift
-
+  
   data$totcopay<-NA
 
   data$InitialEligibility<-NA
@@ -89,7 +89,8 @@ function.CCDFcopay<-function(data
   data$daysofcareneeded0to4[is.na(data$daysofcareneeded0to4)]<-0
   data$daysofcareneeded5to12[is.na(data$daysofcareneeded5to12)]<-0
 
-
+  test <<- data 
+  
   # Alabama ----
 
   # Description:
@@ -98,13 +99,13 @@ function.CCDFcopay<-function(data
   if(1 %in% unique(data$stateFIPS)){ # make sure that state is in the list
 
     temp<-data[data$stateFIPS==1,]
-    temp$numkidsInCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
-
+    temp$numkidsinCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
+    
 
     #----------------------------------
     # Step 1: Assign copays
     #----------------------------------
-    temp<-left_join(temp, ccdfData_AL, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare", "ruleYear"))
+    temp<-left_join(temp, ccdfData_AL, by=c("stateFIPS", "AKorHI", "famsize", "numkidsinCare", "ruleYear"))
 
     #----------------------------------
     # Step 1: Assign copays
@@ -310,7 +311,7 @@ function.CCDFcopay<-function(data
     #----------------------------------
     # Step 1: Assign copays
     #----------------------------------
-    temp<-left_join(temp, ccdfData_AZ, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize"))
+    temp<-left_join(temp, ccdfData_AZ, by=c("ruleYear", "stateFIPS", "famsize"))
 
     # Adjust for the income disregard
     temp$income<-temp$income-12*temp$IncomeDisregard
@@ -493,13 +494,13 @@ function.CCDFcopay<-function(data
 
     temp <- data[data$stateFIPS==8,]
 
-    temp$numkidsInCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
+    temp$numkidsinCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
 
   
     #----------------------------------
     # Step 1: Assign copays
     #----------------------------------
-    temp<-left_join(temp, ccdfData_CO, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize", "countyortownName", "numkidsInCare"))
+    temp<-left_join(temp, ccdfData_CO, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize", "countyortownName", "numkidsinCare"))
 
     temp$income<-temp$income-12*temp$IncomeDisregard
 
@@ -513,7 +514,7 @@ function.CCDFcopay<-function(data
     temp$COPAY[temp$income>=0 & temp$income<=temp$Bin1Max] <- temp$income[temp$income>=0 & temp$income<=temp$Bin1Max]*temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1Max]
     temp$COPAY[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max] <- temp$Bin1Max[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]*0.01 + temp$x[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]*temp$FTcopay[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]
 
-    temp$COPAY[temp$numkidsInCare > 1 & !is.na(temp$numkidsInCare) & temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max] <- temp$COPAY[temp$numkidsInCare > 1 & !is.na(temp$numkidsInCare) & temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max] + (temp$numkidsInCare[temp$numkidsInCare > 1 & !is.na(temp$numkidsInCare) & temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]*15)
+    temp$COPAY[temp$numkidsinCare > 1 & !is.na(temp$numkidsinCare) & temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max] <- temp$COPAY[temp$numkidsinCare > 1 & !is.na(temp$numkidsinCare) & temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max] + (temp$numkidsinCare[temp$numkidsinCare > 1 & !is.na(temp$numkidsinCare) & temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]*15)
 
 
 
@@ -929,7 +930,7 @@ function.CCDFcopay<-function(data
     # Step 1: Assign copays
     #----------------------------------
 
-    temp<-left_join(temp, ccdfData_HI, by=c("stateFIPS", "AKorHI", "famsize", "ruleYear"))
+    temp<-left_join(temp, ccdfData_HI, by=c("stateFIPS", "famsize", "ruleYear"))
 
     # Adjust for the income disregard
     temp$income<-temp$income-12*temp$IncomeDisregard
@@ -994,12 +995,12 @@ function.CCDFcopay<-function(data
     temp<-data[data$stateFIPS==19,]
 
 
-    temp$numkidsInCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
+    temp$numkidsinCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
 
     #----------------------------------
     # Step 1: Assign copays
     #----------------------------------
-    temp<-left_join(temp, ccdfData_IA, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize", "numkidsInCare"))
+    temp<-left_join(temp, ccdfData_IA, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize", "numkidsinCare"))
 
     # Adjust for the income disregard
     temp$income<-temp$income-12*temp$IncomeDisregard
@@ -1079,13 +1080,13 @@ function.CCDFcopay<-function(data
 
     temp<-data[data$stateFIPS==16,]
 
-    temp$numkidsInCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
+    temp$numkidsinCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
     #
    
     #----------------------------------
     # Step 1: Assign copays
     #----------------------------------
-    temp<-left_join(temp, ccdfData_ID, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize", "numkidsInCare"))
+    temp<-left_join(temp, ccdfData_ID, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize", "numkidsinCare"))
 
     # Adjust for the income disregard
     temp$income<-temp$income-12*temp$IncomeDisregard
@@ -1578,13 +1579,13 @@ function.CCDFcopay<-function(data
 
     temp<-data[data$stateFIPS==24,]
 
-    temp$numkidsInCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
+    temp$numkidsinCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
 
 
     #----------------------------------
     # Step 1: Assign copays
     #----------------------------------
-    temp<-left_join(temp, ccdfData_MD, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare", "ruleYear"))
+    temp<-left_join(temp, ccdfData_MD, by=c("stateFIPS", "AKorHI", "famsize", "numkidsinCare", "ruleYear"))
 
     # Adjust for the income disregard
     #   temp$income<-temp$income-12*temp$IncomeDisregard
@@ -1998,7 +1999,7 @@ function.CCDFcopay<-function(data
 
 
   # Missouri-----
-  test<<-data
+  
   data <- test
   # Description:
   # Copay is a fixed dollar amount per child
@@ -2867,13 +2868,13 @@ function.CCDFcopay<-function(data
 
     temp<-data[data$stateFIPS==34,]
 
-    temp$numkidsInCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
+    temp$numkidsinCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
 
     
     #----------------------------------
     # Step 1: Assign copays
     #----------------------------------
-    temp<-left_join(temp, ccdfData_NJ, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare", "ruleYear"))
+    temp<-left_join(temp, ccdfData_NJ, by=c("stateFIPS", "AKorHI", "famsize", "numkidsinCare", "ruleYear"))
 
     # Adjust for the income disregard
     temp$income<-temp$income-12*temp$IncomeDisregard
@@ -2968,7 +2969,7 @@ function.CCDFcopay<-function(data
 
     temp$FTcopay<-NA
 
-    temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1]<-temp$CopayBin1_MaxFractionOfIncome[temp$income>=0 & temp$income<=temp$Bin1]
+    temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1]<-temp$CopayBin1_MaxFractionofIncome[temp$income>=0 & temp$income<=temp$Bin1]
 
     # Apply asset test
     subset<-temp$totalassets > temp$AssetTest
@@ -3618,13 +3619,13 @@ function.CCDFcopay<-function(data
 
     temp<-data[data$stateFIPS==47,]
    
-    temp$numkidsInCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
+    temp$numkidsinCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
 
    
     #----------------------------------
     # Step 1: Assign copays
     #----------------------------------
-    temp<-left_join(temp, ccdfData_TN, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize", "numkidsInCare"))
+    temp<-left_join(temp, ccdfData_TN, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize", "numkidsinCare"))
 
     # Adjust for the income disregard
     temp$income<-temp$income-12*temp$IncomeDisregard
@@ -3798,12 +3799,12 @@ function.CCDFcopay<-function(data
 
     temp<-data[data$stateFIPS==49,]
 
-    temp$numkidsInCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
+    temp$numkidsinCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
 
     #----------------------------------
     # Step 1: Assign copays
     #----------------------------------
-    temp<-left_join(temp, ccdfData_UT, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize", "numkidsInCare"))
+    temp<-left_join(temp, ccdfData_UT, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize", "numkidsinCare"))
 
     # Adjust for the income disregard
     temp$income<-temp$income-12*temp$IncomeDisregard
@@ -4423,13 +4424,13 @@ function.CCDFcopay<-function(data
 
     temp<-data[data$stateFIPS==55,]
 
-    temp$numkidsInCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
+    temp$numkidsinCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
 
     
     #----------------------------------
     # Step 1: Assign copays
     #----------------------------------
-    temp<-left_join(temp, ccdfData_WI, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize", "numkidsInCare"))
+    temp<-left_join(temp, ccdfData_WI, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize", "numkidsinCare"))
 
     # Adjust for the income disregard
     temp$income<-temp$income-12*temp$IncomeDisregard
@@ -4612,16 +4613,16 @@ function.CCDFcopay<-function(data
     # Copay is a dollar amount per child
     # Daily frequency
     if(1 %in% unique(data$stateFIPS)){ # make sure that state is in the list
-
-      temp<-data[data$stateFIPS==1,]
-      temp$numkidsInCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
-
      
+      temp<-data[data$stateFIPS==1,]
+      temp$numkidsinCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
+      
+         
 
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
-      temp<-left_join(temp, ccdfData_AL, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare", "ruleYear"))
+      temp<-left_join(temp, ccdfData_AL, by=c("stateFIPS", "AKorHI", "famsize", "numkidsinCare", "ruleYear"))
 
       #----------------------------------
       # Step 1: Assign copays
@@ -4824,7 +4825,7 @@ function.CCDFcopay<-function(data
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
-      temp<-left_join(temp, ccdfData_AZ, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize"))
+      temp<-left_join(temp, ccdfData_AZ, by=c("ruleYear", "stateFIPS",  "famsize"))
 
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
@@ -5010,13 +5011,13 @@ function.CCDFcopay<-function(data
 
       temp <- data[data$stateFIPS==8,]
 
-      temp$numkidsInCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
+      temp$numkidsinCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
 
      
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
-      temp<-left_join(temp, ccdfData_CO, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize", "countyortownName", "numkidsInCare"))
+      temp<-left_join(temp, ccdfData_CO, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize", "countyortownName", "numkidsinCare"))
 
       temp$income<-temp$income-12*temp$IncomeDisregard
 
@@ -5030,7 +5031,7 @@ function.CCDFcopay<-function(data
       temp$COPAY[temp$income>=0 & temp$income<=temp$Bin1Max] <- temp$income[temp$income>=0 & temp$income<=temp$Bin1Max]*temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1Max]
       temp$COPAY[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max] <- temp$Bin1Max[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]*0.01 + temp$x[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]*temp$FTcopay[temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]
 
-      temp$COPAY[temp$numkidsInCare > 1 & !is.na(temp$numkidsInCare) & temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max] <- temp$COPAY[temp$numkidsInCare > 1 & !is.na(temp$numkidsInCare) & temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max] + (temp$numkidsInCare[temp$numkidsInCare > 1 & !is.na(temp$numkidsInCare) & temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]*15)
+      temp$COPAY[temp$numkidsinCare > 1 & !is.na(temp$numkidsinCare) & temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max] <- temp$COPAY[temp$numkidsinCare > 1 & !is.na(temp$numkidsinCare) & temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max] + (temp$numkidsinCare[temp$numkidsinCare > 1 & !is.na(temp$numkidsinCare) & temp$income>temp$Bin1Max & temp$income<=temp$Bin2Max]*15)
 
 
 
@@ -5466,8 +5467,8 @@ function.CCDFcopay<-function(data
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
-      ccdfData_HI$AKorHI <- "HI"
-      temp<-left_join(temp, ccdfData_HI, by=c("stateFIPS", "AKorHI", "famsize", "ruleYear"))
+      #ccdfData_HI$AKorHI <- "HI"
+      temp<-left_join(temp, ccdfData_HI, by=c("stateFIPS", "famsize", "ruleYear"))
 
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
@@ -5532,13 +5533,13 @@ function.CCDFcopay<-function(data
       temp<-data[data$stateFIPS==19,]
 
 
-      temp$numkidsInCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
+      temp$numkidsinCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
 
      
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
-      temp<-left_join(temp, ccdfData_IA, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize", "numkidsInCare"))
+      temp<-left_join(temp, ccdfData_IA, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize", "numkidsinCare"))
 
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
@@ -5619,13 +5620,13 @@ function.CCDFcopay<-function(data
 
       temp<-data[data$stateFIPS==16,]
 
-      temp$numkidsInCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
+      temp$numkidsinCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
       #
      
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
-      temp<-left_join(temp, ccdfData_ID, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize", "numkidsInCare"))
+      temp<-left_join(temp, ccdfData_ID, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize", "numkidsinCare"))
 
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
@@ -6136,13 +6137,13 @@ function.CCDFcopay<-function(data
 
       temp<-data[data$stateFIPS==24,]
 
-      temp$numkidsInCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
+      temp$numkidsinCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
 
      
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
-      temp<-left_join(temp, ccdfData_MD, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare", "ruleYear"))
+      temp<-left_join(temp, ccdfData_MD, by=c("stateFIPS", "AKorHI", "famsize", "numkidsinCare", "ruleYear"))
 
       # Adjust for the income disregard
       #   temp$income<-temp$income-12*temp$IncomeDisregard
@@ -7148,13 +7149,13 @@ function.CCDFcopay<-function(data
 
       temp<-data[data$stateFIPS==34,]
 
-      temp$numkidsInCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
+      temp$numkidsinCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
 
       
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
-      temp<-left_join(temp, ccdfData_NJ, by=c("stateFIPS", "AKorHI", "famsize", "numkidsInCare", "ruleYear"))
+      temp<-left_join(temp, ccdfData_NJ, by=c("stateFIPS", "AKorHI", "famsize", "numkidsinCare", "ruleYear"))
 
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
@@ -7242,14 +7243,14 @@ function.CCDFcopay<-function(data
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
-      temp<-left_join(temp, ccdfData_NC, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize"))
+      temp<-left_join(temp, ccdfData_NC, by=c("ruleYear", "stateFIPS", "famsize"))
 
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
 
       temp$FTcopay<-NA
 
-      temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1]<-temp$CopayBin1_MaxFractionOfIncome[temp$income>=0 & temp$income<=temp$Bin1]
+      temp$FTcopay[temp$income>=0 & temp$income<=temp$Bin1]<-temp$CopayBin1_MaxFractionofIncome[temp$income>=0 & temp$income<=temp$Bin1]
 
       # Apply asset test
       subset<-temp$totalassets > temp$AssetTest
@@ -7935,15 +7936,15 @@ function.CCDFcopay<-function(data
       ccdfData_TN$stateFIPS <- 47
 
       temp<-data[data$stateFIPS==47,]
-      #  temp$numkidsInCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
-      #temp$numkidsInCare<-temp$numkidsincare0to4
-      temp$numkidsInCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
+      #  temp$numkidsinCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
+      #temp$numkidsinCare<-temp$numkidsincare0to4
+      temp$numkidsinCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
 
      
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
-      temp<-left_join(temp, ccdfData_TN, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize", "numkidsInCare"))
+      temp<-left_join(temp, ccdfData_TN, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize", "numkidsinCare"))
 
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
@@ -8115,13 +8116,13 @@ function.CCDFcopay<-function(data
 
       temp<-data[data$stateFIPS==49,]
 
-      temp$numkidsInCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
+      temp$numkidsinCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
 
      
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
-      temp<-left_join(temp, ccdfData_UT, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize", "numkidsInCare"))
+      temp<-left_join(temp, ccdfData_UT, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize", "numkidsinCare"))
 
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
@@ -8742,13 +8743,13 @@ function.CCDFcopay<-function(data
 
       temp<-data[data$stateFIPS==55,]
 
-      temp$numkidsInCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
+      temp$numkidsinCare<-temp$numkidsincare0to4+temp$numkidsincare5to12
 
      
       #----------------------------------
       # Step 1: Assign copays
       #----------------------------------
-      temp<-left_join(temp, ccdfData_WI, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize", "numkidsInCare"))
+      temp<-left_join(temp, ccdfData_WI, by=c("ruleYear", "stateFIPS", "AKorHI", "famsize", "numkidsinCare"))
 
       # Adjust for the income disregard
       temp$income<-temp$income-12*temp$IncomeDisregard
