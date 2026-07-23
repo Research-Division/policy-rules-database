@@ -1999,7 +1999,7 @@ function.CCDFcopay<-function(data
 
   # Missouri-----
   
-  data <- test
+ 
   # Description:
   # Copay is a fixed dollar amount per child
   # Daily frequency
@@ -4529,7 +4529,7 @@ function.CCDFcopay<-function(data
   
   #If data is greater than current max(ruleYear) just use max ruleYear -- This will make it so CLIFF tools dont break at the beginning of a new year
   if(min(data$ruleYear)>=2026){
-
+    data$ruleYear <- 2026
     ### 2026 Set-up =====
     data$income <- data$income+data$income.gift
 
