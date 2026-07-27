@@ -1266,9 +1266,16 @@ function.prek<-function(data
   }# Attach copied future, historical, and missing benefit data
   if(length(futureYrs)>0) {schoolmealData<-schoolmealData %>% rbind(expand)}
 
+  # Pre-k data is lagged by a year so we have to use 2025 eligibility rules for 2026 etc, so the cliff tools dont break
+  # Force rule year to be be set to make of Prek data if the rule year of the prek data is greater than the rule year of the input data 
+   if(unique(data$ruleYear)>max(preKData$ruleYear)){
+    data$ruleYear <- max(preKData$ruleYear)
+  }
+  
+  
   # We have historical rules for school meals
   data<-data %>%
-    left_join(preKData, by=c("stateName", "famsize"))  %>%
+    left_join(preKData, by=c("stateName", "famsize","ruleYear"))  %>%
     left_join(schoolmealData, by=c("ruleYear","AKorHI","famsize")) %>%
     mutate(preKPerson=0) #initiate each person not to be eligible for preK
 
