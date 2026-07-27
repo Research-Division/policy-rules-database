@@ -16,9 +16,9 @@ Year: [2025]
 
 agePerson1: [25]
 
-agePerson2: [1]
+agePerson2: [2]
 
-agePerson3: [3]
+agePerson3: [NA]
 
 agePerson4: [NA]
 
@@ -105,7 +105,7 @@ ssdiPIA6: [0]
 
 # Geographical location in the `Fulton County, GA' format (put 'all' of you want to add each county in the US)
 
-locations: ['Addison town, VT']
+locations: ['Arkansas County, AR']
 
 
 # Income vector from income_start to income_end with income_increase_by intervals
@@ -176,9 +176,9 @@ APPLY_CHILDCARE: true
 
 APPLY_HEADSTART: false
 
-APPLY_CCDF: true
+APPLY_CCDF: false
 
-APPLY_PREK: true
+APPLY_PREK: false
 
 APPLY_HEALTHCARE: true
 
