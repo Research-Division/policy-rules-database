@@ -1720,7 +1720,7 @@ function.stateinctax<-function(data
     numkidsunder17 <- rowSums(cbind(data$agePerson1, data$agePerson2,data$agePerson3,data$agePerson4,data$agePerson5,data$agePerson6,data$agePerson7,data$agePerson8,data$agePerson9,data$agePerson10,data$agePerson11,data$agePerson12) < data$AZ_FullCreditAgeLimit, na.rm=TRUE)
     numkidsover17 <- rowSums(cbind(data$agePerson1, data$agePerson2,data$agePerson3,data$agePerson4,data$agePerson5,data$agePerson6,data$agePerson7,data$agePerson8,data$agePerson9,data$agePerson10,data$agePerson11,data$agePerson12) >= data$AZ_FullCreditAgeLimit & cbind(data$agePerson1, data$agePerson2,data$agePerson3,data$agePerson4,data$agePerson5,data$agePerson6,data$agePerson7,data$agePerson8,data$agePerson9,data$agePerson10,data$agePerson11,data$agePerson12) < data$AZ_ReducedCreditAgeLimit, na.rm=TRUE)
     
-    subset0 <- data$stateAbbrev=="AZ" & data$ruleYear==2026
+    subset0 <- data$stateAbbrev=="AZ" & data$ruleYear==2026 & data$numkids > 0
     
     # Adjust the Dependent Exemption to find the amount per child with the appropriate credit applied based on age
     data$DependentExemption[subset0] <- (numkidsunder17[subset0]*data$DependentExemption[subset0] + numkidsover17[subset0]*data$AZ_ReducedCredit[subset0])/data$numkids[subset0]
@@ -1918,7 +1918,7 @@ function.stateinctax<-function(data
   # kk)
   if(2026 %in% unique(data$ruleYear) & "NM" %in% unique(data$stateAbbrev)){
     
-    subset0 <- data$stateAbbrev=="NM" & data$ruleYear==2026
+    subset0 <- data$stateAbbrev=="NM" & data$ruleYear==2026 & data$numkids > 0
     
     # Adjust Dependent Exemption to find appropriate amount per child - NM provides exemption for all but one child
     data$DependentExemption[subset0] <- (data$DependentExemption[subset0]*data$numkids[subset0]-1)/data$numkids[subset0]
@@ -1952,7 +1952,7 @@ function.stateinctax<-function(data
     numkidsunder17 <- rowSums(cbind(data$agePerson1, data$agePerson2,data$agePerson3,data$agePerson4,data$agePerson5,data$agePerson6,data$agePerson7,data$agePerson8,data$agePerson9,data$agePerson10,data$agePerson11,data$agePerson12) < data$AZ_FullCreditAgeLimit, na.rm=TRUE)
     numkidsover17 <- rowSums(cbind(data$agePerson1, data$agePerson2,data$agePerson3,data$agePerson4,data$agePerson5,data$agePerson6,data$agePerson7,data$agePerson8,data$agePerson9,data$agePerson10,data$agePerson11,data$agePerson12) >= data$AZ_FullCreditAgeLimit & cbind(data$agePerson1, data$agePerson2,data$agePerson3,data$agePerson4,data$agePerson5,data$agePerson6,data$agePerson7,data$agePerson8,data$agePerson9,data$agePerson10,data$agePerson11,data$agePerson12) < data$AZ_ReducedCreditAgeLimit, na.rm=TRUE)
 
-    subset0 <- data$stateAbbrev=="AZ" & data$ruleYear==2025
+    subset0 <- data$stateAbbrev=="AZ" & data$ruleYear==2025 & data$numkids > 0
 
     # Adjust the Dependent Exemption to find the amount per child with the appropriate credit applied based on age
     data$DependentExemption[subset0] <- (numkidsunder17[subset0]*data$DependentExemption[subset0] + numkidsover17[subset0]*data$AZ_ReducedCredit[subset0])/data$numkids[subset0]
@@ -2150,7 +2150,7 @@ function.stateinctax<-function(data
   # kk)
   if(2025 %in% unique(data$ruleYear) & "NM" %in% unique(data$stateAbbrev)){
 
-    subset0 <- data$stateAbbrev=="NM" & data$ruleYear==2025
+    subset0 <- data$stateAbbrev=="NM" & data$ruleYear==2025 & data$numkids > 0
 
     # Adjust Dependent Exemption to find appropriate amount per child - NM provides exemption for all but one child
     data$DependentExemption[subset0] <- (data$DependentExemption[subset0]*data$numkids[subset0]-1)/data$numkids[subset0]
@@ -2185,7 +2185,7 @@ function.stateinctax<-function(data
     numkidsunder17 <- rowSums(cbind(data$agePerson1, data$agePerson2,data$agePerson3,data$agePerson4,data$agePerson5,data$agePerson6,data$agePerson7,data$agePerson8,data$agePerson9,data$agePerson10,data$agePerson11,data$agePerson12) < data$AZ_FullCreditAgeLimit, na.rm=TRUE)
     numkidsover17 <- rowSums(cbind(data$agePerson1, data$agePerson2,data$agePerson3,data$agePerson4,data$agePerson5,data$agePerson6,data$agePerson7,data$agePerson8,data$agePerson9,data$agePerson10,data$agePerson11,data$agePerson12) >= data$AZ_FullCreditAgeLimit & cbind(data$agePerson1, data$agePerson2,data$agePerson3,data$agePerson4,data$agePerson5,data$agePerson6,data$agePerson7,data$agePerson8,data$agePerson9,data$agePerson10,data$agePerson11,data$agePerson12) < data$AZ_ReducedCreditAgeLimit, na.rm=TRUE)
 
-    subset0 <- data$stateAbbrev=="AZ" & data$ruleYear==2024
+    subset0 <- data$stateAbbrev=="AZ" & data$ruleYear==2024 & data$numkids > 0
 
     # Adjust the Dependent Exemption to find the amount per child with the appropriate credit applied based on age
     data$DependentExemption[subset0] <- (numkidsunder17[subset0]*data$DependentExemption[subset0] + numkidsover17[subset0]*data$AZ_ReducedCredit[subset0])/data$numkids[subset0]
@@ -2383,7 +2383,7 @@ function.stateinctax<-function(data
   # nn)
   if(2024 %in% unique(data$ruleYear) & "NM" %in% unique(data$stateAbbrev)){
 
-    subset0 <- data$stateAbbrev=="NM" & data$ruleYear==2024
+    subset0 <- data$stateAbbrev=="NM" & data$ruleYear==2024 & data$numkids > 0
 
     # Adjust Dependent Exemption to find appropriate amount per child - NM provides exemption for all but one child
     data$DependentExemption[subset0] <- (data$DependentExemption[subset0]*data$numkids[subset0]-1)/data$numkids[subset0]
