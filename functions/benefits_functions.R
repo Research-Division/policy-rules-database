@@ -5332,11 +5332,15 @@ function.statecdctc<-function(data
       }
 
       has_cap <- !is.na(cap_col)
-      cap[has_cap] <- mapply(
-        function(row, col) data_main[[col]][row],
-        row = pa_rows[has_cap],
-        col = cap_col[has_cap]
-      )
+      if (any(has_cap)) {
+        cap_rows <- pa_rows[has_cap]
+        cap_cols <- cap_col[has_cap]
+        cap[has_cap] <- vapply(
+          seq_along(cap_rows),
+          function(i) as.numeric(data_main[[cap_cols[i]]][cap_rows[i]]),
+          numeric(1)
+        )
+      }
       cap[is.na(cap)] <- 0
       pct[is.na(pct)] <- 0
 
@@ -5865,11 +5869,15 @@ function.statecdctc<-function(data
     }
 
     has_cap <- !is.na(cap_col)
-    cap[has_cap] <- mapply(
-      function(row, col) data_main[[col]][row],
-      row = pa_rows[has_cap],
-      col = cap_col[has_cap]
-    )
+    if (any(has_cap)) {
+      cap_rows <- pa_rows[has_cap]
+      cap_cols <- cap_col[has_cap]
+      cap[has_cap] <- vapply(
+        seq_along(cap_rows),
+        function(i) as.numeric(data_main[[cap_cols[i]]][cap_rows[i]]),
+        numeric(1)
+      )
+    }
     cap[is.na(cap)] <- 0
     pct[is.na(pct)] <- 0
 
