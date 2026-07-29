@@ -1844,13 +1844,18 @@ function.stateinctax<-function(data
   
   # cc)
   if(2026 %in% unique(data$ruleYear) & "MN" %in% unique(data$stateAbbrev)){
-    
-    # Amount to reduce Standard Deduction: either a percentage of AGI or a percentage of the Standard Deduction
+
+    # Reduce the standard deduction by 3% of federal AGI above the first
+    # threshold through the second threshold, plus 10% above the second
+    # threshold, capped at 80% of the otherwise allowable standard deduction.
     subset0 <- data$income.base > data$MN_StandDeductThreshold & data$stateAbbrev=="MN" & data$ruleYear==2026
-    
-    reductionAmount <- rowMins(cbind(data$MN_PercentofAGI[subset0]*data$income.base[subset0], data$MN_PercentofStandDeduct[subset0]*data$Standard[subset0]), na.rm = TRUE)
-    
-    data$Standard[subset0] <- rowMaxs(cbind(data$Standard[subset0] - reductionAmount[subset0], 0),na.rm=TRUE)
+
+    firstTierExcess <- pmin(data$income.base[subset0], data$MN_StandDeductThreshold2[subset0]) - data$MN_StandDeductThreshold[subset0]
+    secondTierExcess <- pmax(data$income.base[subset0] - data$MN_StandDeductThreshold2[subset0], 0)
+    incomeBasedReduction <- data$MN_PercentofAGI[subset0]*firstTierExcess + data$MN_PercentofAGI2[subset0]*secondTierExcess
+    reductionAmount <- rowMins(cbind(incomeBasedReduction, data$MN_PercentofStandDeduct[subset0]*data$Standard[subset0]), na.rm = TRUE)
+
+    data$Standard[subset0] <- rowMaxs(cbind(data$Standard[subset0] - reductionAmount, 0),na.rm=TRUE)
   }
   
   # ee)
@@ -2077,12 +2082,17 @@ function.stateinctax<-function(data
   # cc)
   if(2025 %in% unique(data$ruleYear) & "MN" %in% unique(data$stateAbbrev)){
 
-    # Amount to reduce Standard Deduction: either a percentage of AGI or a percentage of the Standard Deduction
+    # Reduce the standard deduction by 3% of federal AGI above the first
+    # threshold through the second threshold, plus 10% above the second
+    # threshold, capped at 80% of the otherwise allowable standard deduction.
     subset0 <- data$income.base > data$MN_StandDeductThreshold & data$stateAbbrev=="MN" & data$ruleYear==2025
 
-    reductionAmount <- rowMins(cbind(data$MN_PercentofAGI[subset0]*data$income.base[subset0], data$MN_PercentofStandDeduct[subset0]*data$Standard[subset0]), na.rm = TRUE)
+    firstTierExcess <- pmin(data$income.base[subset0], data$MN_StandDeductThreshold2[subset0]) - data$MN_StandDeductThreshold[subset0]
+    secondTierExcess <- pmax(data$income.base[subset0] - data$MN_StandDeductThreshold2[subset0], 0)
+    incomeBasedReduction <- data$MN_PercentofAGI[subset0]*firstTierExcess + data$MN_PercentofAGI2[subset0]*secondTierExcess
+    reductionAmount <- rowMins(cbind(incomeBasedReduction, data$MN_PercentofStandDeduct[subset0]*data$Standard[subset0]), na.rm = TRUE)
 
-    data$Standard[subset0] <- rowMaxs(cbind(data$Standard[subset0] - reductionAmount[subset0], 0),na.rm=TRUE)
+    data$Standard[subset0] <- rowMaxs(cbind(data$Standard[subset0] - reductionAmount, 0),na.rm=TRUE)
   }
 
   # ee)
@@ -2307,15 +2317,17 @@ function.stateinctax<-function(data
 
   }
 
-  # ee)
+  # cc)
   if(2024 %in% unique(data$ruleYear) & "MN" %in% unique(data$stateAbbrev)){
 
-    # Amount to reduce Standard Deduction: either a percentage of AGI or a percentage of the Standard Deduction
+    # Reduce the standard deduction by the lesser of 3% of federal AGI above
+    # the threshold or 80% of the otherwise allowable standard deduction.
     subset0 <- data$income.base > data$MN_StandDeductThreshold & data$stateAbbrev=="MN" & data$ruleYear==2024
 
-    reductionAmount <- rowMins(cbind(data$MN_PercentofAGI[subset0]*data$income.base[subset0], data$MN_PercentofStandDeduct[subset0]*data$Standard[subset0]), na.rm = TRUE)
+    incomeBasedReduction <- data$MN_PercentofAGI[subset0]*(data$income.base[subset0] - data$MN_StandDeductThreshold[subset0])
+    reductionAmount <- rowMins(cbind(incomeBasedReduction, data$MN_PercentofStandDeduct[subset0]*data$Standard[subset0]), na.rm = TRUE)
 
-    data$Standard[subset0] <- rowMaxs(cbind(data$Standard[subset0] - reductionAmount[subset0], 0),na.rm=TRUE)
+    data$Standard[subset0] <- rowMaxs(cbind(data$Standard[subset0] - reductionAmount, 0),na.rm=TRUE)
   }
 
   # hh)
