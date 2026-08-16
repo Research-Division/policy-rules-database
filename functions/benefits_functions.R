@@ -2723,6 +2723,32 @@ function.stateeitc <- function(data, incomevar,
       
       data$value.stateeitc[data$stateFIPS == 10] <- temp$value.stateeitc
     }
+
+    # District of Columbia: separate schedule for filers without qualifying children
+    if (11 %in% unique(data$stateFIPS)) {
+      temp <- data[data$stateFIPS == 11, ]
+      childless <- temp$numkids == 0
+      applicable_income <- temp$income.base[childless]
+
+      tentative_credit <- ifelse(
+        applicable_income < temp$DC_PhaseInLimit[childless],
+        pmax(applicable_income, 0) * temp$DC_PhaseInRate[childless],
+        temp$DC_MaxCredit[childless]
+      )
+
+      temp$value.stateeitc[childless] <- ifelse(
+        applicable_income > temp$DC_IncomeLimit[childless],
+        0,
+        pmax(
+          tentative_credit -
+            pmax(applicable_income - temp$DC_PhaseOutStart[childless], 0) *
+            temp$DC_PhaseOutRate[childless],
+          0
+        )
+      )
+
+      data$value.stateeitc[data$stateFIPS == 11] <- temp$value.stateeitc
+    }
     
     
     # Oregon: boost to 12% of federal EITC if any child is under age 3
@@ -2849,6 +2875,32 @@ function.stateeitc <- function(data, incomevar,
     )
 
     data$value.stateeitc[data$stateFIPS == 10] <- temp$value.stateeitc
+  }
+
+  # District of Columbia: separate schedule for filers without qualifying children
+  if (11 %in% unique(data$stateFIPS)) {
+    temp <- data[data$stateFIPS == 11, ]
+    childless <- temp$numkids == 0
+    applicable_income <- temp$income.base[childless]
+
+    tentative_credit <- ifelse(
+      applicable_income < temp$DC_PhaseInLimit[childless],
+      pmax(applicable_income, 0) * temp$DC_PhaseInRate[childless],
+      temp$DC_MaxCredit[childless]
+    )
+
+    temp$value.stateeitc[childless] <- ifelse(
+      applicable_income > temp$DC_IncomeLimit[childless],
+      0,
+      pmax(
+        tentative_credit -
+          pmax(applicable_income - temp$DC_PhaseOutStart[childless], 0) *
+          temp$DC_PhaseOutRate[childless],
+        0
+      )
+    )
+
+    data$value.stateeitc[data$stateFIPS == 11] <- temp$value.stateeitc
   }
 
 
