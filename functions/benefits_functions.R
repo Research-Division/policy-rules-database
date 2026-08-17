@@ -2169,6 +2169,19 @@ function.stateinctax<-function(data
 
 
   # 2024  ----
+  if(2024 %in% unique(data$ruleYear) & "IA" %in% unique(data$stateAbbrev)){
+
+    subset0 <- data$stateAbbrev=="IA" & data$ruleYear==2024
+
+    # Iowa uses the federal standard deduction
+    data$Standard[subset0] <- case_when(data$FilingStatus[subset0] %in% c(1,4) ~ 14600
+                                        ,data$FilingStatus[subset0]==2 ~ 29200
+                                        ,data$FilingStatus[subset0]==3 ~ 21900
+                                        ,TRUE ~ data$Standard[subset0])
+
+    data$FederalIncomeTaxDeductible[subset0] <- "No"
+  }
+
   #c)
   if(2024 %in% unique(data$ruleYear) & "AL" %in% unique(data$stateAbbrev)){
 
