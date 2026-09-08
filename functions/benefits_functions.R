@@ -3071,7 +3071,7 @@ function.fedctc<-function(data
     subset5<-temp$income.base>temp$IncomeBin2Max
     
     temp$value.fedctc.refundable[subset5]<-0
-    temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
+    temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]*temp$numkidsunder17[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
     
     # Add refundable and non-refundable portions of CTC
     temp$value.fedctc<-rowMaxs(cbind(temp$value.fedctc.refundable+temp$value.fedctc.nonrefundable, 0), na.rm=TRUE)
@@ -3126,7 +3126,7 @@ function.fedctc<-function(data
     subset5<-temp$income.base>temp$IncomeBin2Max
 
     temp$value.fedctc.refundable[subset5]<-0
-    temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
+    temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]*temp$numkidsunder17[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
 
     # Add refundable and non-refundable portions of CTC
     temp$value.fedctc<-rowMaxs(cbind(temp$value.fedctc.refundable+temp$value.fedctc.nonrefundable, 0), na.rm=TRUE)
@@ -3182,7 +3182,7 @@ function.fedctc<-function(data
     subset5<-temp$income.base>temp$IncomeBin2Max
 
     temp$value.fedctc.refundable[subset5]<-0
-    temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
+    temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]*temp$numkidsunder17[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
 
     # Add refundable and non-refundable portions of CTC
     temp$value.fedctc<-rowMaxs(cbind(temp$value.fedctc.refundable+temp$value.fedctc.nonrefundable, 0), na.rm=TRUE)
@@ -3238,7 +3238,7 @@ function.fedctc<-function(data
     subset5<-temp$income.base>temp$IncomeBin2Max
 
     temp$value.fedctc.refundable[subset5]<-0
-    temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
+    temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]*temp$numkidsunder17[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
 
     # Add refundable and non-refundable portions of CTC
     temp$value.fedctc<-rowMaxs(cbind(temp$value.fedctc.refundable+temp$value.fedctc.nonrefundable, 0), na.rm=TRUE)
@@ -3292,7 +3292,7 @@ function.fedctc<-function(data
     subset5<-temp$income.base>temp$IncomeBin2Max
 
     temp$value.fedctc.refundable[subset5]<-0
-    temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
+    temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]*temp$numkidsunder17[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
 
     # Add refundable and non-refundable portions of CTC
     temp$value.fedctc<-rowMaxs(cbind(temp$value.fedctc.refundable+temp$value.fedctc.nonrefundable, 0), na.rm=TRUE)
@@ -3378,7 +3378,7 @@ function.fedctc<-function(data
     subset5<-temp$income.base>temp$IncomeBin2Max
 
     temp$value.fedctc.refundable[subset5]<-0
-    temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
+    temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]*temp$numkidsunder17[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
 
     # Add refundable and non-refundable portions of CTC
     temp$value.fedctc<-rowMaxs(cbind(temp$value.fedctc.refundable+temp$value.fedctc.nonrefundable, 0), na.rm=TRUE)
@@ -3431,7 +3431,7 @@ function.fedctc<-function(data
     subset5<-temp$income.base>temp$IncomeBin2Max
 
     temp$value.fedctc.refundable[subset5]<-0
-    temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
+    temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]*temp$numkidsunder17[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
 
     # Add refundable and non-refundable portions of CTC
     temp$value.fedctc<-temp$value.fedctc.refundable+temp$value.fedctc.nonrefundable
@@ -3485,7 +3485,7 @@ function.fedctc<-function(data
     subset5<-temp$income.base>temp$IncomeBin2Max
 
     temp$value.fedctc.refundable[subset5]<-0
-    temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
+    temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]*temp$numkidsunder17[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
 
     # Add refundable and non-refundable portions of CTC
     temp$value.fedctc<-rowMaxs(cbind(temp$value.fedctc.refundable+temp$value.fedctc.nonrefundable, 0), na.rm=TRUE)
@@ -3538,7 +3538,7 @@ function.fedctc<-function(data
     subset5<-temp$income.base>temp$IncomeBin2Max
 
     temp$value.fedctc.refundable[subset5]<-0
-    temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
+    temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]*temp$numkidsunder17[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
 
     # Add refundable and non-refundable portions of CTC
     temp$value.fedctc<-rowMaxs(cbind(temp$value.fedctc.refundable+temp$value.fedctc.nonrefundable, 0), na.rm=TRUE)
@@ -3591,7 +3591,7 @@ function.fedctc<-function(data
     subset5<-temp$income.base>temp$IncomeBin2Max
 
     temp$value.fedctc.refundable[subset5]<-0
-    temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
+    temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]*temp$numkidsunder17[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
 
     # Add refundable and non-refundable portions of CTC
     temp$value.fedctc<-rowMaxs(cbind(temp$value.fedctc.refundable+temp$value.fedctc.nonrefundable, 0), na.rm=TRUE)
@@ -3644,7 +3644,7 @@ function.fedctc<-function(data
     subset5<-temp$income.base>temp$IncomeBin2Max
 
     temp$value.fedctc.refundable[subset5]<-0
-    temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
+    temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]*temp$numkidsunder17[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
 
     # Add refundable and non-refundable portions of CTC
     temp$value.fedctc<-rowMaxs(cbind(temp$value.fedctc.refundable+temp$value.fedctc.nonrefundable, 0), na.rm=TRUE)
@@ -3697,7 +3697,7 @@ function.fedctc<-function(data
     subset5<-temp$income.base>temp$IncomeBin2Max
 
     temp$value.fedctc.refundable[subset5]<-0
-    temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
+    temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]*temp$numkidsunder17[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
 
     # Add refundable and non-refundable portions of CTC
     temp$value.fedctc<-rowMaxs(cbind(temp$value.fedctc.refundable+temp$value.fedctc.nonrefundable, 0), na.rm=TRUE)
@@ -3750,7 +3750,7 @@ function.fedctc<-function(data
     subset5<-temp$income.base>temp$IncomeBin2Max
 
     temp$value.fedctc.refundable[subset5]<-0
-    temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
+    temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]*temp$numkidsunder17[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
 
     # Add refundable and non-refundable portions of CTC
     temp$value.fedctc<-rowMaxs(cbind(temp$value.fedctc.refundable+temp$value.fedctc.nonrefundable, 0), na.rm=TRUE)
@@ -3803,7 +3803,7 @@ function.fedctc<-function(data
     subset5<-temp$income.base>temp$IncomeBin2Max
 
     temp$value.fedctc.refundable[subset5]<-0
-    temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
+    temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]*temp$numkidsunder17[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
 
     # Add refundable and non-refundable portions of CTC
     temp$value.fedctc<-rowMaxs(cbind(temp$value.fedctc.refundable+temp$value.fedctc.nonrefundable, 0), na.rm=TRUE)
@@ -3856,7 +3856,7 @@ function.fedctc<-function(data
     subset5<-temp$income.base>temp$IncomeBin2Max
 
     temp$value.fedctc.refundable[subset5]<-0
-    temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
+    temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]*temp$numkidsunder17[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
 
     # Add refundable and non-refundable portions of CTC
     temp$value.fedctc<-rowMaxs(cbind(temp$value.fedctc.refundable+temp$value.fedctc.nonrefundable, 0), na.rm=TRUE)
@@ -3909,7 +3909,7 @@ function.fedctc<-function(data
     subset5<-temp$income.base>temp$IncomeBin2Max
 
     temp$value.fedctc.refundable[subset5]<-0
-    temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
+    temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]*temp$numkidsunder17[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
 
     # Add refundable and non-refundable portions of CTC
     temp$value.fedctc<-rowMaxs(cbind(temp$value.fedctc.refundable+temp$value.fedctc.nonrefundable, 0), na.rm=TRUE)
@@ -3962,7 +3962,7 @@ function.fedctc<-function(data
     subset5<-temp$income.base>temp$IncomeBin2Max
 
     temp$value.fedctc.refundable[subset5]<-0
-    temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
+    temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]*temp$numkidsunder17[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
 
     # Add refundable and non-refundable portions of CTC
     temp$value.fedctc<-rowMaxs(cbind(temp$value.fedctc.refundable+temp$value.fedctc.nonrefundable, 0), na.rm=TRUE)
@@ -4015,7 +4015,7 @@ function.fedctc<-function(data
     subset5<-temp$income.base>temp$IncomeBin2Max
 
     temp$value.fedctc.refundable[subset5]<-0
-    temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
+    temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]*temp$numkidsunder17[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
 
     # Add refundable and non-refundable portions of CTC
     temp$value.fedctc<-rowMaxs(cbind(temp$value.fedctc.refundable+temp$value.fedctc.nonrefundable, 0), na.rm=TRUE)
@@ -4068,7 +4068,7 @@ function.fedctc<-function(data
     subset5<-temp$income.base>temp$IncomeBin2Max
 
     temp$value.fedctc.refundable[subset5]<-0
-    temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
+    temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]*temp$numkidsunder17[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
 
     # Add refundable and non-refundable portions of CTC
     temp$value.fedctc<-rowMaxs(cbind(temp$value.fedctc.refundable+temp$value.fedctc.nonrefundable, 0), na.rm=TRUE)
@@ -4121,7 +4121,7 @@ function.fedctc<-function(data
     subset5<-temp$income.base>temp$IncomeBin2Max
 
     temp$value.fedctc.refundable[subset5]<-0
-    temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
+    temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]*temp$numkidsunder17[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
 
     # Add refundable and non-refundable portions of CTC
     temp$value.fedctc<-rowMaxs(cbind(temp$value.fedctc.refundable+temp$value.fedctc.nonrefundable, 0), na.rm=TRUE)
@@ -4174,7 +4174,7 @@ function.fedctc<-function(data
     subset5<-temp$income.base>temp$IncomeBin2Max
 
     temp$value.fedctc.refundable[subset5]<-0
-    temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
+    temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]*temp$numkidsunder17[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
 
     # Add refundable and non-refundable portions of CTC
     temp$value.fedctc<-rowMaxs(cbind(temp$value.fedctc.refundable+temp$value.fedctc.nonrefundable, 0), na.rm=TRUE)
@@ -4227,7 +4227,7 @@ function.fedctc<-function(data
     subset5<-temp$income.base>temp$IncomeBin2Max
 
     temp$value.fedctc.refundable[subset5]<-0
-    temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
+    temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]*temp$numkidsunder17[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
 
     # Add refundable and non-refundable portions of CTC
     temp$value.fedctc<-rowMaxs(cbind(temp$value.fedctc.refundable+temp$value.fedctc.nonrefundable, 0), na.rm=TRUE)
@@ -4280,7 +4280,7 @@ function.fedctc<-function(data
     subset5<-temp$income.base>temp$IncomeBin2Max
 
     temp$value.fedctc.refundable[subset5]<-0
-    temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
+    temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]*temp$numkidsunder17[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
 
     # Add refundable and non-refundable portions of CTC
     temp$value.fedctc<-rowMaxs(cbind(temp$value.fedctc.refundable+temp$value.fedctc.nonrefundable, 0), na.rm=TRUE)
@@ -4333,7 +4333,7 @@ function.fedctc<-function(data
     subset5<-temp$income.base>temp$IncomeBin2Max
 
     temp$value.fedctc.refundable[subset5]<-0
-    temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
+    temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]*temp$numkidsunder17[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
 
     # Add refundable and non-refundable portions of CTC
     temp$value.fedctc<-rowMaxs(cbind(temp$value.fedctc.refundable+temp$value.fedctc.nonrefundable, 0), na.rm=TRUE)
@@ -4386,7 +4386,7 @@ function.fedctc<-function(data
     subset5<-temp$income.base>temp$IncomeBin2Max
 
     temp$value.fedctc.refundable[subset5]<-0
-    temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
+    temp$value.fedctc.nonrefundable[subset5]<-rowMaxs(cbind(temp$CreditBin1[subset5]*temp$numkidsunder17[subset5]-(temp$income.base[subset5]-temp$IncomeBin2Max[subset5])*temp$PhaseOutSlope1[subset5],0))
 
     # Add refundable and non-refundable portions of CTC
     temp$value.fedctc<-rowMaxs(cbind(temp$value.fedctc.refundable+temp$value.fedctc.nonrefundable, 0), na.rm=TRUE)
