@@ -2116,7 +2116,7 @@ return(data)
 function.createVars<-function(data){
 
 data<-data %>%
-    mutate( income.aftertax.noTC = income +income.gift+income.investment+income.child_support - tax.income.fed - tax.income.state - tax.FICA
+    mutate( income.aftertax.noTC = income +income.gift - tax.income.fed - tax.income.state - tax.FICA
             # uses exp.healthcare.SS: healthcare expense based on costs of employer sponsored health insurance; plotted in expenses bar chart in CLIFF Dashboard and Planner
             ,SelfSufficiency = exp.childcare+exp.healthcare.SS+exp.food+exp.rentormortgage+exp.transportation+exp.misc+exp.utilities+exp.tech
 
@@ -2135,10 +2135,10 @@ data<-data %>%
             ,value.ctc=value.ctc.fed+value.ctc.state
             ,value.eitc=value.eitc.fed+value.eitc.state
 
-            ,NetResources = income+income.gift+income.investment+income.child_support+value.employerhealthcare+total.transfers-total.taxes-total.expenses
+            ,NetResources = income+income.gift+value.employerhealthcare+total.transfers-total.taxes-total.expenses
             
             #,netexp.housing=netexp.rentormortgage+netexp.utilities
-            ,AfterTaxIncome=(income+income.gift+income.investment+income.child_support)-(tax.income.fed+tax.income.state+tax.FICA)
+            ,AfterTaxIncome=(income+income.gift)-(tax.income.fed+tax.income.state+tax.FICA)
 
             )
 
@@ -2155,7 +2155,7 @@ return(data)
 function.createVars.CLIFF<-function(data){
 
   data<-data %>%
-    mutate( income.aftertax.noTC = income+income.gift+income.investment+income.child_support - tax.income.fed - tax.income.state - tax.FICA
+    mutate( income.aftertax.noTC = income+income.gift - tax.income.fed - tax.income.state - tax.FICA
 
             # Totals
             ,total.transfers = value.CCDF+value.HeadStart+value.earlyHeadStart+value.PreK+value.section8+value.tanf+value.snap+value.schoolmeals+value.wic+
@@ -2173,10 +2173,10 @@ function.createVars.CLIFF<-function(data){
             # Other elements of the budget constraint
             ,value.tuition.net = value.tuition-value.grants-value.loans.student
 
-            ,NetResources = income+income.gift+income.investment+income.child_support+value.employerhealthcare+total.transfers-value.tuition.net-total.taxes-total.expenses-studentLoanRepayment-value.loans
+            ,NetResources = income+income.gift+value.employerhealthcare+total.transfers-value.tuition.net-total.taxes-total.expenses-studentLoanRepayment-value.loans
 
             #,netexp.housing=netexp.rentormortgage+netexp.utilities
-            ,AfterTaxIncome=(income+income.gift+income.investment+income.child_support)-(tax.income.fed+tax.income.state+tax.FICA)
+            ,AfterTaxIncome=(income+income.gift)-(tax.income.fed+tax.income.state+tax.FICA)
 
     )
 
