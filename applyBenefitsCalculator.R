@@ -104,24 +104,5 @@ data<-BenefitsCalculator.TaxesandTaxCredits(data, APPLY_EITC, APPLY_CTC, APPLY_C
 data<-function.createVars(data)
 
 
-## 5. Select variables of interest and save results----
-data2<-data %>% 
-  
-  select(ruleYear, stateFIPS, stateName, stateAbbrev, countyortownName, famsize, numadults, numkids
-         , agePerson1, agePerson2, agePerson3, agePerson4, agePerson5, agePerson6, agePerson7, agePerson8, agePerson9, agePerson10, agePerson11, agePerson12,empl_healthcare
-         , income, assets.cash
-         , exp.childcare, exp.food, exp.rentormortgage, exp.healthcare, exp.utilities, exp.misc, exp.transportation
-         , netexp.childcare, netexp.food, netexp.rentormortgage, netexp.healthcare, netexp.utilities
-         , value.snap, value.schoolmeals, value.section8
-         , value.medicaid.adult, value.medicaid.child, value.aca, value.employerhealthcare
-         , value.CCDF, value.HeadStart, value.PreK
-         , value.cdctc.fed, value.cdctc.state, value.ctc.fed, value.ctc.state, value.eitc.fed, value.eitc.state
-         , value.eitc, value.ctc, value.cdctc, value.ssdi, value.ssi, value.tanf
-         , AfterTaxIncome, NetResources, tax.income.fed, tax.income.state) %>%
-  
-  relocate(value.ctc.state, value.ctc.fed, value.eitc.state, value.eitc.fed, tax.income.state, tax.income.fed)
-
-
-# write.csv(data2, file = paste0(current_directory,"/output/results_",PROJECT, ".csv"), row.names = FALSE)
 
 
